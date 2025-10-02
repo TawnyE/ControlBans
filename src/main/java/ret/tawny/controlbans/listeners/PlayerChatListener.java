@@ -10,6 +10,7 @@ import ret.tawny.controlbans.model.Punishment;
 import ret.tawny.controlbans.services.PunishmentService;
 
 import java.util.List;
+import java.util.Optional;
 
 public class PlayerChatListener implements Listener {
 
@@ -25,20 +26,29 @@ public class PlayerChatListener implements Listener {
     public void onPlayerChat(AsyncPlayerChatEvent event) {
         Player player = event.getPlayer();
 
-        punishmentService.getActiveMute(player.getUniqueId()).thenAccept(muteOptional -> {
-            if (muteOptional.isPresent() && !muteOptional.get().isExpired()) {
-                event.setCancelled(true);
+        // Block this async thread until the check completes.
+        Optional<Punishment> muteOptional = punishmentService.getActiveMute(player.getUniqueId()).join();
 
-                Punishment mute = muteOptional.get();
-                String configPath = mute.isPermanent() ? "screens.mute" : "screens.tempmute";
-                List<String> messageLines = plugin.getConfigManager().getMessageList(configPath);
-                String message = punishmentService.formatPunishmentScreen(mute, messageLines);
+        if (muteOptional.isPresent() && !muteOptional.get().isExpired()) {
+            event.setCancelled(true);
 
-                // Send mute message to the player on the main thread
-                plugin.getServer().getScheduler().runTask(plugin, () -> {
-                    player.sendMessage(message);
-                });
+            Punishment mute = muteOptional.get();
+            String configPath;
+
+            // Select the correct message screen based on IP and duration
+            if (mute.isIpBan()) {
+                configPath = mute.isPermanent() ? "screens.ip_mute" : "screens.ip_tempmute";
+            } else {
+                configPath = mute.isPermanent() ? "screens.mute" : "screens.tempmute";
             }
-        });
+
+            List<String> messageLines = plugin.getConfigManager().getMessageList(configPath);
+            String message = punishmentService.formatPunishmentScreen(mute, messageLines);
+
+            // Send mute message to the player on the main thread
+            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                player.sendMessage(message);
+            });
+        }
     }
 }

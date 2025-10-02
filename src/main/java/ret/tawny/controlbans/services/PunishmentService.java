@@ -13,6 +13,7 @@ import ret.tawny.controlbans.util.TimeUtil;
 import ret.tawny.controlbans.util.UuidUtil;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -455,58 +456,98 @@ public class PunishmentService {
         boolean isEffectivelySilent = punishment.isSilent() ^ plugin.getConfigManager().isSilentByDefault();
         final String message = formatMessage(formatBroadcastMessage(punishment));
 
+        Component messageComponent = Component.text(message);
+
         if (isEffectivelySilent) {
+            // Send only to console and staff with permission
             Bukkit.getScheduler().runTask(plugin, () -> {
-                Bukkit.getConsoleSender().sendMessage(Component.text(message));
+                Bukkit.getConsoleSender().sendMessage(messageComponent);
                 for (Player player : Bukkit.getOnlinePlayers()) {
                     if (player.hasPermission("controlbans.notify.silent")) {
-                        player.sendMessage(Component.text(message));
+                        player.sendMessage(messageComponent);
                     }
                 }
             });
         } else {
-            if (plugin.getConfigManager().isBroadcastConsole()) {
-                Bukkit.getConsoleSender().sendMessage(Component.text(message));
-            }
+            // Public broadcast
             if (plugin.getConfigManager().isBroadcastPlayers()) {
-                Bukkit.getScheduler().runTask(plugin, () -> Bukkit.broadcast(Component.text(message)));
+                Bukkit.getScheduler().runTask(plugin, () -> Bukkit.broadcast(messageComponent));
+            } else if (plugin.getConfigManager().isBroadcastConsole()) {
+                // If players are disabled but console is enabled, send only to console
+                Bukkit.getConsoleSender().sendMessage(messageComponent);
             }
         }
     }
 
     private void broadcastUnban(String playerName, String staffName) {
         if (!plugin.getConfigManager().isBroadcastEnabled()) return;
-        final String message = formatMessage(plugin.getConfigManager().getMessage("punishments.broadcast.format.unban").replace("%player%", playerName).replace("%staff%", staffName));
-        if (plugin.getConfigManager().isBroadcastConsole()) Bukkit.getConsoleSender().sendMessage(Component.text(message));
-        if (plugin.getConfigManager().isBroadcastPlayers()) Bukkit.getScheduler().runTask(plugin, () -> Bukkit.broadcast(Component.text(message)));
+        String format = plugin.getConfigManager().getMessage("punishments.broadcast.format.unban");
+        final String message = formatMessage(format.replace("%player%", playerName).replace("%staff%", staffName));
+        Component messageComponent = Component.text(message);
+
+        if (plugin.getConfigManager().isBroadcastPlayers()) {
+            Bukkit.getScheduler().runTask(plugin, () -> Bukkit.broadcast(messageComponent));
+        } else if (plugin.getConfigManager().isBroadcastConsole()) {
+            Bukkit.getConsoleSender().sendMessage(messageComponent);
+        }
     }
 
     private void broadcastUnmute(String playerName, String staffName) {
         if (!plugin.getConfigManager().isBroadcastEnabled()) return;
-        final String message = formatMessage(plugin.getConfigManager().getMessage("punishments.broadcast.format.unmute").replace("%player%", playerName).replace("%staff%", staffName));
-        if (plugin.getConfigManager().isBroadcastConsole()) Bukkit.getConsoleSender().sendMessage(Component.text(message));
-        if (plugin.getConfigManager().isBroadcastPlayers()) Bukkit.getScheduler().runTask(plugin, () -> Bukkit.broadcast(Component.text(message)));
+        String format = plugin.getConfigManager().getMessage("punishments.broadcast.format.unmute");
+        final String message = formatMessage(format.replace("%player%", playerName).replace("%staff%", staffName));
+        Component messageComponent = Component.text(message);
+
+        if (plugin.getConfigManager().isBroadcastPlayers()) {
+            Bukkit.getScheduler().runTask(plugin, () -> Bukkit.broadcast(messageComponent));
+        } else if (plugin.getConfigManager().isBroadcastConsole()) {
+            Bukkit.getConsoleSender().sendMessage(messageComponent);
+        }
     }
 
     private String formatBroadcastMessage(Punishment punishment) {
         String typeKey = punishment.getType().name().toLowerCase();
+        // Special case for ipban broadcast message
+        if (punishment.getType() == PunishmentType.IPBAN) {
+            typeKey = "ipban";
+        }
         String formatPath = "punishments.broadcast.format." + typeKey;
         String format = plugin.getConfigManager().getMessage(formatPath);
 
-        return format.replace("%player%", punishment.getTargetName())
-                .replace("%staff%", punishment.getStaffName())
-                .replace("%reason%", punishment.getReason())
-                .replace("%id%", punishment.getPunishmentId())
-                .replace("%duration%", punishment.getType().isTemporary() ? TimeUtil.formatDuration(punishment.getRemainingTime() / 1000) : "permanent");
+        String staff = punishment.getStaffName() != null ? punishment.getStaffName() : "CONSOLE";
+        String reason = punishment.getReason() != null ? punishment.getReason() : "Unspecified";
+        String id = punishment.getPunishmentId() != null ? punishment.getPunishmentId() : "N/A";
+
+        return format.replace("{player}", punishment.getTargetName())
+                .replace("{staff}", staff)
+                .replace("{reason}", reason)
+                .replace("{id}", id)
+                .replace("{duration}", punishment.getType().isTemporary() ? TimeUtil.formatDuration(punishment.getRemainingTime() / 1000) : "permanent");
     }
 
     public String formatPunishmentScreen(Punishment punishment, List<String> lines) {
+        String staff = punishment.getStaffName() != null ? punishment.getStaffName() : "Console";
+        String reason = punishment.getReason() != null ? punishment.getReason() : "Unspecified";
+        String id = punishment.getPunishmentId() != null ? punishment.getPunishmentId() : "N/A";
+
+        // ** THE FIX IS HERE **
+        // When a punishment is loaded from the DB, targetName can be null. Provide a fallback.
+        String playerName = punishment.getTargetName();
+        if (playerName == null) {
+            // Attempt to get the player's last known name from Bukkit
+            playerName = Bukkit.getOfflinePlayer(punishment.getTargetUuid()).getName();
+            if (playerName == null) { // If still null, use the UUID as a last resort
+                playerName = punishment.getTargetUuid().toString();
+            }
+        }
+        final String finalPlayerName = playerName;
+
         return lines.stream()
                 .map(line -> line
-                        .replace("{player}", punishment.getTargetName())
-                        .replace("{reason}", punishment.getReason())
-                        .replace("{staff}", punishment.getStaffName())
-                        .replace("{id}", punishment.getPunishmentId())
+                        .replace("{player}", finalPlayerName)
+                        .replace("{reason}", reason)
+                        .replace("{staff}", staff)
+                        .replace("{id}", id)
                         .replace("{date}", TimeUtil.formatDate(punishment.getCreatedTime()).split(" ")[0]) // Just the date part
                         .replace("{duration}", punishment.isPermanent() ? "Never" : TimeUtil.formatDuration(punishment.getRemainingTime() / 1000))
                 )
@@ -532,9 +573,16 @@ public class PunishmentService {
 
     private void recordPlayerHistory(Connection connection, UUID uuid, String name, String ip) {
         if (ip == null || ip.isBlank()) return;
+
+        String sql;
         String dbType = plugin.getDatabaseManager().getDatabaseType();
-        String sql = "postgresql".equals(dbType) ? "INSERT INTO litebans_history (date, name, uuid, ip) VALUES (?, ?, ?, ?) ON CONFLICT (uuid, ip) DO NOTHING" : "INSERT IGNORE INTO litebans_history (date, name, uuid, ip) VALUES (?, ?, ?, ?)";
-        try (var stmt = connection.prepareStatement(sql)) {
+        switch (dbType) {
+            case "sqlite" -> sql = "INSERT OR IGNORE INTO litebans_history (date, name, uuid, ip) VALUES (?, ?, ?, ?)";
+            case "postgresql" -> sql = "INSERT INTO litebans_history (date, name, uuid, ip) VALUES (?, ?, ?, ?) ON CONFLICT (uuid, ip) DO NOTHING";
+            default -> sql = "INSERT IGNORE INTO litebans_history (date, name, uuid, ip) VALUES (?, ?, ?, ?)"; // MySQL/MariaDB
+        }
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setLong(1, System.currentTimeMillis());
             stmt.setString(2, name);
             stmt.setString(3, uuid.toString());

@@ -253,21 +253,22 @@ messages:
   punishments:
     broadcast:
       format:
-        ban: "&b&lPunishment &7(Ban) &8» &fPlayer &b{player}&f, Punished by &b{staff}&f, Reason &b{reason} &7(&eID: {id}&7)"
-        tempban: "&b&lPunishment &7(Temp-Ban) &8» &fPlayer &b{player}&f, Punished by &b{staff}&f, Reason &b{reason} &7(&eID: {id}&7)"
-        unban: "&a&lPunishment &7(Unban) &8» &fPlayer &b%player% &fwas unbanned by &b%staff%"
-        mute: "&b&lPunishment &7(Mute) &8» &fPlayer &b{player}&f, Punished by &b{staff}&f, Reason &b{reason} &7(&eID: {id}&7)"
-        tempmute: "&b&lPunishment &7(Temp-Mute) &8» &fPlayer &b{player}&f, Punished by &b{staff}&f, Reason &b{reason} &7(&eID: {id}&7)"
-        unmute: "&a&lPunishment &7(Unmute) &8» &fPlayer &b%player% &fwas unmuted by &b%staff%"
-        warn: "&b&lPunishment &7(Warn) &8» &fPlayer &b{player}&f, Punished by &b{staff}&f, Reason &b{reason} &7(&eID: {id}&7)"
-        kick: "&b&lPunishment &7(Kick) &8» &fPlayer &b{player}&f, Punished by &b{staff}&f, Reason &b{reason} &7(&eID: {id}&7)"
-        ipban: "&b&lPunishment &7(IP-Ban) &8» &fIP &b{player}&f, Punished by &b{staff}&f, Reason &b{reason} &7(&eID: {id}&7)"
+        ban: "&b&lPunishment &7(Ban) &8» &fPlayer &b{player}&f, Punished by &b{staff}&f, Reason &b{reason}"
+        tempban: "&b&lPunishment &7(Temp-Ban) &8» &fPlayer &b{player}&f, Punished by &b{staff}&f, Reason &b{reason}"
+        unban: "&a&lPunishment &7(Unban) &8» &fPlayer &b{player} &fwas unbanned by &b{staff}"
+        mute: "&b&lPunishment &7(Mute) &8» &fPlayer &b{player}&f, Punished by &b{staff}&f, Reason &b{reason}"
+        tempmute: "&b&lPunishment &7(Temp-Mute) &8» &fPlayer &b{player}&f, Punished by &b{staff}&f, Reason &b{reason}"
+        unmute: "&a&lPunishment &7(Unmute) &8» &fPlayer &b{player} &fwas unmuted by &b{staff}"
+        warn: "&b&lPunishment &7(Warn) &8» &fPlayer &b{player}&f, Punished by &b{staff}&f, Reason &b{reason}"
+        kick: "&b&lPunishment &7(Kick) &8» &fPlayer &b{player}&f, Punished by &b{staff}&f, Reason &b{reason}"
+        ipban: "&b&lPunishment &7(IP-Ban) &8» &fIP &b{player}&f, Punished by &b{staff}&f, Reason &b{reason}"
 
   # Customizable disconnect/kick screens and messages
   screens:
     ban:
       - ""
       - "&bYou're banned from this server!"
+      - "&7&oPunishment ID: {id}"
       - ""
       - "&3● &bBanned on &f» &3{date}"
       - "&3● &bBanned by &f» &3{staff}"
@@ -279,6 +280,7 @@ messages:
     tempban:
       - ""
       - "&bYou're temporarily banned from this server!"
+      - "&7&oPunishment ID: {id}"
       - ""
       - "&3● &bBanned on &f» &3{date}"
       - "&3● &bBanned by &f» &3{staff}"
@@ -290,6 +292,7 @@ messages:
     ip_ban:
       - ""
       - "&c&lYour IP has been banned from this server!"
+      - "&7&oPunishment ID: {id}"
       - ""
       - "&4● &cBanned by &f» &4{staff}"
       - "&4● &cReason &f» &4{reason}"
@@ -300,6 +303,7 @@ messages:
     ip_tempban:
       - ""
       - "&c&lYour IP has been temporarily banned!"
+      - "&7&oPunishment ID: {id}"
       - ""
       - "&4● &cBanned by &f» &4{staff}"
       - "&4● &cReason &f» &4{reason}"
@@ -310,23 +314,34 @@ messages:
     kick:
       - ""
       - "&cYou were kicked from the server!"
+      - "&7&oPunishment ID: {id}"
       - ""
       - "&6⏵ &eReason &f» &6{reason}"
       - "&6⏵ &eKicked by &f» &6{staff}"
       - ""
     mute:
-      - "&b&lYou have been muted! &7(Permanent)"
+      - "&b&lYou have been muted! &7(Permanent) &7&oID: {id}"
       - "&3● &bMuted by &f» &3{staff}"
       - "&3● &bReason &f» &3{reason}"
       - "&3● &bExpires In &f» &3Never"
     tempmute:
-      - "&b&lYou have been muted!"
+      - "&b&lYou have been muted! &7&oID: {id}"
       - "&3● &bMuted by &f» &3{staff}"
       - "&3● &bReason &f» &3{reason}"
       - "&3● &bExpires In &f» &3{duration}"
+    ip_mute:
+      - "&c&lYour IP address has been muted! &7(Permanent) &7&oID: {id}"
+      - "&4● &cMuted by &f» &4{staff}"
+      - "&4● &cReason &f» &4{reason}"
+      - "&4● &cExpires In &f» &4Never"
+    ip_tempmute:
+      - "&c&lYour IP address has been muted! &7&oID: {id}"
+      - "&4● &cMuted by &f» &4{staff}"
+      - "&4● &cReason &f» &4{reason}"
+      - "&4● &cExpires In &f» &4{duration}"
     warn:
       - ""
-      - "&e&lYou have received a warning!"
+      - "&e&lYou have received a warning! &7&oID: {id}"
       - "&6⏵ &eWarned by &f» &6{staff}"
       - "&6⏵ &eReason &f» &6{reason}"
       - ""
