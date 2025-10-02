@@ -1,0 +1,154 @@
+name: ControlBans
+version: 17
+main: ret.tawny.controlbans.ControlBansPlugin
+description: Advanced punishment system with LiteBans compatibility
+api-version: "1.20"
+author: Tawny
+
+softdepend:
+  - DiscordSRV
+  - Floodgate
+
+commands:
+  ban:
+    description: Ban a player permanently
+    usage: /ban [-s] <player> [reason]
+    permission: controlbans.ban
+    aliases: [b]
+  tempban:
+    description: Temporarily ban a player
+    usage: /tempban [-s] <player> <time> [reason]
+    permission: controlbans.tempban
+    aliases: [tban, tb]
+  unban:
+    description: Unban a player or IP
+    usage: /unban [-s] <player|ip>
+    permission: controlbans.unban
+    aliases: [pardon]
+  mute:
+    description: Mute a player permanently
+    usage: /mute [-s] <player> [reason]
+    permission: controlbans.mute
+    aliases: [m]
+  tempmute:
+    description: Temporarily mute a player
+    usage: /tempmute [-s] <player> <time> [reason]
+    permission: controlbans.tempmute
+    aliases: [tmute, tm]
+  unmute:
+    description: Unmute a player
+    usage: /unmute [-s] <player>
+    permission: controlbans.unmute
+  warn:
+    description: Warn a player
+    usage: /warn [-s] <player> [reason]
+    permission: controlbans.warn
+    aliases: [w]
+  kick:
+    description: Kick a player
+    usage: /kick [-s] <player> [reason]
+    permission: controlbans.kick
+    aliases: [k]
+  history:
+    description: View player punishment history
+    usage: /history <player>
+    permission: controlbans.history
+    aliases: [h, punishments]
+  check:
+    description: Check if a player is banned/muted
+    usage: /check <player>
+    permission: controlbans.check
+    aliases: [c]
+  alts:
+    description: View alternate accounts for a player
+    usage: /alts <player>
+    permission: controlbans.alts
+    aliases: [alt]
+  controlbans:
+    description: Main ControlBans command for admin tasks like imports and reloads
+    usage: /controlbans <import|reload>
+    permission: controlbans.admin
+    aliases: [cb]
+  ipban:
+    description: Ban all accounts associated with an IP address.
+    usage: /ipban [-s] <player|ip> <time> [reason]
+    permission: controlbans.ban.ip
+    aliases: [iban]
+  ipmute:
+    description: Mute all accounts associated with an IP address.
+    usage: /ipmute [-s] <player|ip> <time> [reason]
+    permission: controlbans.mute.ip
+    aliases: [imute]
+
+permissions:
+  controlbans.*:
+    description: Access to all ControlBans commands
+    children:
+      controlbans.ban: true
+      controlbans.tempban: true
+      controlbans.unban: true
+      controlbans.mute: true
+      controlbans.tempmute: true
+      controlbans.unmute: true
+      controlbans.warn: true
+      controlbans.kick: true
+      controlbans.history: true
+      controlbans.check: true
+      controlbans.alts: true
+      controlbans.admin: true
+      controlbans.import: true
+      controlbans.exempt: true
+      controlbans.ban.ip: true
+      controlbans.mute.ip: true
+      controlbans.notify.silent: true
+  controlbans.ban:
+    description: Permission to ban players
+    default: op
+  controlbans.tempban:
+    description: Permission to temporarily ban players
+    default: op
+  controlbans.unban:
+    description: Permission to unban players
+    default: op
+  controlbans.mute:
+    description: Permission to mute players
+    default: op
+  controlbans.tempmute:
+    description: Permission to temporarily mute players
+    default: op
+  controlbans.unmute:
+    description: Permission to unmute players
+    default: op
+  controlbans.warn:
+    description: Permission to warn players
+    default: op
+  controlbans.kick:
+    description: Permission to kick players
+    default: op
+  controlbans.history:
+    description: Permission to view punishment history
+    default: op
+  controlbans.check:
+    description: Permission to check player punishment status
+    default: op
+  controlbans.alts:
+    description: Permission to view alternate accounts
+    default: op
+  controlbans.admin:
+    description: Permission for administrative commands (reload, etc.)
+    default: op
+  controlbans.import:
+    description: Permission to import punishments
+    default: op
+  controlbans.exempt:
+    description: Exemption from punishments
+    default: false
+  controlbans.ban.ip:
+    description: Permission to ban by IP address.
+    default: op
+  controlbans.mute.ip:
+    description: Permission to mute by IP address.
+    default: op
+  controlbans.notify.silent:
+    description: Receives broadcast messages for silent punishments.
+    default: op

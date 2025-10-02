@@ -1,0 +1,115 @@
+package ret.tawny.controlbans.config;
+
+import org.bukkit.configuration.file.FileConfiguration;
+import ret.tawny.controlbans.ControlBansPlugin;
+
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+public class ConfigManager {
+
+    private final ControlBansPlugin plugin;
+    private FileConfiguration config;
+    private final Map<String, Object> cachedValues = new ConcurrentHashMap<>();
+
+    public ConfigManager(ControlBansPlugin plugin) {
+        this.plugin = plugin;
+    }
+
+    public void loadConfig() {
+        plugin.saveDefaultConfig();
+        plugin.reloadConfig();
+        config = plugin.getConfig();
+        cachedValues.clear();
+        plugin.getLogger().info("Configuration loaded");
+    }
+
+    private <T extends Number> T getNumber(String key, T defaultValue) {
+        Object value = config.get(key, defaultValue);
+        if (value instanceof Number num) {
+            if (defaultValue instanceof Long) return (T) Long.valueOf(num.longValue());
+            if (defaultValue instanceof Integer) return (T) Integer.valueOf(num.intValue());
+            if (defaultValue instanceof Double) return (T) Double.valueOf(num.doubleValue());
+        }
+        return defaultValue;
+    }
+
+    private <T> T getCachedOrLoad(String key, Class<T> type, T defaultValue) {
+        return type.cast(cachedValues.computeIfAbsent(key, k -> {
+            if (defaultValue instanceof Number) {
+                return getNumber(k, (Number) defaultValue);
+            }
+            return config.get(k, defaultValue);
+        }));
+    }
+
+    public String getLicenseKey() {
+        return getCachedOrLoad("license-key", String.class, "");
+    }
+
+    // Database Configuration
+    public String getDatabaseType() { return getCachedOrLoad("database.type", String.class, "sqlite"); }
+    public String getDatabaseHost() { return getCachedOrLoad("database.host", String.class, "localhost"); }
+    public int getDatabasePort() { return getCachedOrLoad("database.port", Integer.class, 3306); }
+    public String getDatabaseName() { return getCachedOrLoad("database.database", String.class, "controlbans"); }
+    public String getDatabaseUsername() { return getCachedOrLoad("database.username", String.class, "root"); }
+    public String getDatabasePassword() { return getCachedOrLoad("database.password", String.class, "password"); }
+    public String getSqliteFile() { return getCachedOrLoad("database.sqlite-file", String.class, "punishments.db"); }
+    public int getPoolMaximumSize() { return getCachedOrLoad("database.pool.maximum-pool-size", Integer.class, 10); }
+    public int getPoolMinimumIdle() { return getCachedOrLoad("database.pool.minimum-idle", Integer.class, 5); }
+    public long getConnectionTimeout() { return getCachedOrLoad("database.pool.connection-timeout", Long.class, 30000L); }
+    public long getIdleTimeout() { return getCachedOrLoad("database.pool.idle-timeout", Long.class, 300000L); }
+    public long getMaxLifetime() { return getCachedOrLoad("database.pool.max-lifetime", Long.class, 1800000L); }
+
+    // Alt Punishment Configuration
+    public boolean isAltPunishEnabled() { return getCachedOrLoad("alts-punish.enabled", Boolean.class, false); }
+    public double getAltMinConfidence() { return getCachedOrLoad("alts-punish.safety.min-confidence", Double.class, 0.8); }
+    public int getAltMaxPunishments() { return getCachedOrLoad("alts-punish.safety.max-alts", Integer.class, 5); }
+    public long getAltCooldown() { return getCachedOrLoad("alts-punish.safety.cooldown", Long.class, 300L); }
+
+    // Web Configuration
+    public boolean isWebEnabled() { return getCachedOrLoad("web.enabled", Boolean.class, false); }
+    public String getWebHost() { return getCachedOrLoad("web.host", String.class, "0.0.0.0"); }
+    public int getWebPort() { return getCachedOrLoad("web.port", Integer.class, 8080); }
+    public String getWebAdminToken() { return getCachedOrLoad("web.admin-token", String.class, "change-me-please"); }
+    public List<String> getWebAllowedHosts() { return config.getStringList("web.allowed-hosts"); }
+    public int getWebRecordsPerPage() { return getCachedOrLoad("web.records-per-page", Integer.class, 50); }
+
+    // Integration Configuration
+    public boolean isDiscordEnabled() { return getCachedOrLoad("integrations.discord.enabled", Boolean.class, false); }
+    public String getDiscordBanChannel() { return getCachedOrLoad("integrations.discord.channels.bans", String.class, "ban-logs"); }
+    public String getDiscordUnbanChannel() { return getCachedOrLoad("integrations.discord.channels.unbans", String.class, "unban-logs"); }
+    public String getDiscordMuteChannel() { return getCachedOrLoad("integrations.discord.channels.mutes", String.class, "mute-logs"); }
+    public String getDiscordWarnChannel() { return getCachedOrLoad("integrations.discord.channels.warns", String.class, "warn-logs"); }
+    public String getDiscordKickChannel() { return getCachedOrLoad("integrations.discord.channels.kicks", String.class, "kick-logs"); }
+    public boolean isMCBlacklistEnabled() { return getCachedOrLoad("integrations.mcblacklist.enabled", Boolean.class, false); }
+    public String getMCBlacklistUrl() { return getCachedOrLoad("integrations.mcblacklist.firebase-url", String.class, "https://mcblacklistdb-default-rtdb.firebaseio.com/players.json"); }
+    public int getMCBlacklistCheckInterval() { return getCachedOrLoad("integrations.mcblacklist.check-interval", Integer.class, 60); }
+    public String getMCBlacklistReason() { return getCachedOrLoad("integrations.mcblacklist.reason", String.class, "Player found on MCBlacklist database"); }
+
+    // Cache Configuration
+    public boolean isCacheEnabled() { return getCachedOrLoad("cache.enabled", Boolean.class, true); }
+    public long getPlayerLookupTTL() { return getCachedOrLoad("cache.ttl.player-lookup", Long.class, 300L); }
+    public long getPunishmentCheckTTL() { return getCachedOrLoad("cache.ttl.punishment-check", Long.class, 60L); }
+    public long getAltLookupTTL() { return getCachedOrLoad("cache.ttl.alt-lookup", Long.class, 600L); }
+    public int getCacheMaxSize() { return getCachedOrLoad("cache.max-size", Integer.class, 10000); }
+
+    // Punishment Configuration
+    public String getDefaultBanReason() { return getCachedOrLoad("punishments.default-reasons.ban", String.class, "No reason specified"); }
+    public String getDefaultMuteReason() { return getCachedOrLoad("punishments.default-reasons.mute", String.class, "No reason specified"); }
+    public String getDefaultWarnReason() { return getCachedOrLoad("punishments.default-reasons.warn", String.class, "No reason specified"); }
+    public String getDefaultKickReason() { return getCachedOrLoad("punishments.default-reasons.kick", String.class, "No reason specified"); }
+    public long getMaxTempBanDuration() { return getCachedOrLoad("punishments.max-duration.tempban", Long.class, 2592000L); }
+    public long getMaxTempMuteDuration() { return getCachedOrLoad("punishments.max-duration.tempmute", Long.class, 604800L); }
+    public boolean isBroadcastEnabled() { return getCachedOrLoad("punishments.broadcast.enabled", Boolean.class, true); }
+    public boolean isBroadcastConsole() { return getCachedOrLoad("punishments.broadcast.console", Boolean.class, true); }
+    public boolean isBroadcastPlayers() { return getCachedOrLoad("punishments.broadcast.players", Boolean.class, true); }
+    public boolean isSilentByDefault() { return getCachedOrLoad("punishments.broadcast.silent-by-default", Boolean.class, false); }
+
+    // Messages
+    public String getMessage(String key) {
+        String message = config.getString("messages." + key);
+        return message != null ? message.replace("&", "§") : "Message not found: messages." + key;
+    }
+}
