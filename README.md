@@ -11,7 +11,7 @@
     <img src="https://img.shields.io/github/v/release/TawnyE/ControlBans?style=for-the-badge" alt="Latest Release">
   </a>
   <a href="https://discord.gg/xRchyJFkBG">
-    <img src="https://img.shields.io/discord/1310145740462624850?label=Discord&logo=discord&style=for-the-badge" alt="Discord">
+    <img src="https://img.shields.io/badge/Discord-Join-7289DA?style=for-the-badge&logo=discord" alt="Discord">
   </a>
   <a href="https://ko-fi.com/devtawny">
     <img src="https://img.shields.io/badge/Support-Ko--fi-red?style=for-the-badge&logo=kofi" alt="Support on Ko-fi">
