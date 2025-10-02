@@ -147,10 +147,10 @@ import:
 punishments:
   # Default reasons
   default-reasons:
-    ban: "No reason specified"
-    mute: "No reason specified"
-    warn: "No reason specified"
-    kick: "No reason specified"
+    ban: "Unspecified"
+    mute: "Unspecified"
+    warn: "Unspecified"
+    kick: "Disconnected"
 
   # Maximum punishment duration (for non-admins)
   max-duration:
@@ -249,14 +249,84 @@ messages:
     kick: "&aSuccessfully kicked &c%player%&a."
     import-complete: "&aImport completed successfully. Imported &c%count% &arecords."
 
+  # Broadcast messages
   punishments:
     broadcast:
       format:
-        ban: "&c%player% &7was banned by &c%staff%&7: &f%reason%"
-        tempban: "&c%player% &7was temporarily banned by &c%staff% &7for &c%duration%&7: &f%reason%"
-        unban: "&a%player% &7was unbanned by &a%staff%"
-        mute: "&6%player% &7was muted by &6%staff%&7: &f%reason%"
-        tempmute: "&6%player% &7was temporarily muted by &6%staff% &7for &6%duration%&7: &f%reason%"
-        unmute: "&a%player% &7was unmuted by &a%staff%"
-        warn: "&e%player% &7was warned by &e%staff%&7: &f%reason%"
-        kick: "&c%player% &7was kicked by &c%staff%&7: &f%reason%"
+        ban: "&b&lPunishment &7(Ban) &8» &fPlayer &b{player}&f, Punished by &b{staff}&f, Reason &b{reason} &7(&eID: {id}&7)"
+        tempban: "&b&lPunishment &7(Temp-Ban) &8» &fPlayer &b{player}&f, Punished by &b{staff}&f, Reason &b{reason} &7(&eID: {id}&7)"
+        unban: "&a&lPunishment &7(Unban) &8» &fPlayer &b%player% &fwas unbanned by &b%staff%"
+        mute: "&b&lPunishment &7(Mute) &8» &fPlayer &b{player}&f, Punished by &b{staff}&f, Reason &b{reason} &7(&eID: {id}&7)"
+        tempmute: "&b&lPunishment &7(Temp-Mute) &8» &fPlayer &b{player}&f, Punished by &b{staff}&f, Reason &b{reason} &7(&eID: {id}&7)"
+        unmute: "&a&lPunishment &7(Unmute) &8» &fPlayer &b%player% &fwas unmuted by &b%staff%"
+        warn: "&b&lPunishment &7(Warn) &8» &fPlayer &b{player}&f, Punished by &b{staff}&f, Reason &b{reason} &7(&eID: {id}&7)"
+        kick: "&b&lPunishment &7(Kick) &8» &fPlayer &b{player}&f, Punished by &b{staff}&f, Reason &b{reason} &7(&eID: {id}&7)"
+        ipban: "&b&lPunishment &7(IP-Ban) &8» &fIP &b{player}&f, Punished by &b{staff}&f, Reason &b{reason} &7(&eID: {id}&7)"
+
+  # Customizable disconnect/kick screens and messages
+  screens:
+    ban:
+      - ""
+      - "&bYou're banned from this server!"
+      - ""
+      - "&3● &bBanned on &f» &3{date}"
+      - "&3● &bBanned by &f» &3{staff}"
+      - "&3● &bReason &f» &3{reason}"
+      - ""
+      - "&a✔ &2Expiry Date &f» &aNever"
+      - "&d✉ &5Appeal &f» &dappeal.servername.com"
+      - ""
+    tempban:
+      - ""
+      - "&bYou're temporarily banned from this server!"
+      - ""
+      - "&3● &bBanned on &f» &3{date}"
+      - "&3● &bBanned by &f» &3{staff}"
+      - "&3● &bReason &f» &3{reason}"
+      - ""
+      - "&e✔ &6Expiry Date &f» &e{duration}"
+      - "&d✉ &5Appeal &f» &dappeal.servername.com"
+      - ""
+    ip_ban:
+      - ""
+      - "&c&lYour IP has been banned from this server!"
+      - ""
+      - "&4● &cBanned by &f» &4{staff}"
+      - "&4● &cReason &f» &4{reason}"
+      - ""
+      - "&a✔ &2Expiry Date &f» &aNever"
+      - "&d✉ &5Appeal &f» &dappeal.servername.com"
+      - ""
+    ip_tempban:
+      - ""
+      - "&c&lYour IP has been temporarily banned!"
+      - ""
+      - "&4● &cBanned by &f» &4{staff}"
+      - "&4● &cReason &f» &4{reason}"
+      - ""
+      - "&e✔ &6Expiry Date &f» &e{duration}"
+      - "&d✉ &5Appeal &f» &dappeal.servername.com"
+      - ""
+    kick:
+      - ""
+      - "&cYou were kicked from the server!"
+      - ""
+      - "&6⏵ &eReason &f» &6{reason}"
+      - "&6⏵ &eKicked by &f» &6{staff}"
+      - ""
+    mute:
+      - "&b&lYou have been muted! &7(Permanent)"
+      - "&3● &bMuted by &f» &3{staff}"
+      - "&3● &bReason &f» &3{reason}"
+      - "&3● &bExpires In &f» &3Never"
+    tempmute:
+      - "&b&lYou have been muted!"
+      - "&3● &bMuted by &f» &3{staff}"
+      - "&3● &bReason &f» &3{reason}"
+      - "&3● &bExpires In &f» &3{duration}"
+    warn:
+      - ""
+      - "&e&lYou have received a warning!"
+      - "&6⏵ &eWarned by &f» &6{staff}"
+      - "&6⏵ &eReason &f» &6{reason}"
+      - ""

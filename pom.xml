@@ -6,7 +6,7 @@
 
     <groupId>ret.tawny</groupId>
     <artifactId>controlbans</artifactId>
-    <version>1.7</version>
+    <version>1.9</version>
     <packaging>jar</packaging>
 
     <name>ControlBans</name>

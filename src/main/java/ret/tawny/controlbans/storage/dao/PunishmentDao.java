@@ -17,22 +17,23 @@ public class PunishmentDao {
     public void insertBan(Connection connection, Punishment punishment) throws SQLException {
         String sql = """
             INSERT INTO litebans_bans
-            (uuid, ip, reason, banned_by_uuid, banned_by_name, time, until, server_origin, silent, ipban, active)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (punishment_id, uuid, ip, reason, banned_by_uuid, banned_by_name, time, until, server_origin, silent, ipban, active)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """;
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            stmt.setString(1, punishment.getTargetUuid().toString());
-            stmt.setString(2, punishment.getTargetIp());
-            stmt.setString(3, punishment.getReason());
-            stmt.setString(4, punishment.getStaffUuid() != null ? punishment.getStaffUuid().toString() : null);
-            stmt.setString(5, punishment.getStaffName());
-            stmt.setLong(6, punishment.getCreatedTime());
-            stmt.setLong(7, punishment.getExpiryTime());
-            stmt.setString(8, punishment.getServerOrigin());
-            stmt.setBoolean(9, punishment.isSilent());
-            stmt.setBoolean(10, punishment.isIpBan());
-            stmt.setBoolean(11, punishment.isActive());
+            stmt.setString(1, punishment.getPunishmentId());
+            stmt.setString(2, punishment.getTargetUuid().toString());
+            stmt.setString(3, punishment.getTargetIp());
+            stmt.setString(4, punishment.getReason());
+            stmt.setString(5, punishment.getStaffUuid() != null ? punishment.getStaffUuid().toString() : null);
+            stmt.setString(6, punishment.getStaffName());
+            stmt.setLong(7, punishment.getCreatedTime());
+            stmt.setLong(8, punishment.getExpiryTime());
+            stmt.setString(9, punishment.getServerOrigin());
+            stmt.setBoolean(10, punishment.isSilent());
+            stmt.setBoolean(11, punishment.isIpBan());
+            stmt.setBoolean(12, punishment.isActive());
             stmt.executeUpdate();
         }
     }
@@ -40,22 +41,23 @@ public class PunishmentDao {
     public void insertMute(Connection connection, Punishment punishment) throws SQLException {
         String sql = """
             INSERT INTO litebans_mutes
-            (uuid, ip, reason, banned_by_uuid, banned_by_name, time, until, server_origin, silent, ipban, active)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (punishment_id, uuid, ip, reason, banned_by_uuid, banned_by_name, time, until, server_origin, silent, ipban, active)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """;
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            stmt.setString(1, punishment.getTargetUuid().toString());
-            stmt.setString(2, punishment.getTargetIp());
-            stmt.setString(3, punishment.getReason());
-            stmt.setString(4, punishment.getStaffUuid() != null ? punishment.getStaffUuid().toString() : null);
-            stmt.setString(5, punishment.getStaffName());
-            stmt.setLong(6, punishment.getCreatedTime());
-            stmt.setLong(7, punishment.getExpiryTime());
-            stmt.setString(8, punishment.getServerOrigin());
-            stmt.setBoolean(9, punishment.isSilent());
-            stmt.setBoolean(10, punishment.isIpBan());
-            stmt.setBoolean(11, punishment.isActive());
+            stmt.setString(1, punishment.getPunishmentId());
+            stmt.setString(2, punishment.getTargetUuid().toString());
+            stmt.setString(3, punishment.getTargetIp());
+            stmt.setString(4, punishment.getReason());
+            stmt.setString(5, punishment.getStaffUuid() != null ? punishment.getStaffUuid().toString() : null);
+            stmt.setString(6, punishment.getStaffName());
+            stmt.setLong(7, punishment.getCreatedTime());
+            stmt.setLong(8, punishment.getExpiryTime());
+            stmt.setString(9, punishment.getServerOrigin());
+            stmt.setBoolean(10, punishment.isSilent());
+            stmt.setBoolean(11, punishment.isIpBan());
+            stmt.setBoolean(12, punishment.isActive());
             stmt.executeUpdate();
         }
     }
@@ -63,23 +65,24 @@ public class PunishmentDao {
     public void insertWarning(Connection connection, Punishment punishment) throws SQLException {
         String sql = """
             INSERT INTO litebans_warnings
-            (uuid, ip, reason, banned_by_uuid, banned_by_name, time, until, server_origin, silent, ipban, active, warned)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (punishment_id, uuid, ip, reason, banned_by_uuid, banned_by_name, time, until, server_origin, silent, ipban, active, warned)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """;
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            stmt.setString(1, punishment.getTargetUuid().toString());
-            stmt.setString(2, punishment.getTargetIp());
-            stmt.setString(3, punishment.getReason());
-            stmt.setString(4, punishment.getStaffUuid() != null ? punishment.getStaffUuid().toString() : null);
-            stmt.setString(5, punishment.getStaffName());
-            stmt.setLong(6, punishment.getCreatedTime());
-            stmt.setLong(7, -1);
-            stmt.setString(8, punishment.getServerOrigin());
-            stmt.setBoolean(9, punishment.isSilent());
-            stmt.setBoolean(10, false);
-            stmt.setBoolean(11, punishment.isActive());
-            stmt.setBoolean(12, true);
+            stmt.setString(1, punishment.getPunishmentId());
+            stmt.setString(2, punishment.getTargetUuid().toString());
+            stmt.setString(3, punishment.getTargetIp());
+            stmt.setString(4, punishment.getReason());
+            stmt.setString(5, punishment.getStaffUuid() != null ? punishment.getStaffUuid().toString() : null);
+            stmt.setString(6, punishment.getStaffName());
+            stmt.setLong(7, punishment.getCreatedTime());
+            stmt.setLong(8, -1);
+            stmt.setString(9, punishment.getServerOrigin());
+            stmt.setBoolean(10, punishment.isSilent());
+            stmt.setBoolean(11, false);
+            stmt.setBoolean(12, punishment.isActive());
+            stmt.setBoolean(13, true);
             stmt.executeUpdate();
         }
     }
@@ -87,22 +90,23 @@ public class PunishmentDao {
     public void insertKick(Connection connection, Punishment punishment) throws SQLException {
         String sql = """
             INSERT INTO litebans_kicks
-            (uuid, ip, reason, banned_by_uuid, banned_by_name, time, until, server_origin, silent, ipban, active)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (punishment_id, uuid, ip, reason, banned_by_uuid, banned_by_name, time, until, server_origin, silent, ipban, active)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """;
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            stmt.setString(1, punishment.getTargetUuid().toString());
-            stmt.setString(2, punishment.getTargetIp());
-            stmt.setString(3, punishment.getReason());
-            stmt.setString(4, punishment.getStaffUuid() != null ? punishment.getStaffUuid().toString() : null);
-            stmt.setString(5, punishment.getStaffName());
-            stmt.setLong(6, punishment.getCreatedTime());
-            stmt.setLong(7, -1);
-            stmt.setString(8, punishment.getServerOrigin());
-            stmt.setBoolean(9, punishment.isSilent());
-            stmt.setBoolean(10, false);
+            stmt.setString(1, punishment.getPunishmentId());
+            stmt.setString(2, punishment.getTargetUuid().toString());
+            stmt.setString(3, punishment.getTargetIp());
+            stmt.setString(4, punishment.getReason());
+            stmt.setString(5, punishment.getStaffUuid() != null ? punishment.getStaffUuid().toString() : null);
+            stmt.setString(6, punishment.getStaffName());
+            stmt.setLong(7, punishment.getCreatedTime());
+            stmt.setLong(8, -1);
+            stmt.setString(9, punishment.getServerOrigin());
+            stmt.setBoolean(10, punishment.isSilent());
             stmt.setBoolean(11, false);
+            stmt.setBoolean(12, false);
             stmt.executeUpdate();
         }
     }
@@ -151,13 +155,13 @@ public class PunishmentDao {
 
     public List<Punishment> getPunishmentHistory(Connection connection, UUID uuid, int limit) throws SQLException {
         String sql = """
-            (SELECT id, uuid, ip, reason, banned_by_uuid, banned_by_name, time, until, server_origin, silent, ipban, active, 'BAN' as type FROM litebans_bans WHERE uuid = ?)
+            (SELECT *, 'BAN' as type FROM litebans_bans WHERE uuid = ?)
             UNION ALL
-            (SELECT id, uuid, ip, reason, banned_by_uuid, banned_by_name, time, until, server_origin, silent, ipban, active, 'MUTE' as type FROM litebans_mutes WHERE uuid = ?)
+            (SELECT *, 'MUTE' as type FROM litebans_mutes WHERE uuid = ?)
             UNION ALL
-            (SELECT id, uuid, ip, reason, banned_by_uuid, banned_by_name, time, until, server_origin, silent, ipban, active, 'WARN' as type FROM litebans_warnings WHERE uuid = ?)
+            (SELECT *, 'WARN' as type FROM litebans_warnings WHERE uuid = ?)
             UNION ALL
-            (SELECT id, uuid, ip, reason, banned_by_uuid, banned_by_name, time, until, server_origin, silent, ipban, active, 'KICK' as type FROM litebans_kicks WHERE uuid = ?)
+            (SELECT *, 'KICK' as type FROM litebans_kicks WHERE uuid = ?)
             ORDER BY time DESC LIMIT ?
             """;
         List<Punishment> history = new ArrayList<>();
@@ -177,15 +181,42 @@ public class PunishmentDao {
         return history;
     }
 
+    public Optional<Punishment> getPunishmentById(Connection connection, String punishmentId) throws SQLException {
+        String sql = """
+            (SELECT *, 'BAN' as type FROM litebans_bans WHERE punishment_id = ?)
+            UNION ALL
+            (SELECT *, 'MUTE' as type FROM litebans_mutes WHERE punishment_id = ?)
+            UNION ALL
+            (SELECT *, 'WARN' as type FROM litebans_warnings WHERE punishment_id = ?)
+            UNION ALL
+            (SELECT *, 'KICK' as type FROM litebans_kicks WHERE punishment_id = ?)
+            LIMIT 1
+            """;
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, punishmentId);
+            stmt.setString(2, punishmentId);
+            stmt.setString(3, punishmentId);
+            stmt.setString(4, punishmentId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    PunishmentType type = PunishmentType.valueOf(rs.getString("type"));
+                    return Optional.of(createPunishmentFromResultSet(rs, type));
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
+
     public List<Punishment> getRecentPunishments(Connection connection, int limit) throws SQLException {
         String sql = """
-            (SELECT id, uuid, ip, reason, banned_by_uuid, banned_by_name, time, until, server_origin, silent, ipban, active, 'BAN' as type FROM litebans_bans)
+            (SELECT *, 'BAN' as type FROM litebans_bans)
             UNION ALL
-            (SELECT id, uuid, ip, reason, banned_by_uuid, banned_by_name, time, until, server_origin, silent, ipban, active, 'MUTE' as type FROM litebans_mutes)
+            (SELECT *, 'MUTE' as type FROM litebans_mutes)
             UNION ALL
-            (SELECT id, uuid, ip, reason, banned_by_uuid, banned_by_name, time, until, server_origin, silent, ipban, active, 'WARN' as type FROM litebans_warnings)
+            (SELECT *, 'WARN' as type FROM litebans_warnings)
             UNION ALL
-            (SELECT id, uuid, ip, reason, banned_by_uuid, banned_by_name, time, until, server_origin, silent, ipban, active, 'KICK' as type FROM litebans_kicks)
+            (SELECT *, 'KICK' as type FROM litebans_kicks)
             ORDER BY time DESC LIMIT ?
             """;
         List<Punishment> punishments = new ArrayList<>();
@@ -240,6 +271,7 @@ public class PunishmentDao {
         String staffUuidStr = rs.getString("banned_by_uuid");
         return Punishment.builder()
                 .id(rs.getInt("id"))
+                .punishmentId(rs.getString("punishment_id"))
                 .type(type)
                 .targetUuid(UUID.fromString(rs.getString("uuid")))
                 .targetIp(rs.getString("ip"))

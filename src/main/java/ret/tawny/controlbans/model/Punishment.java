@@ -4,6 +4,7 @@ import java.util.UUID;
 
 public class Punishment {
     private final int id;
+    private final String punishmentId;
     private final PunishmentType type;
     private final UUID targetUuid;
     private final String targetName;
@@ -17,9 +18,10 @@ public class Punishment {
     private final boolean silent;
     private final boolean ipBan;
     private final boolean active;
-    
+
     private Punishment(Builder builder) {
         this.id = builder.id;
+        this.punishmentId = builder.punishmentId;
         this.type = builder.type;
         this.targetUuid = builder.targetUuid;
         this.targetName = builder.targetName;
@@ -34,13 +36,14 @@ public class Punishment {
         this.ipBan = builder.ipBan;
         this.active = builder.active;
     }
-    
+
     public static Builder builder() {
         return new Builder();
     }
-    
+
     // Getters
     public int getId() { return id; }
+    public String getPunishmentId() { return punishmentId; }
     public PunishmentType getType() { return type; }
     public UUID getTargetUuid() { return targetUuid; }
     public String getTargetName() { return targetName; }
@@ -54,23 +57,24 @@ public class Punishment {
     public boolean isSilent() { return silent; }
     public boolean isIpBan() { return ipBan; }
     public boolean isActive() { return active; }
-    
+
     public boolean isPermanent() {
         return expiryTime == -1 || expiryTime == 0;
     }
-    
+
     public boolean isExpired() {
         return !isPermanent() && System.currentTimeMillis() > expiryTime;
     }
-    
+
     public long getRemainingTime() {
         if (isPermanent()) return -1;
         long remaining = expiryTime - System.currentTimeMillis();
         return Math.max(0, remaining);
     }
-    
+
     public static class Builder {
         private int id;
+        private String punishmentId;
         private PunishmentType type;
         private UUID targetUuid;
         private String targetName;
@@ -84,8 +88,9 @@ public class Punishment {
         private boolean silent;
         private boolean ipBan;
         private boolean active = true;
-        
+
         public Builder id(int id) { this.id = id; return this; }
+        public Builder punishmentId(String punishmentId) { this.punishmentId = punishmentId; return this; }
         public Builder type(PunishmentType type) { this.type = type; return this; }
         public Builder targetUuid(UUID targetUuid) { this.targetUuid = targetUuid; return this; }
         public Builder targetName(String targetName) { this.targetName = targetName; return this; }
@@ -99,7 +104,7 @@ public class Punishment {
         public Builder silent(boolean silent) { this.silent = silent; return this; }
         public Builder ipBan(boolean ipBan) { this.ipBan = ipBan; return this; }
         public Builder active(boolean active) { this.active = active; return this; }
-        
+
         public Punishment build() {
             return new Punishment(this);
         }

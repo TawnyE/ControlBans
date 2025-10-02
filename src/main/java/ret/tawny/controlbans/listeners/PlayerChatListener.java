@@ -5,15 +5,20 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
+import ret.tawny.controlbans.ControlBansPlugin;
+import ret.tawny.controlbans.model.Punishment;
 import ret.tawny.controlbans.services.PunishmentService;
-import ret.tawny.controlbans.util.TimeUtil;
+
+import java.util.List;
 
 public class PlayerChatListener implements Listener {
 
     private final PunishmentService punishmentService;
+    private final ControlBansPlugin plugin;
 
     public PlayerChatListener(PunishmentService punishmentService) {
         this.punishmentService = punishmentService;
+        this.plugin = ControlBansPlugin.getInstance();
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -24,12 +29,15 @@ public class PlayerChatListener implements Listener {
             if (muteOptional.isPresent() && !muteOptional.get().isExpired()) {
                 event.setCancelled(true);
 
-                // Send mute message to the player
-                String message = "§cYou are currently muted.\n" +
-                        "§7Reason: §f" + muteOptional.get().getReason() + "\n" +
-                        (muteOptional.get().isPermanent() ? "§7Duration: §fPermanent" :
-                                "§7Expires in: §f" + TimeUtil.formatDuration(muteOptional.get().getRemainingTime() / 1000));
-                player.sendMessage(message);
+                Punishment mute = muteOptional.get();
+                String configPath = mute.isPermanent() ? "screens.mute" : "screens.tempmute";
+                List<String> messageLines = plugin.getConfigManager().getMessageList(configPath);
+                String message = punishmentService.formatPunishmentScreen(mute, messageLines);
+
+                // Send mute message to the player on the main thread
+                plugin.getServer().getScheduler().runTask(plugin, () -> {
+                    player.sendMessage(message);
+                });
             }
         });
     }

@@ -3,9 +3,11 @@ package ret.tawny.controlbans.config;
 import org.bukkit.configuration.file.FileConfiguration;
 import ret.tawny.controlbans.ControlBansPlugin;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 public class ConfigManager {
 
@@ -111,5 +113,15 @@ public class ConfigManager {
     public String getMessage(String key) {
         String message = config.getString("messages." + key);
         return message != null ? message.replace("&", "§") : "Message not found: messages." + key;
+    }
+
+    public List<String> getMessageList(String key) {
+        List<String> messages = config.getStringList("messages." + key);
+        if (messages.isEmpty()) {
+            return Collections.singletonList("&cMessage list not found: messages." + key);
+        }
+        return messages.stream()
+                .map(line -> line.replace("&", "§"))
+                .collect(Collectors.toList());
     }
 }

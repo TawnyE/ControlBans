@@ -8,6 +8,7 @@ import ret.tawny.controlbans.model.Punishment;
 import ret.tawny.controlbans.model.PunishmentType;
 import ret.tawny.controlbans.storage.DatabaseManager;
 import ret.tawny.controlbans.storage.dao.PunishmentDao;
+import ret.tawny.controlbans.util.IdUtil;
 import ret.tawny.controlbans.util.TimeUtil;
 import ret.tawny.controlbans.util.UuidUtil;
 
@@ -18,6 +19,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class PunishmentService {
 
@@ -43,6 +45,7 @@ public class PunishmentService {
             String targetIp = getPlayerIp(targetUuid);
 
             Punishment punishment = Punishment.builder()
+                    .punishmentId(IdUtil.generatePunishmentId())
                     .type(ipBan ? PunishmentType.IPBAN : PunishmentType.BAN)
                     .targetUuid(targetUuid)
                     .targetName(targetName)
@@ -64,7 +67,8 @@ public class PunishmentService {
                 cacheService.invalidatePlayerPunishments(targetUuid);
                 Player player = Bukkit.getPlayer(targetUuid);
                 if (player != null && player.isOnline()) {
-                    Bukkit.getScheduler().runTask(plugin, () -> player.kick(Component.text(formatBanMessage(punishment))));
+                    String kickMessage = getKickMessageFor(punishment);
+                    Bukkit.getScheduler().runTask(plugin, () -> player.kick(Component.text(kickMessage)));
                 }
                 handleAltPunishment(punishment);
                 broadcastPunishment(punishment);
@@ -87,7 +91,8 @@ public class PunishmentService {
             long expiryTime = System.currentTimeMillis() + (duration * 1000);
 
             Punishment punishment = Punishment.builder()
-                    .type(PunishmentType.TEMPBAN)
+                    .punishmentId(IdUtil.generatePunishmentId())
+                    .type(ipBan ? PunishmentType.IPBAN : PunishmentType.TEMPBAN)
                     .targetUuid(targetUuid)
                     .targetName(targetName)
                     .targetIp(targetIp)
@@ -108,7 +113,8 @@ public class PunishmentService {
                 cacheService.invalidatePlayerPunishments(targetUuid);
                 Player player = Bukkit.getPlayer(targetUuid);
                 if (player != null && player.isOnline()) {
-                    Bukkit.getScheduler().runTask(plugin, () -> player.kick(Component.text(formatTempBanMessage(punishment))));
+                    String kickMessage = getKickMessageFor(punishment);
+                    Bukkit.getScheduler().runTask(plugin, () -> player.kick(Component.text(kickMessage)));
                 }
                 handleAltPunishment(punishment);
                 broadcastPunishment(punishment);
@@ -148,6 +154,7 @@ public class PunishmentService {
             }
 
             Punishment punishment = Punishment.builder()
+                    .punishmentId(IdUtil.generatePunishmentId())
                     .type(PunishmentType.MUTE)
                     .targetUuid(targetUuid)
                     .targetName(targetName)
@@ -183,6 +190,7 @@ public class PunishmentService {
 
             long expiryTime = System.currentTimeMillis() + (duration * 1000);
             Punishment punishment = Punishment.builder()
+                    .punishmentId(IdUtil.generatePunishmentId())
                     .type(PunishmentType.TEMPMUTE)
                     .targetUuid(targetUuid)
                     .targetName(targetName)
@@ -236,6 +244,7 @@ public class PunishmentService {
             }
 
             Punishment punishment = Punishment.builder()
+                    .punishmentId(IdUtil.generatePunishmentId())
                     .type(PunishmentType.WARN)
                     .targetUuid(targetUuid)
                     .targetName(targetName)
@@ -255,7 +264,8 @@ public class PunishmentService {
             }).thenRun(() -> {
                 Player player = Bukkit.getPlayer(targetUuid);
                 if (player != null && player.isOnline()) {
-                    Bukkit.getScheduler().runTask(plugin, () -> player.sendMessage(Component.text(formatWarningMessage(punishment))));
+                    String warnMessage = formatPunishmentScreen(punishment, plugin.getConfigManager().getMessageList("screens.warn"));
+                    Bukkit.getScheduler().runTask(plugin, () -> player.sendMessage(Component.text(warnMessage)));
                 }
                 broadcastPunishment(punishment);
                 plugin.getIntegrationService().onPunishment(punishment);
@@ -275,6 +285,7 @@ public class PunishmentService {
             }
 
             Punishment punishment = Punishment.builder()
+                    .punishmentId(IdUtil.generatePunishmentId())
                     .type(PunishmentType.KICK)
                     .targetUuid(targetUuid)
                     .targetName(targetName)
@@ -292,7 +303,8 @@ public class PunishmentService {
                 punishmentDao.insertKick(connection, punishment);
                 recordPlayerHistory(connection, targetUuid, targetName, getPlayerIp(targetUuid));
             }).thenRun(() -> {
-                Bukkit.getScheduler().runTask(plugin, () -> player.kick(Component.text(formatKickMessage(punishment))));
+                String kickMessage = getKickMessageFor(punishment);
+                Bukkit.getScheduler().runTask(plugin, () -> player.kick(Component.text(kickMessage)));
                 broadcastPunishment(punishment);
                 plugin.getIntegrationService().onPunishment(punishment);
             });
@@ -307,6 +319,7 @@ public class PunishmentService {
             long expiryTime = (duration == -1) ? -1 : System.currentTimeMillis() + (duration * 1000);
 
             Punishment punishment = Punishment.builder()
+                    .punishmentId(IdUtil.generatePunishmentId())
                     .type(expiryTime == -1 ? PunishmentType.IPBAN : PunishmentType.TEMPBAN)
                     .targetUuid(UUID.nameUUIDFromBytes(ip.getBytes())) // Placeholder UUID for the IP
                     .targetName(ip) // Use IP as the name for broadcast messages
@@ -322,12 +335,12 @@ public class PunishmentService {
                     .build();
 
             return databaseManager.executeAsync(connection -> {
-                punishmentDao.insertBan(connection, punishment); // IP bans are stored in the main bans table
+                punishmentDao.insertBan(connection, punishment);
             }).thenRun(() -> {
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     for (Player player : Bukkit.getOnlinePlayers()) {
                         if (player.getAddress() != null && ip.equals(player.getAddress().getAddress().getHostAddress())) {
-                            String kickMessage = expiryTime == -1 ? formatBanMessage(punishment) : formatTempBanMessage(punishment);
+                            String kickMessage = getKickMessageFor(punishment);
                             player.kick(Component.text(kickMessage));
                         }
                     }
@@ -344,6 +357,7 @@ public class PunishmentService {
             }
             long expiryTime = (duration == -1) ? -1 : System.currentTimeMillis() + (duration * 1000);
             Punishment punishment = Punishment.builder()
+                    .punishmentId(IdUtil.generatePunishmentId())
                     .type(expiryTime == -1 ? PunishmentType.MUTE : PunishmentType.TEMPMUTE)
                     .targetUuid(UUID.nameUUIDFromBytes(ip.getBytes())) // Placeholder
                     .targetName(ip)
@@ -383,6 +397,10 @@ public class PunishmentService {
 
     public CompletableFuture<List<Punishment>> getPunishmentHistory(UUID uuid, int limit) {
         return databaseManager.executeQueryAsync(connection -> punishmentDao.getPunishmentHistory(connection, uuid, limit));
+    }
+
+    public CompletableFuture<Optional<Punishment>> getPunishmentById(String id) {
+        return databaseManager.executeQueryAsync(connection -> punishmentDao.getPunishmentById(connection, id.toUpperCase()));
     }
 
     public CompletableFuture<List<Punishment>> getRecentPunishments(int limit) {
@@ -471,27 +489,42 @@ public class PunishmentService {
     }
 
     private String formatBroadcastMessage(Punishment punishment) {
-        String typeKey = punishment.getType().name().toLowerCase().replace("tempban", "tempban").replace("tempmute", "tempmute");
+        String typeKey = punishment.getType().name().toLowerCase();
         String formatPath = "punishments.broadcast.format." + typeKey;
         String format = plugin.getConfigManager().getMessage(formatPath);
-        return format.replace("%player%", punishment.getTargetName()).replace("%staff%", punishment.getStaffName()).replace("%reason%", punishment.getReason()).replace("%duration%", punishment.getType().isTemporary() ? TimeUtil.formatDuration(punishment.getRemainingTime() / 1000) : "permanent");
+
+        return format.replace("%player%", punishment.getTargetName())
+                .replace("%staff%", punishment.getStaffName())
+                .replace("%reason%", punishment.getReason())
+                .replace("%id%", punishment.getPunishmentId())
+                .replace("%duration%", punishment.getType().isTemporary() ? TimeUtil.formatDuration(punishment.getRemainingTime() / 1000) : "permanent");
     }
 
-    private String formatBanMessage(Punishment punishment) {
-        return formatMessage("§cYou have been banned from this server.\n\n" + "§7Reason: §f" + punishment.getReason() + "\n" + "§7Banned by: §f" + punishment.getStaffName() + "\n" + "§7Duration: §fPermanent\n\n" + "§7Appeal at: §fyour-server.com/appeal");
+    public String formatPunishmentScreen(Punishment punishment, List<String> lines) {
+        return lines.stream()
+                .map(line -> line
+                        .replace("{player}", punishment.getTargetName())
+                        .replace("{reason}", punishment.getReason())
+                        .replace("{staff}", punishment.getStaffName())
+                        .replace("{id}", punishment.getPunishmentId())
+                        .replace("{date}", TimeUtil.formatDate(punishment.getCreatedTime()).split(" ")[0]) // Just the date part
+                        .replace("{duration}", punishment.isPermanent() ? "Never" : TimeUtil.formatDuration(punishment.getRemainingTime() / 1000))
+                )
+                .collect(Collectors.joining("\n"));
     }
 
-    private String formatTempBanMessage(Punishment punishment) {
-        return formatMessage("§cYou have been temporarily banned from this server.\n\n" + "§7Reason: §f" + punishment.getReason() + "\n" + "§7Banned by: §f" + punishment.getStaffName() + "\n" + "§7Expires: §f" + TimeUtil.formatDuration(punishment.getRemainingTime() / 1000) + "\n\n" + "§7Appeal at: §fyour-server.com/appeal");
+    public String getKickMessageFor(Punishment punishment) {
+        String configPath;
+        if (punishment.isIpBan()) {
+            configPath = punishment.isPermanent() ? "screens.ip_ban" : "screens.ip_tempban";
+        } else if (punishment.getType() == PunishmentType.KICK) {
+            configPath = "screens.kick";
+        } else {
+            configPath = punishment.isPermanent() ? "screens.ban" : "screens.tempban";
+        }
+        return formatPunishmentScreen(punishment, plugin.getConfigManager().getMessageList(configPath));
     }
 
-    private String formatWarningMessage(Punishment punishment) {
-        return formatMessage("§e§lWARNING\n\n" + "§7You have been warned for: §f" + punishment.getReason() + "\n" + "§7Warned by: §f" + punishment.getStaffName());
-    }
-
-    private String formatKickMessage(Punishment punishment) {
-        return formatMessage("§cYou were kicked from the server.\n\n" + "§7Reason: §f" + punishment.getReason() + "\n" + "§7Kicked by: §f" + punishment.getStaffName());
-    }
 
     private String formatMessage(String message) {
         return message.replace("&", "§");
