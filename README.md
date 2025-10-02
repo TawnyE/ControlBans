@@ -1,18 +1,20 @@
 # ControlBans
 
 <p align="center">
-  <img src="https://i.imgur.com/your-plugin-logo-or-banner.png" alt="ControlBans Banner"/>
+  <a href="https://builtbybit.com/resources/controlbans.78397/">
+    <img src="https://i.imgur.com/your-plugin-logo.png" alt="ControlBans Logo" width="150"/>
+  </a>
 </p>
 
 <p align="center">
   <strong>A modern, high-performance, and developer-friendly punishment system for Paper servers.</strong>
   <br />
   <br />
-  <a href="https://github.com/your-username/ControlBans/actions">
-    <img src="https://img.shields.io/github/actions/workflow/status/your-username/ControlBans/build.yml?branch=main&style=for-the-badge" alt="Build Status">
+  <a href="https://github.com/TawnyE/ControlBans/actions">
+    <img src="https://img.shields.io/github/actions/workflow/status/TawnyE/ControlBans/build.yml?branch=main&style=for-the-badge" alt="Build Status">
   </a>
-  <a href="https://github.com/your-username/ControlBans/releases/latest">
-    <img src="https://img.shields.io/github/v/release/your-username/ControlBans?style=for-the-badge" alt="Latest Release">
+  <a href="https://github.com/TawnyE/ControlBans/releases/latest">
+    <img src="https://img.shields.io/github/v/release/TawnyE/ControlBans?style=for-the-badge" alt="Latest Release">
   </a>
   <a href="https://ko-fi.com/devtawny">
     <img src="https://img.shields.io/badge/Support-Ko--fi-red?style=for-the-badge&logo=kofi" alt="Support on Ko-fi">
@@ -35,7 +37,7 @@ Built with performance as the top priority, ControlBans uses asynchronous databa
 -   🗃️ **Broad Database Support:** Works with MySQL, MariaDB, PostgreSQL, and SQLite out of the box.
 -   ⚡ **High Performance:** All database queries are handled asynchronously to prevent any lag.
 -   🔄 **LiteBans Schema Compatibility:** A true drop-in replacement. Your existing web integrations will continue to work seamlessly.
--   🔗 **Extensive Integrations:** Optional hooks for DiscordSRV and Geyser/Floodgate.
+-   🔗 **Extensive Integration:** Optional hooks for DiscordSRV and Geyser/Floodgate.
 -   🌐 **Built-in Web Viewer:** An optional, lightweight web panel to view punishments from your browser.
 -   🚚 **Easy Migration:** A simple, powerful import system to bring your bans over from vanilla (`banned-players.json`) and other plugins.
 
@@ -44,7 +46,7 @@ Built with performance as the top priority, ControlBans uses asynchronous databa
 ## 🚀 Installation
 
 ### For Server Admins
-1.  Download the latest release from the [Releases](https://github.com/your-username/ControlBans/releases) page.
+1.  Download the latest release from the [Releases](https://github.com/TawnyE/ControlBans/releases) page or from [BuiltByBit](https://builtbybit.com/resources/controlbans.78397/).
 2.  Place the `ControlBans-1.0.0.jar` file into your server's `/plugins` directory.
 3.  Restart your server. The plugin will generate its default configuration files.
 4.  Open `plugins/ControlBans/config.yml` and configure your database settings.
@@ -54,7 +56,7 @@ Built with performance as the top priority, ControlBans uses asynchronous databa
 1.  **Prerequisites:**
     *   Java JDK 17 or newer
     *   Apache Maven
-2.  Clone the repository: `git clone https://github.com/your-username/ControlBans.git`
+2.  Clone the repository: `git clone https://github.com/TawnyE/ControlBans.git`
 3.  Navigate to the project directory: `cd ControlBans`
 4.  Build the plugin using Maven: `mvn clean install`
 5.  The compiled JAR file will be located in the `/target` directory.
@@ -155,6 +157,7 @@ punishments:
 This plugin is open-source and maintained for free. If you find it useful, please consider supporting its development.
 
 *   **Support the Project:** [**Ko-fi.com/devtawny**](https://ko-fi.com/devtawny)
-*   **Report a Bug or Suggest a Feature:** [**Create an Issue**](https://github.com/httpsControlBans/issues)
-*   **Get Help:** Join our [**Discord Server**]([https://your-discord-link-here.com](https://discord.gg/xRchyJFkBG)
+*   **Report a Bug or Suggest a Feature:** [**Create an Issue**](https://github.com/TawnyE/ControlBans/issues)
+*   **Get Help:** Join our [**Discord Server**](https://discord.gg/xRchyJFkBG)
+
 Contributions are welcome! If you'd like to contribute, please fork the repository and submit a pull request.
