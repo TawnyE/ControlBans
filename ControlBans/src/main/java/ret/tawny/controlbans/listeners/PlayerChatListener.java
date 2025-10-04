@@ -35,7 +35,6 @@ public class PlayerChatListener implements Listener {
             Punishment mute = muteOptional.get();
             String configPath;
 
-            // Select the correct message screen based on IP and duration
             if (mute.isIpBan()) {
                 configPath = mute.isPermanent() ? "screens.ip_mute" : "screens.ip_tempmute";
             } else {
@@ -45,8 +44,7 @@ public class PlayerChatListener implements Listener {
             List<String> messageLines = plugin.getConfigManager().getMessageList(configPath);
             String message = punishmentService.formatPunishmentScreen(mute, messageLines);
 
-            // Send mute message to the player on the main thread
-            plugin.getServer().getScheduler().runTask(plugin, () -> {
+            plugin.getSchedulerAdapter().runTaskForPlayer(player, () -> {
                 player.sendMessage(message);
             });
         }

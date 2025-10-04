@@ -7,7 +7,7 @@ import ret.tawny.controlbans.listeners.PlayerChatListener;
 import ret.tawny.controlbans.listeners.PlayerJoinListener;
 import ret.tawny.controlbans.services.*;
 import ret.tawny.controlbans.storage.DatabaseManager;
-import ret.tawny.controlbans.services.WebService;
+import ret.tawny.controlbans.util.SchedulerAdapter;
 
 import java.util.logging.Level;
 
@@ -23,14 +23,18 @@ public class ControlBansPlugin extends JavaPlugin {
     private WebService webService;
     private IntegrationService integrationService;
     private ImportService importService;
+    private SchedulerAdapter schedulerAdapter;
+    private ProxyService proxyService;
 
     @Override
     public void onEnable() {
         instance = this;
         getLogger().info("Enabling ControlBans v" + getDescription().getVersion());
 
+        // Register plugin messaging channels for proxy communication
+        getServer().getMessenger().registerOutgoingPluginChannel(this, "controlbans:main");
+
         try {
-            // Reverted to direct startup logic
             initializePlugin();
             getLogger().info("ControlBans has been enabled successfully!");
         } catch (Exception e) {
@@ -50,6 +54,7 @@ public class ControlBansPlugin extends JavaPlugin {
     public void onDisable() {
         getLogger().info("Disabling ControlBans...");
         try {
+            getServer().getMessenger().unregisterOutgoingPluginChannel(this);
             if (webService != null) webService.shutdown();
             if (integrationService != null) integrationService.shutdown();
             if (databaseManager != null) databaseManager.shutdown();
@@ -63,6 +68,9 @@ public class ControlBansPlugin extends JavaPlugin {
     private void initializeCore() {
         configManager = new ConfigManager(this);
         configManager.loadConfig();
+
+        schedulerAdapter = new SchedulerAdapter(this);
+        proxyService = new ProxyService(this);
 
         databaseManager = new DatabaseManager(this, configManager);
         databaseManager.initialize();
@@ -158,4 +166,6 @@ public class ControlBansPlugin extends JavaPlugin {
     public WebService getWebService() { return webService; }
     public IntegrationService getIntegrationService() { return integrationService; }
     public ImportService getImportService() { return importService; }
+    public SchedulerAdapter getSchedulerAdapter() { return schedulerAdapter; }
+    public ProxyService getProxyService() { return proxyService; }
 }

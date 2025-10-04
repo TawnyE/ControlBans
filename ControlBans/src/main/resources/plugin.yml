@@ -1,9 +1,10 @@
 name: ControlBans
-version: 2.1
+version: 2.2
 main: ret.tawny.controlbans.ControlBansPlugin
 description: Advanced punishment system with LiteBans compatibility
 api-version: "1.20"
 author: Tawny
+folia-supported: true
 
 softdepend:
   - DiscordSRV

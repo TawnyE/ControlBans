@@ -143,6 +143,22 @@ import:
   # Backup before import
   create-backup: true
 
+  # Configure connection details for external punishment sources.
+  sources:
+    litebans:
+      # Database type: mysql, mariadb, postgresql, sqlite
+      type: sqlite
+      # For SQLite, provide the path relative to the server root directory
+      # e.g., plugins/LiteBans/litebans.db
+      sqlite-file: "plugins/LiteBans/litebans.db"
+
+      # --- Settings for MySQL/PostgreSQL ---
+      host: localhost
+      port: 3306
+      database: litebans
+      username: root
+      password: "password"
+
 # Punishment Settings
 punishments:
   # Default reasons
@@ -343,5 +359,5 @@ messages:
       - ""
       - "&e&lYou have received a warning! &7&oID: {id}"
       - "&6⏵ &eWarned by &f» &6{staff}"
-      - "&6⏵ &eReason &f» &6{reason}"
+      - "&6ⵗ &eReason &f» &6{reason}"
       - ""

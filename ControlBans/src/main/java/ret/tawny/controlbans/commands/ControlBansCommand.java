@@ -45,23 +45,27 @@ public class ControlBansCommand extends CommandBase {
             return;
         }
         if (args.length < 2) {
-            sender.sendMessage(ChatColor.RED + "Usage: /" + label + " import <vanilla>");
+            sender.sendMessage(ChatColor.RED + "Usage: /" + label + " import <essentials|litebans>");
             return;
         }
-        if ("vanilla".equalsIgnoreCase(args[1])) {
-            plugin.getImportService().importFromVanilla(sender);
-        } else {
-            sender.sendMessage(ChatColor.RED + "Unknown import type. Available: vanilla");
+        switch(args[1].toLowerCase()) {
+            case "essentials" -> plugin.getImportService().importFromEssentials(sender);
+            case "litebans" -> plugin.getImportService().importFromLiteBans(sender);
+            default -> sender.sendMessage(ChatColor.RED + "Unknown import type. Available: essentials, litebans");
         }
     }
 
     @Override
     public List<String> onTab(CommandSender sender, String[] args) {
         if (args.length == 1) {
-            return Stream.of("reload", "import").filter(s -> s.startsWith(args[0].toLowerCase())).collect(Collectors.toList());
+            return Stream.of("reload", "import")
+                    .filter(s -> s.startsWith(args[0].toLowerCase()))
+                    .collect(Collectors.toList());
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("import")) {
-            return Stream.of("vanilla").filter(s -> s.startsWith(args[1].toLowerCase())).collect(Collectors.toList());
+            return Stream.of("essentials", "litebans")
+                    .filter(s -> s.startsWith(args[1].toLowerCase()))
+                    .collect(Collectors.toList());
         }
         return List.of();
     }

@@ -1,0 +1,10 @@
+{
+  "id": "controlbans-velocity",
+  "name": "ControlBans-Velocity",
+  "version": "1.8",
+  "description": "Velocity bridge for ControlBans.",
+  "authors": [
+    "Tawny"
+  ],
+  "main": "ret.tawny.controlbans.velocity.ControlBansVelocity"
+}
