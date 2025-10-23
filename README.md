@@ -1,7 +1,10 @@
 ![Maintenance](https://img.shields.io/badge/Update_Frequency-Monthly-yellow)
 > ⚠️ **Disclaimer**  
-> This GitHub repository only receives updates **once per month**.  
-> For the **latest version**, please download from the other platforms where it's published.
+> This repository is updated **once per month**.  
+> For the **latest version**, please download from:  
+> • [BuiltByBit](https://builtbybit.com/resources/controlbans.78397/)  
+> • [Spigot](https://www.spigotmc.org/resources/controlbans.129646/)  
+> • [Modrinth](https://modrinth.com/plugin/controlbans)
 
 # ControlBans
 
