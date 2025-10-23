@@ -1,3 +1,8 @@
+![Maintenance](https://img.shields.io/badge/Update_Frequency-Monthly-yellow)
+> ⚠️ **Disclaimer**  
+> This GitHub repository only receives updates **once per month**.  
+> For the **latest version**, please download from the other platforms where it's published.
+
 # ControlBans
 
 <p align="center">
