@@ -14,6 +14,15 @@ errors:
   cannot-punish-exempt: "<red>Vous ne pouvez pas sanctionner ce joueur car il est exempté."
   command-from-console-error: "Cette commande ne peut être exécutée que par un joueur."
   id-not-found: "<red>Aucune sanction trouvée avec cet ID."
+
+appeals:
+  disabled: "<red>Les appels ne sont pas disponibles pour le moment."
+  message-required: "<red>Veuillez inclure un court message avec votre appel."
+  not-muted: "<red>Vous n'avez pas de mute actif à contester."
+  submitted: "<green>Votre appel pour la sanction <id> a été envoyé."
+  cooldown: "<red>Vous devez attendre <duration> avant d'envoyer un nouvel appel."
+  limit: "<red>Vous avez atteint la limite d'appels. Réessayez dans <duration>."
+  error: "<red>Une erreur est survenue lors de l'envoi de votre appel. Contactez l'équipe."
 success:
   ban: "<green>Le joueur <red><player><green> a été banni avec succès."
   tempban: "<green>Le joueur <red><player><green> a été banni temporairement pour <red><duration><green>."

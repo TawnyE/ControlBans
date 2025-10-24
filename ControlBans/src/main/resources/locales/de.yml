@@ -14,6 +14,15 @@ errors:
   cannot-punish-exempt: "<red>Du kannst diesen Spieler nicht bestrafen, da er ausgenommen ist."
   command-from-console-error: "Dieser Befehl kann nur von einem Spieler ausgeführt werden."
   id-not-found: "<red>Keine Bestrafung mit dieser ID gefunden."
+
+appeals:
+  disabled: "<red>Beschwerden sind derzeit nicht verfügbar."
+  message-required: "<red>Bitte füge deiner Beschwerde eine kurze Nachricht hinzu."
+  not-muted: "<red>Du hast keine aktive Stummschaltung, die du anfechten kannst."
+  submitted: "<green>Deine Beschwerde für Strafe <id> wurde eingereicht."
+  cooldown: "<red>Du musst <duration> warten, bevor du eine weitere Beschwerde einreichen kannst."
+  limit: "<red>Du hast das Beschwerdelimit erreicht. Versuche es in <duration> erneut."
+  error: "<red>Beim Einreichen deiner Beschwerde ist ein Fehler aufgetreten. Bitte kontaktiere das Team."
 success:
   ban: "<green>Erfolgreich <red><player><green> gebannt."
   tempban: "<green>Erfolgreich <red><player><green> für <red><duration><green> temporär gebannt."
