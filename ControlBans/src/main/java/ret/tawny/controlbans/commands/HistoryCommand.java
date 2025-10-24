@@ -1,51 +1,59 @@
 package ret.tawny.controlbans.commands;
-import org.bukkit.ChatColor;
-import org.bukkit.command.CommandSender;
-import ret.tawny.controlbans.ControlBansPlugin;
-import ret.tawny.controlbans.model.Punishment;
-import ret.tawny.controlbans.services.PunishmentService;
-import ret.tawny.controlbans.util.TimeUtil;
-import ret.tawny.controlbans.util.UuidUtil;
-public class HistoryCommand extends CommandBase {
-    private final PunishmentService punishmentService;
 
-    public HistoryCommand(ControlBansPlugin plugin, PunishmentService punishmentService) {
-        super(plugin, "history");
-        this.punishmentService = punishmentService;
+import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+import ret.tawny.controlbans.ControlBansPlugin;
+import ret.tawny.controlbans.commands.gui.HistoryGuiManager;
+
+import java.util.List;
+
+public class HistoryCommand extends CommandBase {
+    private final HistoryGuiManager guiManager;
+
+    public HistoryCommand(ControlBansPlugin plugin, HistoryGuiManager guiManager) {
+        super(plugin);
+        setCommand("history"); // Sets the command name for registration
+        this.guiManager = guiManager;
     }
 
     @Override
     public boolean execute(CommandSender sender, String[] args) {
-        if (!sender.hasPermission("controlbans.history")) {
-            sender.sendMessage(ChatColor.RED + "You don't have permission.");
+        if (!(sender instanceof Player viewer)) {
+            sender.sendMessage(locale.getMessage("errors.command-from-console-error"));
             return true;
         }
+
+        if (!viewer.hasPermission("controlbans.history")) {
+            viewer.sendMessage(locale.getMessage("errors.no-permission"));
+            return true;
+        }
+
         if (args.length < 1) {
-            sender.sendMessage(ChatColor.RED + "Usage: /" + label + " <player>");
+            viewer.sendMessage(locale.getMessage("errors.invalid-arguments", usagePlaceholder("/" + label + " <player>")));
             return true;
         }
 
         String targetName = args[0];
-        sender.sendMessage(ChatColor.YELLOW + "Fetching punishment history for " + targetName + "...");
 
-        UuidUtil.getUuid(targetName).thenCompose(uuid -> {
-            if (uuid == null) {
-                sender.sendMessage(ChatColor.RED + "Player not found.");
-                return null;
-            }
-            return punishmentService.getPunishmentHistory(uuid, 10);
-        }).thenAccept(history -> {
-            if (history == null) return;
-            if (history.isEmpty()) {
-                sender.sendMessage(ChatColor.GREEN + "No punishment history found.");
-            } else {
-                sender.sendMessage(ChatColor.GOLD + "--- Punishment History ---");
-                for (Punishment p : history) {
-                    String status = p.isActive() ? ChatColor.GREEN + "(Active)" : ChatColor.RED + "(Inactive)";
-                    sender.sendMessage(String.format("%s %s: %s - %s", status, p.getType().getDisplayName(), p.getReason(), TimeUtil.formatDate(p.getCreatedTime())));
-                }
-            }
-        });
+        @SuppressWarnings("deprecation")
+        OfflinePlayer target = Bukkit.getOfflinePlayer(targetName);
+
+        if (!target.hasPlayedBefore() && !target.isOnline()) {
+            viewer.sendMessage(locale.getMessage("errors.player-not-found", playerPlaceholder(targetName)));
+            return true;
+        }
+
+        guiManager.openHistoryGui(viewer, target, 1);
         return true;
+    }
+
+    @Override
+    public List<String> onTab(CommandSender sender, String[] args) {
+        if (args.length == 1) {
+            return getPlayerSuggestions(args[0]);
+        }
+        return List.of();
     }
 }

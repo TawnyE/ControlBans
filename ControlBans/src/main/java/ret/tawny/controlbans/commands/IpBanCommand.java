@@ -1,30 +1,28 @@
 package ret.tawny.controlbans.commands;
 
-import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import ret.tawny.controlbans.ControlBansPlugin;
-import ret.tawny.controlbans.services.PunishmentService;
 import ret.tawny.controlbans.util.TimeUtil;
 
+import java.util.List;
 import java.util.StringJoiner;
 
 public class IpBanCommand extends CommandBase {
-    private final PunishmentService punishmentService;
 
-    public IpBanCommand(ControlBansPlugin plugin, PunishmentService punishmentService) {
-        super(plugin, "ipban");
-        this.punishmentService = punishmentService;
+    public IpBanCommand(ControlBansPlugin plugin) {
+        super(plugin);
+        setCommand("ipban");
     }
 
     @Override
     public boolean execute(CommandSender sender, String[] args) {
         if (!sender.hasPermission("controlbans.ban.ip")) {
-            sender.sendMessage(ChatColor.RED + "You don't have permission to use this command.");
+            sender.sendMessage(locale.getMessage("errors.no-permission"));
             return true;
         }
 
         if (args.length < 2) {
-            sender.sendMessage(ChatColor.RED + "Usage: /" + label + " [-s] <player|ip> <time> [reason]");
+            sender.sendMessage(locale.getMessage("errors.invalid-arguments", usagePlaceholder("/" + label + " [-s] <player|ip> <time> [reason]")));
             return true;
         }
 
@@ -32,7 +30,7 @@ public class IpBanCommand extends CommandBase {
         int argOffset = silent ? 1 : 0;
 
         if (args.length <= argOffset + 1) {
-            sender.sendMessage(ChatColor.RED + "Usage: /" + label + " [-s] <player|ip> <time> [reason]");
+            sender.sendMessage(locale.getMessage("errors.invalid-arguments", usagePlaceholder("/" + label + " [-s] <player|ip> <time> [reason]")));
             return true;
         }
 
@@ -45,7 +43,7 @@ public class IpBanCommand extends CommandBase {
             if (durationStr.equalsIgnoreCase("0") || durationStr.equalsIgnoreCase("perm") || durationStr.equalsIgnoreCase("permanent")) {
                 duration = -1; // -1 signifies a permanent punishment
             } else {
-                sender.sendMessage(ChatColor.RED + "Invalid time format. Use 'perm' for permanent, or a duration like 1d2h.");
+                sender.sendMessage(locale.getMessage("errors.invalid-duration"));
                 return true;
             }
         }
@@ -56,17 +54,37 @@ public class IpBanCommand extends CommandBase {
         }
         String reason = reasonJoiner.toString().isEmpty() ? "IP Ban" : reasonJoiner.toString();
 
-        sender.sendMessage(ChatColor.YELLOW + "Applying IP ban for target: " + target);
+        sender.sendMessage(locale.getMessage("actions.ip-banning", playerPlaceholder(target)));
+        // Fixed: Corrected method name typo
         punishmentService.ipBanPlayer(target, duration, reason, getSenderUuid(sender), sender.getName(), silent)
                 .whenComplete((success, throwable) -> {
                     if (throwable != null) {
-                        sender.sendMessage(ChatColor.RED + "Could not apply IP ban: " + throwable.getMessage());
+                        sender.sendMessage(locale.getMessage("errors.database-error"));
                     } else if (success) {
-                        sender.sendMessage(ChatColor.GREEN + "Successfully applied IP ban.");
+                        sender.sendMessage(locale.getMessage("success.ipban"));
                     } else {
-                        sender.sendMessage(ChatColor.RED + "Could not find a player or valid IP to ban.");
+                        sender.sendMessage(locale.getMessage("errors.player-not-found", playerPlaceholder(target)));
                     }
                 });
         return true;
+    }
+
+    @Override
+    public List<String> onTab(CommandSender sender, String[] args) {
+        boolean isSilent = args.length > 0 && args[0].equalsIgnoreCase("-s");
+        int argIndex = args.length - 1;
+        String currentArg = args[argIndex];
+
+        int targetIndex = isSilent ? 1 : 0;
+        if (argIndex == targetIndex) {
+            return getPlayerSuggestions(currentArg);
+        }
+
+        int timeIndex = isSilent ? 2 : 1;
+        if (argIndex == timeIndex) {
+            return getIpTimeSuggestions(currentArg);
+        }
+
+        return List.of();
     }
 }

@@ -2,6 +2,9 @@ package ret.tawny.controlbans.services;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.ServletContextHandler;
@@ -10,10 +13,8 @@ import ret.tawny.controlbans.ControlBansPlugin;
 import ret.tawny.controlbans.config.ConfigManager;
 import ret.tawny.controlbans.model.Punishment;
 
-import jakarta.servlet.http.HttpServlet;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -26,13 +27,13 @@ public class WebService {
     private Server server;
     private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
-    public WebService(ControlBansPlugin plugin, PunishmentService punishmentService, AltService altService, ConfigManager config) {
+    public WebService(ControlBansPlugin plugin, PunishmentService punishmentService, ConfigManager config) {
         this.plugin = plugin;
         this.punishmentService = punishmentService;
         this.config = config;
     }
 
-    public void start() throws Exception {
+    public void start() {
         if (!config.isWebEnabled()) return;
 
         server = new Server(config.getWebPort());
@@ -44,8 +45,13 @@ public class WebService {
         context.addServlet(apiHolder, "/api/*");
 
         // Static content servlet (for web UI)
+        URL webResource = plugin.getClass().getClassLoader().getResource("web");
+        if (webResource == null) {
+            plugin.getLogger().severe("Could not find 'web' resource folder in JAR. Web UI will not be available.");
+            return;
+        }
         ServletHolder staticHolder = new ServletHolder("static", new DefaultServlet());
-        staticHolder.setInitParameter("resourceBase", plugin.getClass().getClassLoader().getResource("web").toExternalForm());
+        staticHolder.setInitParameter("resourceBase", webResource.toExternalForm());
         staticHolder.setInitParameter("dirAllowed", "false");
         staticHolder.setInitParameter("pathInfoOnly", "true");
         context.addServlet(staticHolder, "/*");
@@ -72,7 +78,7 @@ public class WebService {
         }
     }
 
-    public void restart() throws Exception {
+    public void restart() {
         shutdown();
         start();
     }
@@ -80,7 +86,6 @@ public class WebService {
     private class ApiServlet extends HttpServlet {
         @Override
         protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-            // Simple token-based auth
             String token = req.getHeader("Authorization");
             if (!config.getWebAdminToken().equals(token)) {
                 resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -92,7 +97,7 @@ public class WebService {
             resp.setCharacterEncoding(StandardCharsets.UTF_8.name());
 
             String path = req.getPathInfo();
-            if (path.equals("/punishments")) {
+            if ("/punishments".equals(path)) {
                 CompletableFuture<List<Punishment>> future = punishmentService.getRecentPunishments(config.getWebRecordsPerPage());
                 future.whenComplete((punishments, throwable) -> {
                     try {
@@ -104,7 +109,7 @@ public class WebService {
                             resp.getWriter().write(gson.toJson(punishments));
                         }
                     } catch (IOException e) {
-                        // Ignore
+                        // Response already committed
                     }
                 });
             } else {

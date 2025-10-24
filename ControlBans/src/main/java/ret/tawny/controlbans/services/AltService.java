@@ -1,5 +1,6 @@
 package ret.tawny.controlbans.services;
 
+import ret.tawny.controlbans.ControlBansPlugin;
 import ret.tawny.controlbans.model.Punishment;
 import ret.tawny.controlbans.storage.DatabaseManager;
 import java.sql.Connection;
@@ -15,10 +16,12 @@ import java.util.concurrent.CompletableFuture;
 
 public class AltService {
 
+    private final ControlBansPlugin plugin;
     private final DatabaseManager databaseManager;
     private final CacheService cacheService;
 
-    public AltService(DatabaseManager databaseManager, CacheService cacheService) {
+    public AltService(ControlBansPlugin plugin, DatabaseManager databaseManager, CacheService cacheService) {
+        this.plugin = plugin;
         this.databaseManager = databaseManager;
         this.cacheService = cacheService;
     }
@@ -41,11 +44,20 @@ public class AltService {
                         alts.remove(uuid); // Remove the original player from the alt list
                         return new ArrayList<>(alts);
                     } catch (SQLException e) {
-                        // Properly handle the exception inside the lambda
                         throw new RuntimeException("Failed to find alt accounts", e);
                     }
                 }), 600L // 10 minute cache
         );
+    }
+
+    public CompletableFuture<Set<String>> findSharedIps(UUID uuid) {
+        return databaseManager.executeQueryAsync(connection -> {
+            try {
+                return getPlayerIps(connection, uuid);
+            } catch (SQLException e) {
+                throw new RuntimeException("Failed to find shared IPs", e);
+            }
+        });
     }
 
     public CompletableFuture<Void> punishAlts(Punishment originalPunishment) {

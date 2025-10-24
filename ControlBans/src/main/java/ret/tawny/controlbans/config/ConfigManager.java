@@ -1,5 +1,6 @@
 package ret.tawny.controlbans.config;
 
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import ret.tawny.controlbans.ControlBansPlugin;
 
@@ -46,9 +47,8 @@ public class ConfigManager {
         }));
     }
 
-    public String getLicenseKey() {
-        return getCachedOrLoad("license-key", String.class, "");
-    }
+    // Language Configuration
+    public String getLanguage() { return getCachedOrLoad("language", String.class, "en"); }
 
     // Database Configuration
     public String getDatabaseType() { return getCachedOrLoad("database.type", String.class, "sqlite"); }
@@ -80,11 +80,9 @@ public class ConfigManager {
 
     // Integration Configuration
     public boolean isDiscordEnabled() { return getCachedOrLoad("integrations.discord.enabled", Boolean.class, false); }
-    public String getDiscordBanChannel() { return getCachedOrLoad("integrations.discord.channels.bans", String.class, "ban-logs"); }
-    public String getDiscordUnbanChannel() { return getCachedOrLoad("integrations.discord.channels.unbans", String.class, "unban-logs"); }
-    public String getDiscordMuteChannel() { return getCachedOrLoad("integrations.discord.channels.mutes", String.class, "mute-logs"); }
-    public String getDiscordWarnChannel() { return getCachedOrLoad("integrations.discord.channels.warns", String.class, "warn-logs"); }
-    public String getDiscordKickChannel() { return getCachedOrLoad("integrations.discord.channels.kicks", String.class, "kick-logs"); }
+    public ConfigurationSection getDiscordMessageConfig(String type) {
+        return config.getConfigurationSection("integrations.discord.messages." + type);
+    }
     public boolean isMCBlacklistEnabled() { return getCachedOrLoad("integrations.mcblacklist.enabled", Boolean.class, false); }
     public String getMCBlacklistUrl() { return getCachedOrLoad("integrations.mcblacklist.firebase-url", String.class, "https://mcblacklistdb-default-rtdb.firebaseio.com/players.json"); }
     public int getMCBlacklistCheckInterval() { return getCachedOrLoad("integrations.mcblacklist.check-interval", Integer.class, 60); }
@@ -98,10 +96,10 @@ public class ConfigManager {
     public int getCacheMaxSize() { return getCachedOrLoad("cache.max-size", Integer.class, 10000); }
 
     // Punishment Configuration
-    public String getDefaultBanReason() { return getCachedOrLoad("punishments.default-reasons.ban", String.class, "No reason specified"); }
-    public String getDefaultMuteReason() { return getCachedOrLoad("punishments.default-reasons.mute", String.class, "No reason specified"); }
-    public String getDefaultWarnReason() { return getCachedOrLoad("punishments.default-reasons.warn", String.class, "No reason specified"); }
-    public String getDefaultKickReason() { return getCachedOrLoad("punishments.default-reasons.kick", String.class, "No reason specified"); }
+    public String getDefaultBanReason() { return getCachedOrLoad("punishments.default-reasons.ban", String.class, "Unspecified"); }
+    public String getDefaultMuteReason() { return getCachedOrLoad("punishments.default-reasons.mute", String.class, "Unspecified"); }
+    public String getDefaultWarnReason() { return getCachedOrLoad("punishments.default-reasons.warn", String.class, "Unspecified"); }
+    public String getDefaultKickReason() { return getCachedOrLoad("punishments.default-reasons.kick", String.class, "Disconnected"); }
     public long getMaxTempBanDuration() { return getCachedOrLoad("punishments.max-duration.tempban", Long.class, 2592000L); }
     public long getMaxTempMuteDuration() { return getCachedOrLoad("punishments.max-duration.tempmute", Long.class, 604800L); }
     public boolean isBroadcastEnabled() { return getCachedOrLoad("punishments.broadcast.enabled", Boolean.class, true); }
@@ -109,19 +107,4 @@ public class ConfigManager {
     public boolean isBroadcastPlayers() { return getCachedOrLoad("punishments.broadcast.players", Boolean.class, true); }
     public boolean isSilentByDefault() { return getCachedOrLoad("punishments.broadcast.silent-by-default", Boolean.class, false); }
 
-    // Messages
-    public String getMessage(String key) {
-        String message = config.getString("messages." + key);
-        return message != null ? message.replace("&", "§") : "Message not found: messages." + key;
-    }
-
-    public List<String> getMessageList(String key) {
-        List<String> messages = config.getStringList("messages." + key);
-        if (messages.isEmpty()) {
-            return Collections.singletonList("&cMessage list not found: messages." + key);
-        }
-        return messages.stream()
-                .map(line -> line.replace("&", "§"))
-                .collect(Collectors.toList());
-    }
 }

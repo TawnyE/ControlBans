@@ -7,10 +7,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class PunishmentDao {
 
@@ -88,10 +86,11 @@ public class PunishmentDao {
     }
 
     public void insertKick(Connection connection, Punishment punishment) throws SQLException {
+        // **THE FIX:** The INSERT statement now perfectly matches the corrected CREATE TABLE statement.
         String sql = """
             INSERT INTO litebans_kicks
-            (punishment_id, uuid, ip, reason, banned_by_uuid, banned_by_name, time, until, server_origin, silent, ipban, active)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (punishment_id, uuid, ip, reason, banned_by_uuid, banned_by_name, time, server_origin, silent)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """;
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
@@ -102,11 +101,8 @@ public class PunishmentDao {
             stmt.setString(5, punishment.getStaffUuid() != null ? punishment.getStaffUuid().toString() : null);
             stmt.setString(6, punishment.getStaffName());
             stmt.setLong(7, punishment.getCreatedTime());
-            stmt.setLong(8, -1);
-            stmt.setString(9, punishment.getServerOrigin());
-            stmt.setBoolean(10, punishment.isSilent());
-            stmt.setBoolean(11, false);
-            stmt.setBoolean(12, false);
+            stmt.setString(8, punishment.getServerOrigin());
+            stmt.setBoolean(9, punishment.isSilent());
             stmt.executeUpdate();
         }
     }
@@ -154,34 +150,48 @@ public class PunishmentDao {
     }
 
     public List<Punishment> getPunishmentHistory(Connection connection, UUID uuid, int limit) throws SQLException {
-        String sql = """
-            (SELECT *, 'BAN' as type FROM litebans_bans WHERE uuid = ?)
-            UNION ALL
-            (SELECT *, 'MUTE' as type FROM litebans_mutes WHERE uuid = ?)
-            UNION ALL
-            (SELECT *, 'WARN' as type FROM litebans_warnings WHERE uuid = ?)
-            UNION ALL
-            (SELECT *, 'KICK' as type FROM litebans_kicks WHERE uuid = ?)
-            ORDER BY time DESC LIMIT ?
-            """;
         List<Punishment> history = new ArrayList<>();
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+
+        try (PreparedStatement stmt = connection.prepareStatement("SELECT * FROM litebans_bans WHERE uuid = ?")) {
             stmt.setString(1, uuid.toString());
-            stmt.setString(2, uuid.toString());
-            stmt.setString(3, uuid.toString());
-            stmt.setString(4, uuid.toString());
-            stmt.setInt(5, limit);
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    PunishmentType type = PunishmentType.valueOf(rs.getString("type"));
-                    history.add(createPunishmentFromResultSet(rs, type));
-                }
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                history.add(createPunishmentFromResultSet(rs, rs.getLong("until") == -1 ? PunishmentType.BAN : PunishmentType.TEMPBAN));
             }
         }
+        try (PreparedStatement stmt = connection.prepareStatement("SELECT * FROM litebans_mutes WHERE uuid = ?")) {
+            stmt.setString(1, uuid.toString());
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                history.add(createPunishmentFromResultSet(rs, rs.getLong("until") == -1 ? PunishmentType.MUTE : PunishmentType.TEMPMUTE));
+            }
+        }
+        try (PreparedStatement stmt = connection.prepareStatement("SELECT * FROM litebans_warnings WHERE uuid = ?")) {
+            stmt.setString(1, uuid.toString());
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                history.add(createPunishmentFromResultSet(rs, PunishmentType.WARN));
+            }
+        }
+        try (PreparedStatement stmt = connection.prepareStatement("SELECT * FROM litebans_kicks WHERE uuid = ?")) {
+            stmt.setString(1, uuid.toString());
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                history.add(createPunishmentFromResultSet(rs, PunishmentType.KICK));
+            }
+        }
+
+        history.sort(Comparator.comparingLong(Punishment::getCreatedTime).reversed());
+
+        if (history.size() > limit) {
+            return history.subList(0, limit);
+        }
+
         return history;
     }
 
     public Optional<Punishment> getPunishmentById(Connection connection, String punishmentId) throws SQLException {
+        // **THE FIX:** The UNION query for kicks is now corrected to provide NULL/default values for columns it doesn't have.
         String sql = """
             (SELECT *, 'BAN' as type FROM litebans_bans WHERE punishment_id = ?)
             UNION ALL
@@ -189,7 +199,11 @@ public class PunishmentDao {
             UNION ALL
             (SELECT *, 'WARN' as type FROM litebans_warnings WHERE punishment_id = ?)
             UNION ALL
-            (SELECT *, 'KICK' as type FROM litebans_kicks WHERE punishment_id = ?)
+            (SELECT id, punishment_id, uuid, ip, reason, banned_by_uuid, banned_by_name,
+             null as removed_by_uuid, null as removed_by_name, 0 as removed_by_date,
+             time, -1 as until, null as template, null as server_scope, server_origin, silent,
+             false as ipban, false as ipban_wildcard, false as active, 'KICK' as type
+             FROM litebans_kicks WHERE punishment_id = ?)
             LIMIT 1
             """;
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
@@ -209,27 +223,41 @@ public class PunishmentDao {
 
 
     public List<Punishment> getRecentPunishments(Connection connection, int limit) throws SQLException {
-        String sql = """
-            (SELECT *, 'BAN' as type FROM litebans_bans)
-            UNION ALL
-            (SELECT *, 'MUTE' as type FROM litebans_mutes)
-            UNION ALL
-            (SELECT *, 'WARN' as type FROM litebans_warnings)
-            UNION ALL
-            (SELECT *, 'KICK' as type FROM litebans_kicks)
-            ORDER BY time DESC LIMIT ?
-            """;
         List<Punishment> punishments = new ArrayList<>();
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+
+        try (PreparedStatement stmt = connection.prepareStatement("SELECT * FROM litebans_bans ORDER BY time DESC LIMIT ?")) {
             stmt.setInt(1, limit);
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    PunishmentType type = PunishmentType.valueOf(rs.getString("type"));
-                    punishments.add(createPunishmentFromResultSet(rs, type));
-                }
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                punishments.add(createPunishmentFromResultSet(rs, rs.getLong("until") == -1 ? PunishmentType.BAN : PunishmentType.TEMPBAN));
             }
         }
-        return punishments;
+        try (PreparedStatement stmt = connection.prepareStatement("SELECT * FROM litebans_mutes ORDER BY time DESC LIMIT ?")) {
+            stmt.setInt(1, limit);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                punishments.add(createPunishmentFromResultSet(rs, rs.getLong("until") == -1 ? PunishmentType.MUTE : PunishmentType.TEMPMUTE));
+            }
+        }
+        try (PreparedStatement stmt = connection.prepareStatement("SELECT * FROM litebans_warnings ORDER BY time DESC LIMIT ?")) {
+            stmt.setInt(1, limit);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                punishments.add(createPunishmentFromResultSet(rs, PunishmentType.WARN));
+            }
+        }
+        try (PreparedStatement stmt = connection.prepareStatement("SELECT * FROM litebans_kicks ORDER BY time DESC LIMIT ?")) {
+            stmt.setInt(1, limit);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                punishments.add(createPunishmentFromResultSet(rs, PunishmentType.KICK));
+            }
+        }
+
+        return punishments.stream()
+                .sorted(Comparator.comparingLong(Punishment::getCreatedTime).reversed())
+                .limit(limit)
+                .collect(Collectors.toList());
     }
 
     public void removeBan(Connection connection, UUID uuid, UUID removedBy, String removedByName) throws SQLException {
@@ -269,7 +297,7 @@ public class PunishmentDao {
 
     private Punishment createPunishmentFromResultSet(ResultSet rs, PunishmentType type) throws SQLException {
         String staffUuidStr = rs.getString("banned_by_uuid");
-        return Punishment.builder()
+        Punishment.Builder builder = Punishment.builder()
                 .id(rs.getInt("id"))
                 .punishmentId(rs.getString("punishment_id"))
                 .type(type)
@@ -279,11 +307,36 @@ public class PunishmentDao {
                 .staffUuid(staffUuidStr != null ? UUID.fromString(staffUuidStr) : null)
                 .staffName(rs.getString("banned_by_name"))
                 .createdTime(rs.getLong("time"))
-                .expiryTime(rs.getLong("until"))
                 .serverOrigin(rs.getString("server_origin"))
-                .silent(rs.getBoolean("silent"))
-                .ipBan(rs.getBoolean("ipban"))
-                .active(rs.getBoolean("active"))
-                .build();
+                .silent(rs.getBoolean("silent"));
+
+        if (hasColumn(rs, "active")) {
+            builder.active(rs.getBoolean("active"));
+        } else {
+            builder.active(false); // Kicks are never "active"
+        }
+
+        if (hasColumn(rs, "ipban")) {
+            builder.ipBan(rs.getBoolean("ipban"));
+        } else {
+            builder.ipBan(false);
+        }
+
+        if (hasColumn(rs, "until")) {
+            builder.expiryTime(rs.getLong("until"));
+        } else {
+            builder.expiryTime(-1); // Kicks don't have an expiry
+        }
+
+        return builder.build();
+    }
+
+    private boolean hasColumn(ResultSet rs, String columnName) {
+        try {
+            rs.findColumn(columnName);
+            return true;
+        } catch (SQLException e) {
+            return false;
+        }
     }
 }

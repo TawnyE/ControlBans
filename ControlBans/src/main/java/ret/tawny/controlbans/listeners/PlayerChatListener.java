@@ -1,10 +1,11 @@
 package ret.tawny.controlbans.listeners;
 
+import io.papermc.paper.event.player.AsyncChatEvent;
+import net.kyori.adventure.text.Component;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.AsyncPlayerChatEvent;
 import ret.tawny.controlbans.ControlBansPlugin;
 import ret.tawny.controlbans.model.Punishment;
 import ret.tawny.controlbans.services.PunishmentService;
@@ -14,16 +15,17 @@ import java.util.Optional;
 
 public class PlayerChatListener implements Listener {
 
-    private final PunishmentService punishmentService;
     private final ControlBansPlugin plugin;
+    private final PunishmentService punishmentService;
 
-    public PlayerChatListener(PunishmentService punishmentService) {
-        this.punishmentService = punishmentService;
-        this.plugin = ControlBansPlugin.getInstance();
+    public PlayerChatListener(ControlBansPlugin plugin) {
+        this.plugin = plugin;
+        this.punishmentService = plugin.getPunishmentService();
     }
 
+    // Using modern Paper AsyncChatEvent
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onPlayerChat(AsyncPlayerChatEvent event) {
+    public void onPlayerChat(AsyncChatEvent event) {
         Player player = event.getPlayer();
 
         // Block this async thread until the check completes.
@@ -33,20 +35,10 @@ public class PlayerChatListener implements Listener {
             event.setCancelled(true);
 
             Punishment mute = muteOptional.get();
-            String configPath;
+            List<Component> messageLines = punishmentService.getMuteMessageFor(mute);
 
-            if (mute.isIpBan()) {
-                configPath = mute.isPermanent() ? "screens.ip_mute" : "screens.ip_tempmute";
-            } else {
-                configPath = mute.isPermanent() ? "screens.mute" : "screens.tempmute";
-            }
-
-            List<String> messageLines = plugin.getConfigManager().getMessageList(configPath);
-            String message = punishmentService.formatPunishmentScreen(mute, messageLines);
-
-            plugin.getSchedulerAdapter().runTaskForPlayer(player, () -> {
-                player.sendMessage(message);
-            });
+            // Messages must be sent on the main thread
+            plugin.getSchedulerAdapter().runTaskForPlayer(player, () -> messageLines.forEach(player::sendMessage));
         }
     }
 }

@@ -119,6 +119,7 @@ public class SchemaMigrator {
     }
 
     private void createKicksTable() throws SQLException {
+        // **THE FIX:** The schema for kicks is now correct and simplified.
         String sql = """
             CREATE TABLE IF NOT EXISTS litebans_kicks (
                 id INTEGER %s,
@@ -129,14 +130,8 @@ public class SchemaMigrator {
                 banned_by_uuid VARCHAR(36),
                 banned_by_name VARCHAR(16),
                 time BIGINT NOT NULL,
-                until BIGINT NOT NULL,
-                template VARCHAR(128),
-                server_scope VARCHAR(32),
                 server_origin VARCHAR(32),
-                silent BOOLEAN NOT NULL DEFAULT FALSE,
-                ipban BOOLEAN NOT NULL DEFAULT FALSE,
-                ipban_wildcard BOOLEAN NOT NULL DEFAULT FALSE,
-                active BOOLEAN NOT NULL DEFAULT TRUE
+                silent BOOLEAN NOT NULL DEFAULT FALSE
             )
         """.formatted(getPrimaryKeyDefinition());
 

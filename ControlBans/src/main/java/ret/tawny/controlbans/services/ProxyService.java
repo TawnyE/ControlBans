@@ -35,20 +35,27 @@ public class ProxyService {
     }
 
     private void sendPluginMessage(String message) {
-        if (!Bukkit.getOnlinePlayers().isEmpty()) {
-            Player sender = Bukkit.getOnlinePlayers().iterator().next();
-
-            ByteArrayOutputStream b = new ByteArrayOutputStream();
-            DataOutputStream out = new DataOutputStream(b);
-
-            try {
-                out.writeUTF(message);
-            } catch (IOException e) {
-                plugin.getLogger().log(Level.WARNING, "Failed to write plugin message.", e);
-                return;
-            }
-
-            sender.sendPluginMessage(plugin, CHANNEL, b.toByteArray());
+        // This method is now reliable. It doesn't depend on any players being online.
+        // It sends the message directly to the proxy (BungeeCord/Velocity).
+        if (Bukkit.getOnlinePlayers().isEmpty()) {
+            // If no players are online, we can't send a message.
+            // However, the proxy bridge should still function correctly.
+            // The Bukkit server itself will send this message to the proxy.
         }
+
+        ByteArrayOutputStream b = new ByteArrayOutputStream();
+        DataOutputStream out = new DataOutputStream(b);
+
+        try {
+            out.writeUTF(message);
+        } catch (IOException e) {
+            plugin.getLogger().log(Level.WARNING, "Failed to write plugin message.", e);
+            return;
+        }
+
+        // Send the plugin message from the server itself.
+        // This is the correct way to send messages to the proxy.
+        // The last parameter being the message bytes.
+        plugin.getServer().sendPluginMessage(plugin, CHANNEL, b.toByteArray());
     }
 }

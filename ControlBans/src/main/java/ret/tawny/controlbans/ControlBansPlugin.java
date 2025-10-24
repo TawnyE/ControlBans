@@ -1,14 +1,23 @@
 package ret.tawny.controlbans;
 
+import org.bstats.bukkit.Metrics;
+import org.bstats.charts.DrilldownPie;
+import org.bstats.charts.SimplePie;
 import org.bukkit.plugin.java.JavaPlugin;
 import ret.tawny.controlbans.commands.*;
+import ret.tawny.controlbans.commands.gui.AltsGuiManager;
+import ret.tawny.controlbans.commands.gui.HistoryGuiManager;
 import ret.tawny.controlbans.config.ConfigManager;
+import ret.tawny.controlbans.listeners.GuiListener;
 import ret.tawny.controlbans.listeners.PlayerChatListener;
 import ret.tawny.controlbans.listeners.PlayerJoinListener;
+import ret.tawny.controlbans.locale.LocaleManager;
 import ret.tawny.controlbans.services.*;
 import ret.tawny.controlbans.storage.DatabaseManager;
 import ret.tawny.controlbans.util.SchedulerAdapter;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Level;
 
 public class ControlBansPlugin extends JavaPlugin {
@@ -16,22 +25,23 @@ public class ControlBansPlugin extends JavaPlugin {
     private static ControlBansPlugin instance;
 
     private ConfigManager configManager;
+    private LocaleManager localeManager;
     private DatabaseManager databaseManager;
     private PunishmentService punishmentService;
     private AltService altService;
-    private CacheService cacheService;
     private WebService webService;
     private IntegrationService integrationService;
     private ImportService importService;
     private SchedulerAdapter schedulerAdapter;
     private ProxyService proxyService;
+    private HistoryGuiManager historyGuiManager;
+    private AltsGuiManager altsGuiManager;
 
     @Override
     public void onEnable() {
         instance = this;
-        getLogger().info("Enabling ControlBans v" + getDescription().getVersion());
+        getLogger().info("Enabling ControlBans v" + getPluginMeta().getVersion());
 
-        // Register plugin messaging channels for proxy communication
         getServer().getMessenger().registerOutgoingPluginChannel(this, "controlbans:main");
 
         try {
@@ -45,6 +55,7 @@ public class ControlBansPlugin extends JavaPlugin {
 
     private void initializePlugin() {
         initializeCore();
+        initializeMetrics();
         registerCommands();
         registerListeners();
         initializeOptionalServices();
@@ -69,47 +80,73 @@ public class ControlBansPlugin extends JavaPlugin {
         configManager = new ConfigManager(this);
         configManager.loadConfig();
 
+        localeManager = new LocaleManager(this);
+
         schedulerAdapter = new SchedulerAdapter(this);
         proxyService = new ProxyService(this);
 
         databaseManager = new DatabaseManager(this, configManager);
         databaseManager.initialize();
 
-        cacheService = new CacheService(configManager);
+        CacheService cacheService = new CacheService(configManager);
         punishmentService = new PunishmentService(this, databaseManager, cacheService);
-        altService = new AltService(databaseManager, cacheService);
+        altService = new AltService(this, databaseManager, cacheService);
+
+        historyGuiManager = new HistoryGuiManager(this);
+        altsGuiManager = new AltsGuiManager(this);
 
         getLogger().info("Core services initialized");
     }
 
+    private void initializeMetrics() {
+        int pluginId = 27613;
+        Metrics metrics = new Metrics(this, pluginId);
+
+        metrics.addCustomChart(new SimplePie("database_type", () -> configManager.getDatabaseType()));
+        metrics.addCustomChart(new SimplePie("language", () -> configManager.getLanguage()));
+        metrics.addCustomChart(new DrilldownPie("enabled_integrations", () -> {
+            Map<String, Map<String, Integer>> map = new HashMap<>();
+            Map<String, Integer> integrations = new HashMap<>();
+            if (configManager.isDiscordEnabled()) integrations.put("DiscordSRV", 1);
+            if (configManager.isMCBlacklistEnabled()) integrations.put("MCBlacklist", 1);
+            if (integrations.isEmpty()) integrations.put("None", 1);
+            map.put("Integrations", integrations);
+            return map;
+        }));
+        metrics.addCustomChart(new SimplePie("web_ui_enabled", () -> configManager.isWebEnabled() ? "Enabled" : "Disabled"));
+        metrics.addCustomChart(new SimplePie("alt_punishment_enabled", () -> configManager.isAltPunishEnabled() ? "Enabled" : "Disabled"));
+        getLogger().info("bStats metrics initialized.");
+    }
+
     private void registerCommands() {
-        new BanCommand(this, punishmentService).register();
-        new TempBanCommand(this, punishmentService).register();
-        new UnbanCommand(this, punishmentService).register();
-        new MuteCommand(this, punishmentService).register();
-        new TempMuteCommand(this, punishmentService).register();
-        new UnmuteCommand(this, punishmentService).register();
-        new WarnCommand(this, punishmentService).register();
-        new KickCommand(this, punishmentService).register();
-        new IpBanCommand(this, punishmentService).register();
-        new IpMuteCommand(this, punishmentService).register();
-        new HistoryCommand(this, punishmentService).register();
-        new CheckCommand(this, punishmentService).register();
-        new AltsCommand(this, altService).register();
+        new BanCommand(this).register();
+        new TempBanCommand(this).register();
+        new UnbanCommand(this).register();
+        new MuteCommand(this).register();
+        new TempMuteCommand(this).register();
+        new UnmuteCommand(this).register();
+        new WarnCommand(this).register();
+        new KickCommand(this).register();
+        new IpBanCommand(this).register();
+        new IpMuteCommand(this).register();
+        new HistoryCommand(this, historyGuiManager).register();
+        new CheckCommand(this).register();
+        new AltsCommand(this, altsGuiManager).register();
         new ControlBansCommand(this).register();
         getLogger().info("Commands registered");
     }
 
     private void registerListeners() {
-        getServer().getPluginManager().registerEvents(new PlayerJoinListener(this, punishmentService), this);
-        getServer().getPluginManager().registerEvents(new PlayerChatListener(punishmentService), this);
+        getServer().getPluginManager().registerEvents(new PlayerJoinListener(this), this);
+        getServer().getPluginManager().registerEvents(new PlayerChatListener(this), this);
+        getServer().getPluginManager().registerEvents(new GuiListener(historyGuiManager, altsGuiManager), this);
         getLogger().info("Listeners registered");
     }
 
     private void initializeOptionalServices() {
         if (configManager.isWebEnabled()) {
             try {
-                webService = new WebService(this, punishmentService, altService, configManager);
+                webService = new WebService(this, punishmentService, configManager);
                 webService.start();
                 getLogger().info("Web service started on " + configManager.getWebHost() + ":" + configManager.getWebPort());
             } catch (Exception e) {
@@ -118,7 +155,7 @@ public class ControlBansPlugin extends JavaPlugin {
         }
 
         try {
-            integrationService = new IntegrationService(this, configManager, punishmentService);
+            integrationService = new IntegrationService(this, configManager);
             integrationService.initialize();
             getLogger().info("Integration service initialized");
         } catch (Exception e) {
@@ -133,6 +170,8 @@ public class ControlBansPlugin extends JavaPlugin {
         getLogger().info("Reloading ControlBans configuration...");
         try {
             configManager.loadConfig();
+            localeManager.reload();
+
             if (webService != null) {
                 if (configManager.isWebEnabled()) {
                     webService.restart();
@@ -141,7 +180,7 @@ public class ControlBansPlugin extends JavaPlugin {
                     webService = null;
                 }
             } else if (configManager.isWebEnabled()) {
-                webService = new WebService(this, punishmentService, altService, configManager);
+                webService = new WebService(this, punishmentService, configManager);
                 try {
                     webService.start();
                 } catch (Exception e) {
@@ -159,11 +198,10 @@ public class ControlBansPlugin extends JavaPlugin {
 
     public static ControlBansPlugin getInstance() { return instance; }
     public ConfigManager getConfigManager() { return configManager; }
+    public LocaleManager getLocaleManager() { return localeManager; }
     public DatabaseManager getDatabaseManager() { return databaseManager; }
     public PunishmentService getPunishmentService() { return punishmentService; }
     public AltService getAltService() { return altService; }
-    public CacheService getCacheService() { return cacheService; }
-    public WebService getWebService() { return webService; }
     public IntegrationService getIntegrationService() { return integrationService; }
     public ImportService getImportService() { return importService; }
     public SchedulerAdapter getSchedulerAdapter() { return schedulerAdapter; }

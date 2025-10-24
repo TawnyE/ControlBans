@@ -1,29 +1,27 @@
 package ret.tawny.controlbans.commands;
 
-import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import ret.tawny.controlbans.ControlBansPlugin;
-import ret.tawny.controlbans.services.PunishmentService;
 import ret.tawny.controlbans.util.TimeUtil;
 
+import java.util.List;
 import java.util.StringJoiner;
 
 public class TempMuteCommand extends CommandBase {
-    private final PunishmentService punishmentService;
 
-    public TempMuteCommand(ControlBansPlugin plugin, PunishmentService punishmentService) {
-        super(plugin, "tempmute");
-        this.punishmentService = punishmentService;
+    public TempMuteCommand(ControlBansPlugin plugin) {
+        super(plugin);
+        setCommand("tempmute");
     }
 
     @Override
     public boolean execute(CommandSender sender, String[] args) {
         if (!sender.hasPermission("controlbans.tempmute")) {
-            sender.sendMessage(ChatColor.RED + "You don't have permission.");
+            sender.sendMessage(locale.getMessage("errors.no-permission"));
             return true;
         }
         if (args.length < 2) {
-            sender.sendMessage(ChatColor.RED + "Usage: /" + label + " [-s] <player> <time> [reason]");
+            sender.sendMessage(locale.getMessage("errors.invalid-arguments", usagePlaceholder("/" + label + " [-s] <player> <time> [reason]")));
             return true;
         }
 
@@ -31,7 +29,7 @@ public class TempMuteCommand extends CommandBase {
         int targetIndex = silent ? 1 : 0;
 
         if (args.length <= targetIndex + 1) {
-            sender.sendMessage(ChatColor.RED + "Usage: /" + label + " [-s] <player> <time> [reason]");
+            sender.sendMessage(locale.getMessage("errors.invalid-arguments", usagePlaceholder("/" + label + " [-s] <player> <time> [reason]")));
             return true;
         }
 
@@ -41,7 +39,7 @@ public class TempMuteCommand extends CommandBase {
         try {
             duration = TimeUtil.parseDuration(durationStr);
         } catch (IllegalArgumentException e) {
-            sender.sendMessage(ChatColor.RED + "Invalid time format. Use: 1y1mo1w1d1h1m1s");
+            sender.sendMessage(locale.getMessage("errors.invalid-duration"));
             return true;
         }
 
@@ -51,15 +49,36 @@ public class TempMuteCommand extends CommandBase {
         }
         String reason = reasonJoiner.toString().isEmpty() ? null : reasonJoiner.toString();
 
-        sender.sendMessage(ChatColor.YELLOW + "Temporarily muting " + targetName + "...");
+        sender.sendMessage(locale.getMessage("actions.temp-muting", playerPlaceholder(targetName)));
         punishmentService.tempMutePlayer(targetName, duration, reason, getSenderUuid(sender), sender.getName(), silent)
                 .whenComplete((unused, throwable) -> {
                     if (throwable != null) {
-                        sender.sendMessage(ChatColor.RED + "Could not temp-mute player: " + throwable.getMessage());
+                        sender.sendMessage(locale.getMessage("errors.database-error"));
                     } else {
-                        sender.sendMessage(ChatColor.GREEN + "Successfully temporarily muted " + targetName + ".");
+                        sender.sendMessage(locale.getMessage("success.tempmute",
+                                playerPlaceholder(targetName),
+                                durationPlaceholder(TimeUtil.formatDuration(duration))
+                        ));
                     }
                 });
         return true;
+    }
+
+    @Override
+    public List<String> onTab(CommandSender sender, String[] args) {
+        boolean isSilent = args.length > 0 && args[0].equalsIgnoreCase("-s");
+        int argIndex = args.length - 1;
+        String currentArg = args[argIndex];
+
+        int targetIndex = isSilent ? 1 : 0;
+        if (argIndex == targetIndex) {
+            return getPlayerSuggestions(currentArg);
+        }
+
+        int timeIndex = isSilent ? 2 : 1;
+        if (argIndex == timeIndex) {
+            return getTimeSuggestions(currentArg);
+        }
+        return List.of();
     }
 }

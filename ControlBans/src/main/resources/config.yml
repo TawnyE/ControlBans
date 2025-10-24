@@ -2,6 +2,11 @@
 # Advanced punishment system with LiteBans compatibility
 # Version: 1.0.0
 
+# Language for all plugin messages.
+# Default language files (en, de, es, fr, ru, tr) are included.
+# You can create your own by copying 'en.yml' from the locales folder.
+language: "en"
+
 # Database Configuration
 database:
   # Database type: mysql, mariadb, postgresql, sqlite
@@ -80,26 +85,128 @@ integrations:
   discord:
     enabled: false
 
-    # Channel IDs for different punishment types
-    channels:
-      bans: "ban-logs"
-      unbans: "unban-logs"
-      mutes: "mute-logs"
-      warns: "warn-logs"
-      kicks: "kick-logs"
-
-    # Message formatting
-    embed-color:
-      ban: 16711680      # Red
-      unban: 65280       # Green
-      mute: 16776960     # Yellow
-      warn: 16753920     # Orange
-      kick: 12632256     # Purple
-
-    # Include additional information
-    include-duration: true
-    include-reason: true
-    include-staff: true
+    # Placeholders: {player}, {staff}, {reason}, {duration}, {id}, {server}
+    messages:
+      ban:
+        enabled: true
+        channel: "ban-logs"
+        color: "#AA0000"
+        title: "Player Banned"
+        description: "`{player}` was permanently banned from the server."
+        fields:
+          - name: "Banned By"
+            value: "`{staff}`"
+            inline: true
+          - name: "Reason"
+            value: "`{reason}`"
+            inline: true
+        footer: "Punishment ID: {id}"
+      tempban:
+        enabled: true
+        channel: "ban-logs"
+        color: "#FFAA00"
+        title: "Player Temporarily Banned"
+        description: "`{player}` was temporarily banned from the server."
+        fields:
+          - name: "Banned By"
+            value: "`{staff}`"
+            inline: true
+          - name: "Duration"
+            value: "`{duration}`"
+            inline: true
+          - name: "Reason"
+            value: "`{reason}`"
+            inline: false
+        footer: "Punishment ID: {id}"
+      ipban:
+        enabled: true
+        channel: "ban-logs"
+        color: "#550000"
+        title: "Player IP Banned"
+        description: "An IP address associated with `{player}` was banned."
+        fields:
+          - name: "Banned By"
+            value: "`{staff}`"
+            inline: true
+          - name: "Reason"
+            value: "`{reason}`"
+            inline: true
+          - name: "Duration"
+            value: "`{duration}`"
+            inline: false
+        footer: "Punishment ID: {id}"
+      mute:
+        enabled: true
+        channel: "mute-logs"
+        color: "#5555FF"
+        title: "Player Muted"
+        description: "`{player}` was permanently muted."
+        fields:
+          - name: "Muted By"
+            value: "`{staff}`"
+            inline: true
+          - name: "Reason"
+            value: "`{reason}`"
+            inline: true
+        footer: "Punishment ID: {id}"
+      tempmute:
+        enabled: true
+        channel: "mute-logs"
+        color: "#55FFFF"
+        title: "Player Temporarily Muted"
+        description: "`{player}` was temporarily muted."
+        fields:
+          - name: "Muted By"
+            value: "`{staff}`"
+            inline: true
+          - name: "Duration"
+            value: "`{duration}`"
+            inline: true
+          - name: "Reason"
+            value: "`{reason}`"
+            inline: false
+        footer: "Punishment ID: {id}"
+      warn:
+        enabled: true
+        channel: "warn-logs"
+        color: "#FFFF55"
+        title: "Player Warned"
+        description: "`{player}` has been warned."
+        fields:
+          - name: "Warned By"
+            value: "`{staff}`"
+            inline: true
+          - name: "Reason"
+            value: "`{reason}`"
+            inline: true
+        footer: "Punishment ID: {id}"
+      kick:
+        enabled: true
+        channel: "kick-logs"
+        color: "#FF55FF"
+        title: "Player Kicked"
+        description: "`{player}` was kicked from the server."
+        fields:
+          - name: "Kicked By"
+            value: "`{staff}`"
+            inline: true
+          - name: "Reason"
+            value: "`{reason}`"
+            inline: true
+        footer: "Punishment ID: {id}"
+      unban:
+        enabled: true
+        channel: "unban-logs"
+        color: "#55FF55"
+        title: "Player Unbanned"
+        description: "`{player}` was unbanned from the server."
+        fields:
+          - name: "Unbanned By"
+            value: "`{staff}`"
+            inline: true
+          - name: "Player"
+            value: "`{player}`"
+            inline: true
 
   # Geyser/Floodgate Integration
   geyser:
@@ -221,7 +328,7 @@ performance:
 # Time Format
 time-format:
   # Date format for displays
-  date-format: "yyyy-MM-dd HH:mm:ss"
+  date-format: "yyyy-MM-dd"
 
   # Timezone (default: server timezone)
   timezone: "UTC"
@@ -235,129 +342,3 @@ time-format:
     w: weeks
     mo: months
     y: years
-
-# Messages
-messages:
-  # Prefix for all plugin messages
-  prefix: "&8[&cControlBans&8] &7"
-
-  # Error messages
-  errors:
-    no-permission: "&cYou don't have permission to use this command."
-    player-not-found: "&cPlayer '%player%' not found."
-    player-not-banned: "&cPlayer '%player%' is not banned."
-    player-not-muted: "&cPlayer '%player%' is not muted."
-    player-offline: "&cPlayer '%player%' is not online."
-    invalid-duration: "&cInvalid duration format. Use: 1d2h3m4s"
-    invalid-arguments: "&cInvalid arguments. Usage: %usage%"
-    database-error: "&cDatabase error occurred. Please try again."
-    import-failed: "&cImport failed: %error%"
-
-  # Success messages
-  success:
-    ban: "&aSuccessfully banned &c%player%&a."
-    tempban: "&aSuccessfully temporarily banned &c%player% &afor &c%duration%&a."
-    unban: "&aSuccessfully unbanned &c%player%&a."
-    mute: "&aSuccessfully muted &c%player%&a."
-    tempmute: "&aSuccessfully temporarily muted &c%player% &afor &c%duration%&a."
-    unmute: "&aSuccessfully unmuted &c%player%&a."
-    warn: "&aSuccessfully warned &c%player%&a."
-    kick: "&aSuccessfully kicked &c%player%&a."
-    import-complete: "&aImport completed successfully. Imported &c%count% &arecords."
-
-  # Broadcast messages
-  punishments:
-    broadcast:
-      format:
-        ban: "&b&lPunishment &7(Ban) &8» &fPlayer &b{player}&f, Punished by &b{staff}&f, Reason &b{reason}"
-        tempban: "&b&lPunishment &7(Temp-Ban) &8» &fPlayer &b{player}&f, Punished by &b{staff}&f, Reason &b{reason}"
-        unban: "&a&lPunishment &7(Unban) &8» &fPlayer &b{player} &fwas unbanned by &b{staff}"
-        mute: "&b&lPunishment &7(Mute) &8» &fPlayer &b{player}&f, Punished by &b{staff}&f, Reason &b{reason}"
-        tempmute: "&b&lPunishment &7(Temp-Mute) &8» &fPlayer &b{player}&f, Punished by &b{staff}&f, Reason &b{reason}"
-        unmute: "&a&lPunishment &7(Unmute) &8» &fPlayer &b{player} &fwas unmuted by &b{staff}"
-        warn: "&b&lPunishment &7(Warn) &8» &fPlayer &b{player}&f, Punished by &b{staff}&f, Reason &b{reason}"
-        kick: "&b&lPunishment &7(Kick) &8» &fPlayer &b{player}&f, Punished by &b{staff}&f, Reason &b{reason}"
-        ipban: "&b&lPunishment &7(IP-Ban) &8» &fIP &b{player}&f, Punished by &b{staff}&f, Reason &b{reason}"
-
-  # Customizable disconnect/kick screens and messages
-  screens:
-    ban:
-      - ""
-      - "&bYou're banned from this server!"
-      - "&7&oPunishment ID: {id}"
-      - ""
-      - "&3● &bBanned on &f» &3{date}"
-      - "&3● &bBanned by &f» &3{staff}"
-      - "&3● &bReason &f» &3{reason}"
-      - ""
-      - "&a✔ &2Expiry Date &f» &aNever"
-      - "&d✉ &5Appeal &f» &dappeal.servername.com"
-      - ""
-    tempban:
-      - ""
-      - "&bYou're temporarily banned from this server!"
-      - "&7&oPunishment ID: {id}"
-      - ""
-      - "&3● &bBanned on &f» &3{date}"
-      - "&3● &bBanned by &f» &3{staff}"
-      - "&3● &bReason &f» &3{reason}"
-      - ""
-      - "&e✔ &6Expiry Date &f» &e{duration}"
-      - "&d✉ &5Appeal &f» &dappeal.servername.com"
-      - ""
-    ip_ban:
-      - ""
-      - "&c&lYour IP has been banned from this server!"
-      - "&7&oPunishment ID: {id}"
-      - ""
-      - "&4● &cBanned by &f» &4{staff}"
-      - "&4● &cReason &f» &4{reason}"
-      - ""
-      - "&a✔ &2Expiry Date &f» &aNever"
-      - "&d✉ &5Appeal &f» &dappeal.servername.com"
-      - ""
-    ip_tempban:
-      - ""
-      - "&c&lYour IP has been temporarily banned!"
-      - "&7&oPunishment ID: {id}"
-      - ""
-      - "&4● &cBanned by &f» &4{staff}"
-      - "&4● &cReason &f» &4{reason}"
-      - ""
-      - "&e✔ &6Expiry Date &f» &e{duration}"
-      - "&d✉ &5Appeal &f» &dappeal.servername.com"
-      - ""
-    kick:
-      - ""
-      - "&cYou were kicked from the server!"
-      - "&7&oPunishment ID: {id}"
-      - ""
-      - "&6⏵ &eReason &f» &6{reason}"
-      - "&6⏵ &eKicked by &f» &6{staff}"
-      - ""
-    mute:
-      - "&b&lYou have been muted! &7(Permanent) &7&oID: {id}"
-      - "&3● &bMuted by &f» &3{staff}"
-      - "&3● &bReason &f» &3{reason}"
-      - "&3● &bExpires In &f» &3Never"
-    tempmute:
-      - "&b&lYou have been muted! &7&oID: {id}"
-      - "&3● &bMuted by &f» &3{staff}"
-      - "&3● &bReason &f» &3{reason}"
-      - "&3● &bExpires In &f» &3{duration}"
-    ip_mute:
-      - "&c&lYour IP address has been muted! &7(Permanent) &7&oID: {id}"
-      - "&4● &cMuted by &f» &4{staff}"
-      - "&4● &cReason &f» &4{reason}"
-      - "&4● &cExpires In &f» &4Never"
-    ip_tempmute:
-      - "&c&lYour IP address has been muted! &7&oID: {id}"
-      - "&4● &cMuted by &f» &4{staff}"
-      - "&4● &cReason &f» &4{reason}"
-      - "&4● &cExpires In &f» &4{duration}"
-    warn:
-      - ""
-      - "&e&lYou have received a warning! &7&oID: {id}"
-      - "&6⏵ &eWarned by &f» &6{staff}"
-      - "&6ⵗ &eReason &f» &6{reason}"
-      - ""

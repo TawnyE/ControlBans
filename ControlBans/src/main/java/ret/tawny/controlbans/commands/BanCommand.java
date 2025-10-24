@@ -1,27 +1,26 @@
 package ret.tawny.controlbans.commands;
-import org.bukkit.ChatColor;
+
 import org.bukkit.command.CommandSender;
 import ret.tawny.controlbans.ControlBansPlugin;
-import ret.tawny.controlbans.services.PunishmentService;
-import java.util.Arrays;
+
+import java.util.List;
 import java.util.StringJoiner;
+
 public class BanCommand extends CommandBase {
-    private final PunishmentService punishmentService;
 
-
-    public BanCommand(ControlBansPlugin plugin, PunishmentService punishmentService) {
-        super(plugin, "ban");
-        this.punishmentService = punishmentService;
+    public BanCommand(ControlBansPlugin plugin) {
+        super(plugin);
+        setCommand("ban");
     }
 
     @Override
     public boolean execute(CommandSender sender, String[] args) {
         if (!sender.hasPermission("controlbans.ban")) {
-            sender.sendMessage(ChatColor.RED + "You don't have permission.");
+            sender.sendMessage(locale.getMessage("errors.no-permission"));
             return true;
         }
         if (args.length < 1) {
-            sender.sendMessage(ChatColor.RED + "Usage: /" + label + " [-s] <player> [reason]");
+            sender.sendMessage(locale.getMessage("errors.invalid-arguments", usagePlaceholder("/" + label + " [-s] <player> [reason]")));
             return true;
         }
 
@@ -29,7 +28,7 @@ public class BanCommand extends CommandBase {
         int targetIndex = silent ? 1 : 0;
 
         if (args.length <= targetIndex) {
-            sender.sendMessage(ChatColor.RED + "You must specify a player to ban.");
+            sender.sendMessage(locale.getMessage("errors.invalid-arguments", usagePlaceholder("/" + label + " [-s] <player> [reason]")));
             return true;
         }
 
@@ -40,15 +39,23 @@ public class BanCommand extends CommandBase {
         }
         String reason = reasonJoiner.toString().isEmpty() ? null : reasonJoiner.toString();
 
-        sender.sendMessage(ChatColor.YELLOW + "Banning " + targetName + "...");
+        sender.sendMessage(locale.getMessage("actions.banning", playerPlaceholder(targetName)));
         punishmentService.banPlayer(targetName, reason, getSenderUuid(sender), sender.getName(), silent, false)
                 .whenComplete((unused, throwable) -> {
                     if (throwable != null) {
-                        sender.sendMessage(ChatColor.RED + "Could not ban player: " + throwable.getMessage());
+                        sender.sendMessage(locale.getMessage("errors.database-error"));
                     } else {
-                        sender.sendMessage(ChatColor.GREEN + "Successfully banned " + targetName + ".");
+                        sender.sendMessage(locale.getMessage("success.ban", playerPlaceholder(targetName)));
                     }
                 });
         return true;
+    }
+
+    @Override
+    public List<String> onTab(CommandSender sender, String[] args) {
+        if (args.length == 1 || (args.length == 2 && args[0].equalsIgnoreCase("-s"))) {
+            return getPlayerSuggestions(args[args.length - 1]);
+        }
+        return List.of();
     }
 }
