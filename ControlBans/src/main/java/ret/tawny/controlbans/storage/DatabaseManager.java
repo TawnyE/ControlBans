@@ -9,8 +9,11 @@ import java.io.File;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
 public class DatabaseManager {
@@ -18,11 +21,18 @@ public class DatabaseManager {
     private final ControlBansPlugin plugin;
     private final ConfigManager config;
     private HikariDataSource dataSource;
-    private final Executor asyncExecutor = Executors.newCachedThreadPool();
+    private final ExecutorService asyncExecutor;
+    private static final AtomicInteger EXECUTOR_THREAD_ID = new AtomicInteger();
 
     public DatabaseManager(ControlBansPlugin plugin, ConfigManager config) {
         this.plugin = plugin;
         this.config = config;
+        ThreadFactory threadFactory = runnable -> {
+            Thread thread = new Thread(runnable, "ControlBans-DB-" + EXECUTOR_THREAD_ID.incrementAndGet());
+            thread.setDaemon(true);
+            return thread;
+        };
+        this.asyncExecutor = Executors.newCachedThreadPool(threadFactory);
     }
 
     public void initialize() {
@@ -146,6 +156,16 @@ public class DatabaseManager {
         if (dataSource != null && !dataSource.isClosed()) {
             dataSource.close();
             plugin.getLogger().info("Database connection pool shut down");
+        }
+
+        asyncExecutor.shutdownNow();
+        try {
+            if (!asyncExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
+                plugin.getLogger().warning("Async database executor did not shut down cleanly within 5 seconds.");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            plugin.getLogger().log(Level.WARNING, "Interrupted while shutting down async database executor.", e);
         }
     }
 
