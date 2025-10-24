@@ -10,6 +10,7 @@ errors:
   invalid-arguments: "<red>Неверные аргументы. Использование: <usage>"
   database-error: "<red>Произошла ошибка базы данных. Пожалуйста, проверьте консоль."
   import-failed: "<red>Импорт не удался: <error>"
+  operation-failed: "<red>Произошла ошибка при выполнении этого действия."
   cannot-punish-self: "<red>Вы не можете наказать самого себя."
   cannot-punish-exempt: "<red>Вы не можете наказать этого игрока, так как у него иммунитет."
   command-from-console-error: "Эту команду может выполнять только игрок."
@@ -27,6 +28,7 @@ success:
   ipmute: "<green>Мут по IP успешно применен."
   import-complete: "<green>Импорт успешно завершен. Импортировано <red><count><green> записей."
   reload: "<green>Конфигурация ControlBans перезагружена."
+  scheduled: "<green><type> для <red><player><green> запланировано через <yellow><duration><green>. Причина: <white><reason>"
 actions:
   banning: "<yellow>Баним <player>..."
   temp-banning: "<yellow>Временно баним <player>..."

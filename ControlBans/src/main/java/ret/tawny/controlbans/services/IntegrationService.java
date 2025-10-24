@@ -9,12 +9,14 @@ import github.scarsz.discordsrv.dependencies.jda.api.entities.TextChannel;
 import github.scarsz.discordsrv.util.DiscordUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.scheduler.BukkitTask;
 import ret.tawny.controlbans.ControlBansPlugin;
 import ret.tawny.controlbans.config.ConfigManager;
 import ret.tawny.controlbans.model.Punishment;
 import ret.tawny.controlbans.util.TimeUtil;
 
 import java.awt.Color;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Type;
 import java.net.HttpURLConnection;
@@ -27,30 +29,44 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
+import java.nio.charset.StandardCharsets;
 
 public class IntegrationService {
 
     private final ControlBansPlugin plugin;
     private final ConfigManager config;
+    private final BenchmarkService benchmarkService;
     private boolean discordSrvEnabled = false;
     private final Set<String> mcBlacklist = new HashSet<>();
+    private BukkitTask mcBlacklistTask;
+    private final Gson gson = new Gson();
+    private volatile long lastBlacklistSync = 0L;
 
     // The punishmentService parameter was unused and has been removed.
-    public IntegrationService(ControlBansPlugin plugin, ConfigManager config) {
+    public IntegrationService(ControlBansPlugin plugin, ConfigManager config, BenchmarkService benchmarkService) {
         this.plugin = plugin;
         this.config = config;
+        this.benchmarkService = benchmarkService;
     }
 
     public void initialize() {
-        if (config.isDiscordEnabled() && Bukkit.getPluginManager().isPluginEnabled("DiscordSRV")) {
+        discordSrvEnabled = false;
+
+        if (!config.isDiscordEnabled()) {
+            plugin.getLogger().info("DiscordSRV integration disabled in configuration.");
+        } else if (!Bukkit.getPluginManager().isPluginEnabled("DiscordSRV")) {
+            plugin.getLogger().warning("DiscordSRV integration enabled in config, but the DiscordSRV plugin was not found.");
+        } else {
             this.discordSrvEnabled = true;
             plugin.getLogger().info("DiscordSRV integration enabled.");
         }
 
+        stopMcBlacklistTask();
         if (config.isMCBlacklistEnabled()) {
-            plugin.getLogger().info("MCBlacklist integration enabled. Scheduling check...");
-            long interval = config.getMCBlacklistCheckInterval() * 20L * 60L; // Ticks
-            Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, this::fetchBlacklist, 0L, interval);
+            startMcBlacklistTask();
+        } else {
+            mcBlacklist.clear();
+            plugin.getLogger().info("MCBlacklist integration disabled.");
         }
     }
 
@@ -71,7 +87,7 @@ public class IntegrationService {
         }
     }
 
-    private void sendDiscordEmbed(Punishment p, String configKey, Map<String, String> unbanPlaceholders) {
+    private void sendDiscordEmbed(Punishment p, String configKey, Map<String, String> extraPlaceholders) {
         ConfigurationSection msgConfig = config.getDiscordMessageConfig(configKey);
         if (msgConfig == null || !msgConfig.getBoolean("enabled", false)) {
             return;
@@ -86,17 +102,19 @@ public class IntegrationService {
         TextChannel textChannel = DiscordUtil.getTextChannelById(channelId);
         if (textChannel == null) {
             plugin.getLogger().warning("Invalid Discord channel ID specified for '" + configKey + "': " + channelId);
+            benchmarkService.recordDiscordDispatch(false);
             return;
         }
 
         EmbedBuilder embedBuilder = new EmbedBuilder();
 
         // Build placeholders
-        Map<String, String> placeholders;
-        if (p != null) {
-            placeholders = createPlaceholdersFromPunishment(p);
-        } else {
-            placeholders = unbanPlaceholders;
+        Map<String, String> placeholders = (p != null)
+                ? createPlaceholdersFromPunishment(p)
+                : (extraPlaceholders != null ? extraPlaceholders : new HashMap<>());
+
+        if (extraPlaceholders != null && p != null) {
+            placeholders.putAll(extraPlaceholders);
         }
 
         // Set color
@@ -140,10 +158,11 @@ public class IntegrationService {
 
         Message message = new MessageBuilder().setEmbeds(embedBuilder.build()).build();
         DiscordUtil.queueMessage(textChannel, message);
+        benchmarkService.recordDiscordDispatch(true);
     }
 
     private String replacePlaceholders(String text, Map<String, String> placeholders) {
-        if (text == null || text.isEmpty()) return "";
+        if (text == null || text.isEmpty() || placeholders == null || placeholders.isEmpty()) return text != null ? text : "";
         for (Map.Entry<String, String> entry : placeholders.entrySet()) {
             text = text.replace(entry.getKey(), entry.getValue());
         }
@@ -168,19 +187,48 @@ public class IntegrationService {
     }
 
     private void fetchBlacklist() {
+        HttpURLConnection connection = null;
         try {
             URL url = new URL(config.getMCBlacklistUrl());
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
+            connection.setConnectTimeout(5000);
+            connection.setReadTimeout(5000);
+
+            long started = System.nanoTime();
+            int responseCode = connection.getResponseCode();
+            if (responseCode != HttpURLConnection.HTTP_OK) {
+                plugin.getLogger().warning("MCBlacklist request failed with status " + responseCode + ".");
+                benchmarkService.recordWebRequest("mcblacklist", System.nanoTime() - started, responseCode);
+                return;
+            }
 
             Type type = new TypeToken<Map<String, Object>>() {}.getType();
-            Map<String, Object> map = new Gson().fromJson(new InputStreamReader(connection.getInputStream()), type);
-
-            mcBlacklist.clear();
-            mcBlacklist.addAll(map.keySet());
-            plugin.getLogger().info("Successfully fetched " + mcBlacklist.size() + " entries from MCBlacklist.");
+            try (InputStreamReader reader = new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8)) {
+                Map<String, Object> map = gson.fromJson(reader, type);
+                if (map == null) {
+                    plugin.getLogger().warning("MCBlacklist returned an empty payload.");
+                    benchmarkService.recordWebRequest("mcblacklist", System.nanoTime() - started, responseCode);
+                    return;
+                }
+                mcBlacklist.clear();
+                mcBlacklist.addAll(map.keySet());
+                int size = mcBlacklist.size();
+                String noun = size == 1 ? "entry" : "entries";
+                plugin.getLogger().info(String.format("Fetched %d MCBlacklist %s.", size, noun));
+                lastBlacklistSync = System.currentTimeMillis();
+                benchmarkService.recordWebRequest("mcblacklist", System.nanoTime() - started, responseCode);
+            }
+        } catch (IOException ex) {
+            plugin.getLogger().log(Level.WARNING, "Failed to read MCBlacklist response.", ex);
+            benchmarkService.recordWebRequest("mcblacklist", 0L, -1);
         } catch (Exception e) {
             plugin.getLogger().log(Level.WARNING, "Failed to fetch from MCBlacklist", e);
+            benchmarkService.recordWebRequest("mcblacklist", 0L, -1);
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
         }
     }
 
@@ -191,11 +239,51 @@ public class IntegrationService {
         return CompletableFuture.completedFuture(mcBlacklist.contains(uuid.toString()));
     }
 
+    public boolean isDiscordReady() {
+        return discordSrvEnabled;
+    }
+
+    public boolean isMcBlacklistReady() {
+        return config.isMCBlacklistEnabled() && lastBlacklistSync > 0;
+    }
+
+    public void onAppealUpdate(String punishmentId, String status, String reviewer, String notes, String targetUuid) {
+        if (!discordSrvEnabled) return;
+        String playerName = "Unknown";
+        if (targetUuid != null) {
+            try {
+                playerName = java.util.Optional.ofNullable(Bukkit.getOfflinePlayer(UUID.fromString(targetUuid)).getName()).orElse("Unknown");
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+        Map<String, String> placeholders = new HashMap<>();
+        placeholders.put("{player}", playerName);
+        placeholders.put("{appeal_status}", status);
+        placeholders.put("{staff}", reviewer != null ? reviewer : "Unassigned");
+        placeholders.put("{notes}", notes != null && !notes.isBlank() ? notes : "No notes");
+        placeholders.put("{id}", punishmentId);
+        sendDiscordEmbed(null, "appeal", placeholders);
+    }
+
     public void reload() {
         initialize();
     }
 
     public void shutdown() {
-        // Clean up tasks if needed
+        stopMcBlacklistTask();
+        mcBlacklist.clear();
+    }
+
+    private void startMcBlacklistTask() {
+        long intervalTicks = Math.max(1L, config.getMCBlacklistCheckInterval()) * 20L * 60L;
+        mcBlacklistTask = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, this::fetchBlacklist, 0L, intervalTicks);
+        plugin.getLogger().info("MCBlacklist integration enabled. Checking every " + config.getMCBlacklistCheckInterval() + " minute(s).");
+    }
+
+    private void stopMcBlacklistTask() {
+        if (mcBlacklistTask != null) {
+            mcBlacklistTask.cancel();
+            mcBlacklistTask = null;
+        }
     }
 }

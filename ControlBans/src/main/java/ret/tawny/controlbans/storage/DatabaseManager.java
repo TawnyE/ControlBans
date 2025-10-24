@@ -9,8 +9,11 @@ import java.io.File;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
 public class DatabaseManager {
@@ -18,11 +21,19 @@ public class DatabaseManager {
     private final ControlBansPlugin plugin;
     private final ConfigManager config;
     private HikariDataSource dataSource;
-    private final Executor asyncExecutor = Executors.newCachedThreadPool();
+    private final ExecutorService asyncExecutor;
+    private static final AtomicInteger EXECUTOR_THREAD_ID = new AtomicInteger();
+    private volatile DatabaseMetricsCollector metricsCollector;
 
     public DatabaseManager(ControlBansPlugin plugin, ConfigManager config) {
         this.plugin = plugin;
         this.config = config;
+        ThreadFactory threadFactory = runnable -> {
+            Thread thread = new Thread(runnable, "ControlBans-DB-" + EXECUTOR_THREAD_ID.incrementAndGet());
+            thread.setDaemon(true);
+            return thread;
+        };
+        this.asyncExecutor = Executors.newCachedThreadPool(threadFactory);
     }
 
     public void initialize() {
@@ -120,22 +131,44 @@ public class DatabaseManager {
 
     public CompletableFuture<Void> executeAsync(DatabaseOperation operation) {
         return CompletableFuture.runAsync(() -> {
+            long start = System.nanoTime();
+            boolean success = true;
             try (Connection connection = getConnection()) {
                 operation.execute(connection);
             } catch (SQLException e) {
+                success = false;
                 throw new RuntimeException("Database operation failed", e);
+            } finally {
+                recordMetrics(start, success);
             }
         }, asyncExecutor);
     }
 
     public <T> CompletableFuture<T> executeQueryAsync(DatabaseQuery<T> query) {
         return CompletableFuture.supplyAsync(() -> {
+            long start = System.nanoTime();
+            boolean success = true;
             try (Connection connection = getConnection()) {
                 return query.execute(connection);
             } catch (SQLException e) {
+                success = false;
                 throw new RuntimeException("Database query failed", e);
+            } finally {
+                recordMetrics(start, success);
             }
         }, asyncExecutor);
+    }
+
+    private void recordMetrics(long start, boolean success) {
+        DatabaseMetricsCollector collector = this.metricsCollector;
+        if (collector != null) {
+            long duration = System.nanoTime() - start;
+            collector.recordDatabaseOperation(duration, success);
+        }
+    }
+
+    public void setMetricsCollector(DatabaseMetricsCollector collector) {
+        this.metricsCollector = collector;
     }
 
     public String getDatabaseType() {
@@ -147,6 +180,16 @@ public class DatabaseManager {
             dataSource.close();
             plugin.getLogger().info("Database connection pool shut down");
         }
+
+        asyncExecutor.shutdownNow();
+        try {
+            if (!asyncExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
+                plugin.getLogger().warning("Async database executor did not shut down cleanly within 5 seconds.");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            plugin.getLogger().log(Level.WARNING, "Interrupted while shutting down async database executor.", e);
+        }
     }
 
     @FunctionalInterface
@@ -157,5 +200,10 @@ public class DatabaseManager {
     @FunctionalInterface
     public interface DatabaseQuery<T> {
         T execute(Connection connection) throws SQLException;
+    }
+
+    @FunctionalInterface
+    public interface DatabaseMetricsCollector {
+        void recordDatabaseOperation(long durationNanos, boolean success);
     }
 }

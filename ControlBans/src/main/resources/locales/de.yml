@@ -10,6 +10,7 @@ errors:
   invalid-arguments: "<red>Ungültige Argumente. Verwendung: <usage>"
   database-error: "<red>Ein Datenbankfehler ist aufgetreten. Bitte überprüfe die Konsole."
   import-failed: "<red>Import fehlgeschlagen: <error>"
+  operation-failed: "<red>Beim Ausführen dieser Aktion ist ein Fehler aufgetreten."
   cannot-punish-self: "<red>Du kannst dich nicht selbst bestrafen."
   cannot-punish-exempt: "<red>Du kannst diesen Spieler nicht bestrafen, da er ausgenommen ist."
   command-from-console-error: "Dieser Befehl kann nur von einem Spieler ausgeführt werden."
@@ -27,6 +28,7 @@ success:
   ipmute: "<green>IP-Stummschaltung erfolgreich angewendet."
   import-complete: "<green>Import erfolgreich abgeschlossen. <red><count><green> Einträge importiert."
   reload: "<green>ControlBans-Konfiguration neu geladen."
+  scheduled: "<green><type> für <red><player><green> wurde für <yellow><duration><green> eingeplant. Grund: <white><reason>"
 actions:
   banning: "<yellow>Banne <player>..."
   temp-banning: "<yellow>Banne <player> temporär..."

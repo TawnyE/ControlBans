@@ -48,6 +48,15 @@ Built with performance as the top priority, ControlBans uses asynchronous databa
 
 ---
 
+## 🛣️ Roadmap Highlights
+
+-   🔁 Automatic escalation
+-   ⏰ Scheduled punishments
+-   ♻️ Warn decay
+-   🗂️ Punishment category system
+
+---
+
 ## 🚀 Installation
 
 ### For Server Admins

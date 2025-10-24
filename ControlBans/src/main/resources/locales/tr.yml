@@ -10,6 +10,7 @@ errors:
   invalid-arguments: "<red>Geçersiz argümanlar. Kullanım: <usage>"
   database-error: "<red>Bir veritabanı hatası oluştu. Lütfen konsolu kontrol edin."
   import-failed: "<red>İçe aktarma başarısız: <error>"
+  operation-failed: "<red>Bu işlemi tamamlamaya çalışırken bir hata oluştu."
   cannot-punish-self: "<red>Kendinizi cezalandıramazsınız."
   cannot-punish-exempt: "<red>Bu oyuncu muaf olduğu için cezalandıramazsınız."
   command-from-console-error: "Bu komut sadece bir oyuncu tarafından çalıştırılabilir."
@@ -27,6 +28,7 @@ success:
   ipmute: "<green>IP susturması başarıyla uygulandı."
   import-complete: "<green>İçe aktarma başarıyla tamamlandı. <red><count><green> kayıt içe aktarıldı."
   reload: "<green>ControlBans yapılandırması yeniden yüklendi."
+  scheduled: "<green><type> işlemi <red><player><green> için <yellow><duration><green> içinde planlandı. Sebep: <white><reason>"
 actions:
   banning: "<yellow><player> yasaklanıyor..."
   temp-banning: "<yellow><player> geçici olarak yasaklanıyor..."

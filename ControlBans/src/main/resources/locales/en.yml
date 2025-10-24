@@ -14,6 +14,7 @@ errors:
   invalid-arguments: "<red>Invalid arguments. Usage: <usage>"
   database-error: "<red>A database error occurred. Please check the console."
   import-failed: "<red>Import failed: <error>"
+  operation-failed: "<red>Something went wrong while completing that action."
   cannot-punish-self: "<red>You cannot punish yourself."
   cannot-punish-exempt: "<red>You cannot punish this player as they are exempt."
   command-from-console-error: "This command can only be run by a player."
@@ -32,6 +33,7 @@ success:
   ipmute: "<green>Successfully applied IP mute."
   import-complete: "<green>Import completed successfully. Imported <red><count><green> records."
   reload: "<green>ControlBans configuration reloaded."
+  scheduled: "<green>Scheduled a <type> for <red><player><green> to run in <yellow><duration><green>. Reason: <white><reason>"
 
 actions:
   banning: "<yellow>Banning <player>..."

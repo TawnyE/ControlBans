@@ -22,6 +22,10 @@ public class SchemaMigrator {
         createWarningsTable();
         createHistoryTable();
         createConfigTable();
+        createScheduledPunishmentsTable();
+        createAppealsTable();
+        createAuditTable();
+        createPunishmentMetadataTable();
 
         // Create indexes for performance
         createIndexes();
@@ -184,6 +188,87 @@ public class SchemaMigrator {
         }
     }
 
+    private void createScheduledPunishmentsTable() throws SQLException {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS controlbans_scheduled_punishments (
+                id INTEGER %s,
+                type VARCHAR(16) NOT NULL,
+                target_uuid VARCHAR(36) NOT NULL,
+                target_name VARCHAR(16),
+                reason VARCHAR(2048),
+                staff_uuid VARCHAR(36),
+                staff_name VARCHAR(16),
+                execution_time BIGINT NOT NULL,
+                duration_seconds BIGINT NOT NULL,
+                silent BOOLEAN NOT NULL DEFAULT FALSE,
+                ipban BOOLEAN NOT NULL DEFAULT FALSE,
+                category VARCHAR(64),
+                escalation_level INTEGER DEFAULT 0,
+                created_at BIGINT NOT NULL DEFAULT 0
+            )
+        """.formatted(getPrimaryKeyDefinition());
+
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+
+    private void createAppealsTable() throws SQLException {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS controlbans_appeals (
+                id INTEGER %s,
+                punishment_id VARCHAR(8) UNIQUE,
+                target_uuid VARCHAR(36),
+                status VARCHAR(32) NOT NULL,
+                submitted_at BIGINT NOT NULL,
+                updated_at BIGINT NOT NULL,
+                reviewer VARCHAR(32),
+                notes TEXT
+            )
+        """.formatted(getPrimaryKeyDefinition());
+
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+
+    private void createAuditTable() throws SQLException {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS controlbans_audit_log (
+                id INTEGER %s,
+                action VARCHAR(32) NOT NULL,
+                punishment_id VARCHAR(8),
+                actor_uuid VARCHAR(36),
+                actor_name VARCHAR(32),
+                target_uuid VARCHAR(36),
+                target_name VARCHAR(32),
+                created_at BIGINT NOT NULL,
+                context TEXT
+            )
+        """.formatted(getPrimaryKeyDefinition());
+
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+
+    private void createPunishmentMetadataTable() throws SQLException {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS controlbans_punishment_meta (
+                id INTEGER %s,
+                punishment_id VARCHAR(8) UNIQUE,
+                category VARCHAR(64),
+                escalation_level INTEGER DEFAULT 0,
+                warn_decay_at BIGINT DEFAULT -1,
+                reminder_sent BOOLEAN NOT NULL DEFAULT FALSE
+            )
+        """.formatted(getPrimaryKeyDefinition());
+
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+
     private void createIndexes() throws SQLException {
         String[] indexes = {
                 "CREATE UNIQUE INDEX IF NOT EXISTS idx_bans_punishment_id ON litebans_bans(punishment_id)",
@@ -199,6 +284,12 @@ public class SchemaMigrator {
 
                 "CREATE UNIQUE INDEX IF NOT EXISTS idx_kicks_punishment_id ON litebans_kicks(punishment_id)",
                 "CREATE INDEX IF NOT EXISTS idx_kicks_uuid ON litebans_kicks(uuid)",
+
+                "CREATE INDEX IF NOT EXISTS idx_sched_execution ON controlbans_scheduled_punishments(execution_time)",
+                "CREATE INDEX IF NOT EXISTS idx_sched_category ON controlbans_scheduled_punishments(category)",
+                "CREATE INDEX IF NOT EXISTS idx_appeals_status ON controlbans_appeals(status)",
+                "CREATE INDEX IF NOT EXISTS idx_audit_created ON controlbans_audit_log(created_at)",
+                "CREATE INDEX IF NOT EXISTS idx_meta_category ON controlbans_punishment_meta(category)"
 
                 "CREATE INDEX IF NOT EXISTS idx_history_uuid ON litebans_history(uuid)",
                 "CREATE INDEX IF NOT EXISTS idx_history_ip ON litebans_history(ip)"
