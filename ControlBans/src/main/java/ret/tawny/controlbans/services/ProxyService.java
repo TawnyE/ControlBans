@@ -1,9 +1,9 @@
 package ret.tawny.controlbans.services;
 
 import com.google.gson.JsonObject;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import ret.tawny.controlbans.ControlBansPlugin;
+import ret.tawny.controlbans.util.SchedulerAdapter;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -16,14 +16,16 @@ import java.util.logging.Level;
 public class ProxyService {
 
     private final ControlBansPlugin plugin;
+    private final SchedulerAdapter scheduler;
     private static final String CHANNEL = "controlbans:main";
     private static final int MAX_QUEUE_SIZE = 1024;
 
     private final Queue<byte[]> queuedMessages = new ConcurrentLinkedQueue<>();
     private volatile boolean directDispatchSupported = true;
 
-    public ProxyService(ControlBansPlugin plugin) {
+    public ProxyService(ControlBansPlugin plugin, SchedulerAdapter scheduler) {
         this.plugin = plugin;
+        this.scheduler = scheduler;
     }
 
     public void sendKickPlayerMessage(String playerName, String kickMessage) {
@@ -42,13 +44,7 @@ public class ProxyService {
     }
 
     private void sendPluginMessage(String message) {
-        Runnable dispatcher = () -> dispatch(message);
-
-        if (Bukkit.isPrimaryThread()) {
-            dispatcher.run();
-        } else {
-            Bukkit.getScheduler().runTask(plugin, dispatcher);
-        }
+        scheduler.runTask(() -> dispatch(message));
     }
 
     private void dispatch(String message) {
@@ -119,23 +115,20 @@ public class ProxyService {
     }
 
     public void flushQueuedMessages() {
-        Runnable flusher = () -> flushQueuedMessagesInternal(null);
-
-        if (Bukkit.isPrimaryThread()) {
-            flusher.run();
-        } else {
-            Bukkit.getScheduler().runTask(plugin, flusher);
-        }
+        scheduler.runTask(this::flushQueuedMessagesInternal);
     }
 
     public void flushQueuedMessages(Player player) {
-        Runnable flusher = () -> flushQueuedMessagesInternal(player);
-
-        if (Bukkit.isPrimaryThread()) {
-            flusher.run();
-        } else {
-            Bukkit.getScheduler().runTask(plugin, flusher);
+        if (player == null) {
+            flushQueuedMessages();
+            return;
         }
+
+        scheduler.runTaskForPlayer(player, () -> flushQueuedMessagesInternal(player));
+    }
+
+    private void flushQueuedMessagesInternal() {
+        flushQueuedMessagesInternal(null);
     }
 
     private void flushQueuedMessagesInternal(Player preferredMessenger) {
