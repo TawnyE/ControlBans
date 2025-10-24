@@ -4,6 +4,7 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import ret.tawny.controlbans.ControlBansPlugin;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -106,5 +107,22 @@ public class ConfigManager {
     public boolean isBroadcastConsole() { return getCachedOrLoad("punishments.broadcast.console", Boolean.class, true); }
     public boolean isBroadcastPlayers() { return getCachedOrLoad("punishments.broadcast.players", Boolean.class, true); }
     public boolean isSilentByDefault() { return getCachedOrLoad("punishments.broadcast.silent-by-default", Boolean.class, false); }
+
+    // Appeal Configuration
+    public boolean isAppealsEnabled() { return getCachedOrLoad("appeals.enabled", Boolean.class, true); }
+    public Duration getAppealCooldown() {
+        long hours = getCachedOrLoad("appeals.cooldown-hours", Long.class, 24L);
+        return Duration.ofHours(Math.max(0L, hours));
+    }
+    public int getAppealMaxSubmissions() {
+        return Math.max(0, getCachedOrLoad("appeals.max-submissions", Integer.class, 3));
+    }
+    public Duration getAppealWindowDuration() {
+        long days = getCachedOrLoad("appeals.window-days", Long.class, 7L);
+        if (days <= 0) {
+            return Duration.ZERO;
+        }
+        return Duration.ofDays(days);
+    }
 
 }

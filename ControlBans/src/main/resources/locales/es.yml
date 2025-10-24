@@ -14,6 +14,15 @@ errors:
   cannot-punish-exempt: "<red>No puedes castigar a este jugador ya que está exento."
   command-from-console-error: "Este comando solo puede ser ejecutado por un jugador."
   id-not-found: "<red>No se encontró ningún castigo con esa ID."
+
+appeals:
+  disabled: "<red>Las apelaciones no están disponibles actualmente."
+  message-required: "<red>Incluye un breve mensaje con tu apelación."
+  not-muted: "<red>No tienes un silencio activo que puedas apelar."
+  submitted: "<green>Tu apelación para el castigo <id> ha sido enviada."
+  cooldown: "<red>Debes esperar <duration> antes de enviar otra apelación."
+  limit: "<red>Has alcanzado el límite de apelaciones. Inténtalo de nuevo en <duration>."
+  error: "<red>Ocurrió un error al enviar tu apelación. Contacta al personal."
 success:
   ban: "<green>Se ha baneado a <red><player><green> correctamente."
   tempban: "<green>Se ha baneado temporalmente a <red><player><green> por <red><duration><green>."

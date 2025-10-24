@@ -36,6 +36,7 @@ public class ControlBansPlugin extends JavaPlugin {
     private ProxyService proxyService;
     private HistoryGuiManager historyGuiManager;
     private AltsGuiManager altsGuiManager;
+    private AppealService appealService;
 
     @Override
     public void onEnable() {
@@ -91,6 +92,7 @@ public class ControlBansPlugin extends JavaPlugin {
         CacheService cacheService = new CacheService(configManager);
         punishmentService = new PunishmentService(this, databaseManager, cacheService);
         altService = new AltService(this, databaseManager, cacheService);
+        appealService = new AppealService(databaseManager, configManager);
 
         historyGuiManager = new HistoryGuiManager(this);
         altsGuiManager = new AltsGuiManager(this);
@@ -132,6 +134,7 @@ public class ControlBansPlugin extends JavaPlugin {
         new HistoryCommand(this, historyGuiManager).register();
         new CheckCommand(this).register();
         new AltsCommand(this, altsGuiManager).register();
+        new AppealCommand(this).register();
         new ControlBansCommand(this).register();
         getLogger().info("Commands registered");
     }
@@ -206,4 +209,5 @@ public class ControlBansPlugin extends JavaPlugin {
     public ImportService getImportService() { return importService; }
     public SchedulerAdapter getSchedulerAdapter() { return schedulerAdapter; }
     public ProxyService getProxyService() { return proxyService; }
+    public AppealService getAppealService() { return appealService; }
 }
