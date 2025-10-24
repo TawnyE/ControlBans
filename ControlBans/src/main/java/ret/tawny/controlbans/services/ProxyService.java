@@ -17,6 +17,8 @@ public class ProxyService {
 
     private final ControlBansPlugin plugin;
     private static final String CHANNEL = "controlbans:main";
+    private static final int MAX_QUEUE_SIZE = 1024;
+
     private final Queue<byte[]> queuedMessages = new ConcurrentLinkedQueue<>();
     private volatile boolean directDispatchSupported = true;
 
@@ -57,6 +59,11 @@ public class ProxyService {
             return;
         }
 
+        if (queuedMessages.size() >= MAX_QUEUE_SIZE) {
+            queuedMessages.poll();
+            plugin.getLogger().log(Level.FINE, "Dropped oldest proxy plugin message because the queue is full.");
+        }
+
         queuedMessages.add(payload);
         plugin.getLogger().log(Level.FINE, "Queued proxy plugin message; no messenger available.");
     }
@@ -81,11 +88,15 @@ public class ProxyService {
             return true;
         }
 
-        return sendThroughAnyPlayer(payload);
+        return sendThroughAnyPlayer(payload, preferredMessenger);
     }
 
-    private boolean sendThroughAnyPlayer(byte[] payload) {
+    private boolean sendThroughAnyPlayer(byte[] payload, Player preferredMessenger) {
         for (Player player : plugin.getServer().getOnlinePlayers()) {
+            if (player == preferredMessenger) {
+                continue;
+            }
+
             if (sendThroughPlayer(player, payload)) {
                 return true;
             }
