@@ -37,7 +37,6 @@ Built with performance as the top priority, ControlBans uses asynchronous databa
 -   ✅ **Full Punishment Suite:** Permanent/temporary bans and mutes, warnings, and kicks.
 -   🚫 **IP Punishments:** Ban or mute players by their IP address to stop alternate accounts.
 -   🕵️ **Alternate Account Detection:** Automatically detects and links accounts that share the same IP address.
--   🎤 **Player Appeals with Rate Limits:** Muted players can submit `/appeal` requests with configurable cooldowns and attempt caps.
 -   📜 **Comprehensive History:** Check any player's full punishment history with a simple command.
 -   🤫 **Advanced Silent Mode:** Punishments can be broadcast *only* to staff members with permission, keeping public chat clean while keeping your team informed.
 -   🗃️ **Broad Database Support:** Works with MySQL, MariaDB, PostgreSQL, and SQLite out of the box.
@@ -46,15 +45,6 @@ Built with performance as the top priority, ControlBans uses asynchronous databa
 -   🔗 **Extensive Integration:** Optional hooks for DiscordSRV and Geyser/Floodgate.
 -   🌐 **Built-in Web Viewer:** An optional, lightweight web panel to view punishments from your browser.
 -   🚚 **Easy Migration:** A simple, powerful import system to bring your bans over from vanilla (`banned-players.json`) and other plugins.
-
----
-
-## 🛣️ Roadmap Highlights
-
--   🔁 Automatic escalation
--   ⏰ Scheduled punishments
--   ♻️ Warn decay
--   🗂️ Punishment category system
 
 ---
 
@@ -82,24 +72,24 @@ Built with performance as the top priority, ControlBans uses asynchronous databa
 
 The `-s` flag can be used in punishment commands to toggle between public and staff-only (silent) broadcasts.
 
-| Command                                        | Description                                     | Permission                    |
-| ---------------------------------------------- | ----------------------------------------------- | ----------------------------- |
-| `/ban <player> [reason]`                       | Permanently bans a player.                      | `controlbans.ban`             |
-| `/tempban <player> <time> [reason]`            | Temporarily bans a player (e.g., `1d2h3m`).     | `controlbans.tempban`         |
-| `/ipban <player\|ip> <time> [reason]`          | Bans an IP address. Use `perm` for permanent.   | `controlbans.ban.ip`          |
-| `/unban <player>`                              | Unbans a player.                                | `controlbans.unban`           |
-| `/mute <player> [reason]`                      | Permanently mutes a player.                     | `controlbans.mute`            |
-| `/tempmute <player> <time> [reason]`           | Temporarily mutes a player.                     | `controlbans.tempmute`        |
-| `/ipmute <player\|ip> <time> [reason]`         | Mutes an IP address. Use `perm` for permanent.  | `controlbans.mute.ip`         |
-| `/unmute <player>`                             | Unmutes a player.                               | `controlbans.unmute`          |
-| `/warn <player> [reason]`                      | Warns a player.                                 | `controlbans.warn`            |
-| `/kick <player> [reason]`                      | Kicks a player from the server.                 | `controlbans.kick`            |
-| `/history <player>`                            | Views the punishment history of a player.       | `controlbans.history`         |
-| `/alts <player>`                               | Checks for accounts sharing the same IP.        | `controlbans.alts`            |
-| `/check <player>`                              | Checks the current ban/mute status of a player. | `controlbans.check`           |
-| `/controlbans import <type>`                   | Imports data from another ban system.           | `controlbans.import`          |
-| `/controlbans reload`                          | Reloads the configuration file.                 | `controlbans.admin`           |
-
+| Command                                        | Description                                     | Permission              |
+| ---------------------------------------------- | ----------------------------------------------- | ------------------------ |
+| `/ban <player> [reason]`                       | Permanently bans a player.                      | `controlbans.ban`        |
+| `/tempban <player> <time> [reason]`            | Temporarily bans a player (e.g., `1d2h3m`).     | `controlbans.tempban`    |
+| `/ipban <player\|ip> <time> [reason]`          | Bans an IP address. Use `perm` for permanent.   | `controlbans.ban.ip`     |
+| `/unban <player>`                              | Unbans a player.                                | `controlbans.unban`      |
+| `/mute <player> [reason]`                      | Permanently mutes a player.                     | `controlbans.mute`       |
+| `/tempmute <player> <time> [reason]`           | Temporarily mutes a player.                     | `controlbans.tempmute`   |
+| `/ipmute <player\|ip> <time> [reason]`         | Mutes an IP address. Use `perm` for permanent.  | `controlbans.mute.ip`    |
+| `/unmute <player>`                             | Unmutes a player.                               | `controlbans.unmute`     |
+| `/warn <player> [reason]`                      | Warns a player.                                 | `controlbans.warn`       |
+| `/kick <player> [reason]`                      | Kicks a player from the server.                 | `controlbans.kick`       |
+| `/history <player>`                            | Views the punishment history of a player.       | `controlbans.history`    |
+| `/alts <player>`                               | Checks for accounts sharing the same IP.        | `controlbans.alts`       |
+| `/appeal <message>`                            | Submit an appeal for your active mute.          | `controlbans.appeal`     |
+| `/check <player>`                              | Checks the current ban/mute status of a player. | `controlbans.check`      |
+| `/controlbans import <type>`                   | Imports data from another ban system.           | `controlbans.import`     |
+| `/controlbans reload`                          | Reloads the configuration file.                 | `controlbans.admin`      |
 **Staff Notification Permission:**
 To receive silent punishment alerts, staff members need the permission: `controlbans.notify.silent`
 

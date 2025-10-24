@@ -66,7 +66,7 @@ commands:
     permission: controlbans.alts
     aliases: [alt]
   appeal:
-    description: Submit an appeal for your active mute
+    description: Submit an appeal for an active mute
     usage: /appeal <message>
     permission: controlbans.appeal
   controlbans:
@@ -141,7 +141,7 @@ permissions:
     description: Permission to view alternate accounts
     default: op
   controlbans.appeal:
-    description: Allow players to submit appeals for their active mutes
+    description: Allows players to submit mute appeals
     default: true
   controlbans.admin:
     description: Permission for administrative commands (reload, etc.)

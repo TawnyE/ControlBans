@@ -10,11 +10,19 @@ errors:
   invalid-arguments: "<red>Ungültige Argumente. Verwendung: <usage>"
   database-error: "<red>Ein Datenbankfehler ist aufgetreten. Bitte überprüfe die Konsole."
   import-failed: "<red>Import fehlgeschlagen: <error>"
-  operation-failed: "<red>Beim Ausführen dieser Aktion ist ein Fehler aufgetreten."
   cannot-punish-self: "<red>Du kannst dich nicht selbst bestrafen."
   cannot-punish-exempt: "<red>Du kannst diesen Spieler nicht bestrafen, da er ausgenommen ist."
   command-from-console-error: "Dieser Befehl kann nur von einem Spieler ausgeführt werden."
   id-not-found: "<red>Keine Bestrafung mit dieser ID gefunden."
+
+appeals:
+  disabled: "<red>Beschwerden sind derzeit nicht verfügbar."
+  message-required: "<red>Bitte füge deiner Beschwerde eine kurze Nachricht hinzu."
+  not-muted: "<red>Du hast keine aktive Stummschaltung, die du anfechten kannst."
+  submitted: "<green>Deine Beschwerde für Strafe <id> wurde eingereicht."
+  cooldown: "<red>Du musst <duration> warten, bevor du eine weitere Beschwerde einreichen kannst."
+  limit: "<red>Du hast das Beschwerdelimit erreicht. Versuche es in <duration> erneut."
+  error: "<red>Beim Einreichen deiner Beschwerde ist ein Fehler aufgetreten. Bitte kontaktiere das Team."
 success:
   ban: "<green>Erfolgreich <red><player><green> gebannt."
   tempban: "<green>Erfolgreich <red><player><green> für <red><duration><green> temporär gebannt."
@@ -28,7 +36,6 @@ success:
   ipmute: "<green>IP-Stummschaltung erfolgreich angewendet."
   import-complete: "<green>Import erfolgreich abgeschlossen. <red><count><green> Einträge importiert."
   reload: "<green>ControlBans-Konfiguration neu geladen."
-  scheduled: "<green><type> für <red><player><green> wurde für <yellow><duration><green> eingeplant. Grund: <white><reason>"
 actions:
   banning: "<yellow>Banne <player>..."
   temp-banning: "<yellow>Banne <player> temporär..."
@@ -43,16 +50,6 @@ actions:
   checking-id: "<yellow>Überprüfe Bestrafungs-ID: <id>..."
   checking-player: "<yellow>Überprüfe Bestrafungsstatus für <player>..."
   finding-alts: "<yellow>Suche nach alternativen Konten für <player>..."
-
-appeals:
-  unavailable: "<red>Berufungen sind derzeit nicht verfügbar."
-  message-required: "<red>Bitte gib eine Nachricht für deine Berufung an."
-  error: "<red>Deine Berufung konnte nicht gesendet werden. Versuche es später erneut."
-  not-muted: "<red>Nur stummgeschaltete Spieler können eine Berufung einreichen."
-  submitted: "<green>Deine Berufung für <white><id></white> wurde gesendet. Verbleibende Einreichungen in diesem Zeitraum: <gold><remaining></gold>."
-  cooldown: "<red>Du musst <gold><duration></gold> warten, bevor du eine weitere Berufung einreichen kannst."
-  limit: "<red>Du hast das Berufungslimit für diesen Zeitraum erreicht. Versuche es in <gold><duration></gold> erneut."
-  already-open: "<yellow>Für diese Stummschaltung existiert bereits eine offene Berufung. Bitte warte auf eine Antwort des Teams."
 broadcasts:
   ban: "<dark_red><bold>BANN <gray>┃ <white><player> <red>wurde permanent von <white><staff><red> gebannt wegen: <white><reason>"
   tempban: "<dark_red><bold>BANN <gray>┃ <white><player> <red>wurde temporär von <white><staff><red> gebannt wegen: <white><reason>"

@@ -10,11 +10,19 @@ errors:
   invalid-arguments: "<red>Неверные аргументы. Использование: <usage>"
   database-error: "<red>Произошла ошибка базы данных. Пожалуйста, проверьте консоль."
   import-failed: "<red>Импорт не удался: <error>"
-  operation-failed: "<red>Произошла ошибка при выполнении этого действия."
   cannot-punish-self: "<red>Вы не можете наказать самого себя."
   cannot-punish-exempt: "<red>Вы не можете наказать этого игрока, так как у него иммунитет."
   command-from-console-error: "Эту команду может выполнять только игрок."
   id-not-found: "<red>Наказание с таким ID не найдено."
+
+appeals:
+  disabled: "<red>Система апелляций сейчас недоступна."
+  message-required: "<red>Пожалуйста, добавьте короткое сообщение к апелляции."
+  not-muted: "<red>У вас нет активного мута для апелляции."
+  submitted: "<green>Ваша апелляция по наказанию <id> отправлена."
+  cooldown: "<red>Нужно подождать <duration>, прежде чем отправить новую апелляцию."
+  limit: "<red>Вы достигли лимита апелляций. Повторите попытку через <duration>."
+  error: "<red>Ошибка при отправке апелляции. Свяжитесь с администрацией."
 success:
   ban: "<green>Вы успешно забанили <red><player><green>."
   tempban: "<green>Вы успешно временно забанили <red><player><green> на <red><duration><green>."
@@ -28,7 +36,6 @@ success:
   ipmute: "<green>Мут по IP успешно применен."
   import-complete: "<green>Импорт успешно завершен. Импортировано <red><count><green> записей."
   reload: "<green>Конфигурация ControlBans перезагружена."
-  scheduled: "<green><type> для <red><player><green> запланировано через <yellow><duration><green>. Причина: <white><reason>"
 actions:
   banning: "<yellow>Баним <player>..."
   temp-banning: "<yellow>Временно баним <player>..."
@@ -43,16 +50,6 @@ actions:
   checking-id: "<yellow>Проверяем ID наказания: <id>..."
   checking-player: "<yellow>Проверяем статус наказаний для <player>..."
   finding-alts: "<yellow>Ищем альтернативные аккаунты для <player>..."
-
-appeals:
-  unavailable: "<red>Система апелляций сейчас недоступна."
-  message-required: "<red>Укажите сообщение с причиной вашей апелляции."
-  error: "<red>Не удалось отправить апелляцию. Попробуйте позже."
-  not-muted: "<red>Только заглушенные игроки могут отправлять апелляции."
-  submitted: "<green>Ваша апелляция по <white><id></white> отправлена. Осталось попыток в этом периоде: <gold><remaining></gold>."
-  cooldown: "<red>Подождите <gold><duration></gold> перед следующей апелляцией."
-  limit: "<red>Достигнут лимит апелляций на этот период. Повторите через <gold><duration></gold>."
-  already-open: "<yellow>По этому муту уже есть открытая апелляция. Пожалуйста, дождитесь ответа администрации."
 broadcasts:
   ban: "<dark_red><bold>БАН <gray>┃ <white><player> <red>был навсегда забанен игроком <white><staff><red> по причине: <white><reason>"
   tempban: "<dark_red><bold>БАН <gray>┃ <white><player> <red>был временно забанен игроком <white><staff><red> по причине: <white><reason>"

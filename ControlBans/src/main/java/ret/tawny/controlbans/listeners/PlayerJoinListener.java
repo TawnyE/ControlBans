@@ -62,8 +62,6 @@ public class PlayerJoinListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerJoin(PlayerJoinEvent event) {
-        plugin.getLocaleManager().registerPlayerLocale(event.getPlayer().getUniqueId(), event.getPlayer().getLocale());
         punishmentService.recordPlayerLogin(event.getPlayer());
-        plugin.getProxyService().flushQueuedMessages(event.getPlayer());
     }
 }

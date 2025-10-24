@@ -36,13 +36,7 @@ public class ControlBansPlugin extends JavaPlugin {
     private ProxyService proxyService;
     private HistoryGuiManager historyGuiManager;
     private AltsGuiManager altsGuiManager;
-    private BenchmarkService benchmarkService;
-    private AnalyticsService analyticsService;
-    private ScheduledPunishmentService scheduledPunishmentService;
-    private EscalationService escalationService;
     private AppealService appealService;
-    private AuditService auditService;
-    private HealthService healthService;
 
     @Override
     public void onEnable() {
@@ -75,9 +69,6 @@ public class ControlBansPlugin extends JavaPlugin {
             getServer().getMessenger().unregisterOutgoingPluginChannel(this);
             if (webService != null) webService.shutdown();
             if (integrationService != null) integrationService.shutdown();
-            if (scheduledPunishmentService != null) scheduledPunishmentService.stop();
-            if (escalationService != null) escalationService.stop();
-            if (benchmarkService != null) benchmarkService.stop();
             if (databaseManager != null) databaseManager.shutdown();
             getLogger().info("ControlBans has been disabled.");
         } catch (Exception e) {
@@ -94,24 +85,14 @@ public class ControlBansPlugin extends JavaPlugin {
 
         schedulerAdapter = new SchedulerAdapter(this);
         proxyService = new ProxyService(this);
-        benchmarkService = new BenchmarkService(this);
-        benchmarkService.bindProxyService(proxyService);
 
         databaseManager = new DatabaseManager(this, configManager);
         databaseManager.initialize();
-        databaseManager.setMetricsCollector(benchmarkService);
 
         CacheService cacheService = new CacheService(configManager);
         punishmentService = new PunishmentService(this, databaseManager, cacheService);
         altService = new AltService(this, databaseManager, cacheService);
-
-        analyticsService = new AnalyticsService(databaseManager, configManager);
-        auditService = new AuditService(databaseManager);
-        punishmentService.setAuditService(auditService);
-
-        scheduledPunishmentService = new ScheduledPunishmentService(this, databaseManager, punishmentService, benchmarkService);
-        escalationService = new EscalationService(this, databaseManager, scheduledPunishmentService);
-        punishmentService.setEscalationService(escalationService);
+        appealService = new AppealService(databaseManager, configManager);
 
         historyGuiManager = new HistoryGuiManager(this);
         altsGuiManager = new AltsGuiManager(this);
@@ -177,22 +158,15 @@ public class ControlBansPlugin extends JavaPlugin {
         }
 
         try {
-            integrationService = new IntegrationService(this, configManager, benchmarkService);
+            integrationService = new IntegrationService(this, configManager);
             integrationService.initialize();
             getLogger().info("Integration service initialized");
         } catch (Exception e) {
             getLogger().log(Level.WARNING, "Failed to initialize integration service", e);
         }
 
-        appealService = new AppealService(databaseManager, configManager, integrationService);
-        healthService = new HealthService(this, databaseManager, integrationService, proxyService, scheduledPunishmentService, benchmarkService);
-
         importService = new ImportService(this, databaseManager);
         getLogger().info("Import service initialized");
-
-        scheduledPunishmentService.start();
-        escalationService.start();
-        benchmarkService.start();
     }
 
     public void reload() {
@@ -235,11 +209,5 @@ public class ControlBansPlugin extends JavaPlugin {
     public ImportService getImportService() { return importService; }
     public SchedulerAdapter getSchedulerAdapter() { return schedulerAdapter; }
     public ProxyService getProxyService() { return proxyService; }
-    public BenchmarkService getBenchmarkService() { return benchmarkService; }
-    public AnalyticsService getAnalyticsService() { return analyticsService; }
-    public ScheduledPunishmentService getScheduledPunishmentService() { return scheduledPunishmentService; }
-    public EscalationService getEscalationService() { return escalationService; }
     public AppealService getAppealService() { return appealService; }
-    public AuditService getAuditService() { return auditService; }
-    public HealthService getHealthService() { return healthService; }
 }

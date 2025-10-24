@@ -14,11 +14,19 @@ errors:
   invalid-arguments: "<red>Invalid arguments. Usage: <usage>"
   database-error: "<red>A database error occurred. Please check the console."
   import-failed: "<red>Import failed: <error>"
-  operation-failed: "<red>Something went wrong while completing that action."
   cannot-punish-self: "<red>You cannot punish yourself."
   cannot-punish-exempt: "<red>You cannot punish this player as they are exempt."
   command-from-console-error: "This command can only be run by a player."
   id-not-found: "<red>No punishment found with that ID."
+
+appeals:
+  disabled: "<red>Appeals are currently unavailable."
+  message-required: "<red>Please include a short message with your appeal."
+  not-muted: "<red>You do not have an active mute to appeal."
+  submitted: "<green>Your appeal for punishment <id> has been submitted."
+  cooldown: "<red>You must wait <duration> before submitting another appeal."
+  limit: "<red>You have reached the appeal limit. Try again in <duration>."
+  error: "<red>Something went wrong while submitting your appeal. Please contact staff."
 
 success:
   ban: "<green>Successfully banned <red><player><green>."
@@ -33,7 +41,6 @@ success:
   ipmute: "<green>Successfully applied IP mute."
   import-complete: "<green>Import completed successfully. Imported <red><count><green> records."
   reload: "<green>ControlBans configuration reloaded."
-  scheduled: "<green>Scheduled a <type> for <red><player><green> to run in <yellow><duration><green>. Reason: <white><reason>"
 
 actions:
   banning: "<yellow>Banning <player>..."
@@ -49,16 +56,6 @@ actions:
   checking-id: "<yellow>Checking punishment ID: <id>..."
   checking-player: "<yellow>Checking punishment status for <player>..."
   finding-alts: "<yellow>Finding alternate accounts for <player>..."
-
-appeals:
-  unavailable: "<red>Appeals are currently unavailable."
-  message-required: "<red>Please include a message explaining your appeal."
-  error: "<red>We couldn't submit your appeal. Please try again soon."
-  not-muted: "<red>You must be actively muted to submit an appeal."
-  submitted: "<green>Your appeal for <white><id></white> has been sent. Remaining submissions this period: <gold><remaining></gold>."
-  cooldown: "<red>You must wait <gold><duration></gold> before submitting another appeal."
-  limit: "<red>You have reached the appeal limit for this period. You can submit another appeal in <gold><duration></gold>."
-  already-open: "<yellow>You already have an open appeal for this mute. Please wait for staff to respond."
 
 
 broadcasts:

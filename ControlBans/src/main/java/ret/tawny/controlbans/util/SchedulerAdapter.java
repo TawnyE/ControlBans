@@ -3,7 +3,6 @@ package ret.tawny.controlbans.util;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitTask;
 import ret.tawny.controlbans.ControlBansPlugin;
 
 public class SchedulerAdapter {
@@ -56,13 +55,5 @@ public class SchedulerAdapter {
      */
     public void runTaskAsynchronously(Runnable task) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, task);
-    }
-
-    public BukkitTask runTaskTimer(Runnable task, long delay, long period) {
-        return Bukkit.getScheduler().runTaskTimer(plugin, task, delay, period);
-    }
-
-    public BukkitTask runTaskTimerAsynchronously(Runnable task, long delay, long period) {
-        return Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, task, delay, period);
     }
 }

@@ -294,69 +294,6 @@ punishments:
     # When false (default), punishments are public unless the -s flag is used to make them silent.
     silent-by-default: false
 
-  # Suggested reasons for command auto-complete
-  suggested-reasons:
-    - "Cheating"
-    - "Abusive chat"
-    - "Exploiting"
-
-  # Categorise punishments to inform analytics & escalations
-  categories:
-    default: "general"
-    definitions:
-      general:
-        triggers:
-          - "general"
-          - "unspecified"
-        weight: 1
-      chat:
-        triggers:
-          - "chat"
-          - "spam"
-          - "caps"
-        weight: 1
-      cheating:
-        triggers:
-          - "cheat"
-          - "hack"
-          - "xray"
-        weight: 3
-
-  # Warn decay automatically retires old warnings
-  warn-decay:
-    enabled: true
-    days: 30
-
-  # Automatic escalation based on active warnings
-  escalation:
-    enabled: true
-    cooldown-hours: 12
-    warn-thresholds:
-      "3": "tempban:1d"
-      "5": "ban:permanent"
-
-  # Scheduled punishments execute in the future
-  scheduling:
-    enabled: true
-    check-interval: 60
-    max-future-days: 45
-
-  # Moderator reminders for upcoming punishments/appeals
-  reminders:
-    lead-time-minutes: 20
-
-# Appeals workflow configuration
-appeals:
-  default-status: "OPEN"
-  remind-every-days: 3
-  notify-staff: true
-  # Require players to be muted and enforce cooldown + attempt limits
-  muted-only: true
-  cooldown-days: 1
-  window:
-    days: 7
-    max-submissions: 3
-
 # Cache Settings
 cache:
   # Enable caching for performance
@@ -373,6 +310,20 @@ cache:
 
   # Clear cache on punishment changes
   clear-on-change: true
+
+# Appeal Settings
+appeals:
+  # Enable the /appeal command for muted players
+  enabled: true
+
+  # Minimum time (in hours) a player must wait between appeals
+  cooldown-hours: 24
+
+  # Maximum number of appeals allowed during the rolling window
+  max-submissions: 3
+
+  # Length of the rolling window (in days) for appeal limits. Set to 0 to disable the window limit.
+  window-days: 7
 
 # Performance Settings
 performance:
@@ -405,24 +356,3 @@ time-format:
     w: weeks
     mo: months
     y: years
-
-# Monitoring & health reporting
-monitoring:
-  benchmark:
-    enabled: true
-    sample-interval: 60
-    window-minutes: 15
-  healthcheck:
-    enabled: true
-    require-token: false
-    token: "controlbans-health"
-  analytics:
-    recent-days: 7
-
-# Roadmap markers surfaced in /controlbans roadmap and the web API
-project:
-  roadmap:
-    - "Automatic escalation"
-    - "Scheduled punishments"
-    - "Warn decay"
-    - "Punishment category system"

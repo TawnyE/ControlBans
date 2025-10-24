@@ -12,10 +12,6 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class LocaleManager {
@@ -24,8 +20,6 @@ public class LocaleManager {
     private FileConfiguration localeConfig;
     private FileConfiguration fallbackConfig;
     private final MiniMessage miniMessage;
-    private final Map<String, FileConfiguration> localeCache = new ConcurrentHashMap<>();
-    private final Map<UUID, String> playerLocales = new ConcurrentHashMap<>();
 
     public LocaleManager(ControlBansPlugin plugin) {
         this.plugin = plugin;
@@ -52,7 +46,6 @@ public class LocaleManager {
         }
 
         this.localeConfig = YamlConfiguration.loadConfiguration(localeFile);
-        localeCache.clear();
 
         // Load fallback English configuration from JAR
         try (InputStream fallbackStream = plugin.getResource("locales/en.yml")) {
@@ -93,71 +86,5 @@ public class LocaleManager {
 
     public void reload() {
         loadLocales();
-    }
-
-    public void registerPlayerLocale(UUID uuid, String locale) {
-        if (locale == null) return;
-        playerLocales.put(uuid, normalizeLocale(locale));
-    }
-
-    private String normalizeLocale(String locale) {
-        if (locale == null || locale.isBlank()) {
-            return plugin.getConfigManager().getLanguage();
-        }
-        String lower = locale.toLowerCase(Locale.ROOT);
-        if (lower.contains("_")) {
-            lower = lower.substring(0, lower.indexOf('_'));
-        }
-        return lower;
-    }
-
-    private FileConfiguration getConfigurationForLocale(String locale) {
-        String normalized = normalizeLocale(locale);
-        if (normalized.equalsIgnoreCase(plugin.getConfigManager().getLanguage())) {
-            return localeConfig;
-        }
-        return localeCache.computeIfAbsent(normalized, lang -> {
-            File localeFile = new File(plugin.getDataFolder(), "locales/" + lang + ".yml");
-            if (!localeFile.exists()) {
-                try (InputStream resource = plugin.getResource("locales/" + lang + ".yml")) {
-                    if (resource != null) {
-                        plugin.saveResource("locales/" + lang + ".yml", false);
-                    } else {
-                        return localeConfig;
-                    }
-                } catch (IllegalArgumentException ignored) {
-                    return localeConfig;
-                }
-            }
-            return YamlConfiguration.loadConfiguration(localeFile);
-        });
-    }
-
-    public Component getMessageFor(UUID uuid, String key, TagResolver... resolvers) {
-        String locale = playerLocales.get(uuid);
-        if (locale == null) {
-            return getMessage(key, resolvers);
-        }
-        FileConfiguration configForLocale = getConfigurationForLocale(locale);
-        String message = configForLocale.getString(key);
-        if (message == null) {
-            message = fallbackConfig.getString(key, "<red>Missing translation key: " + key);
-        }
-        return miniMessage.deserialize(message, resolvers);
-    }
-
-    public List<Component> getMessageListFor(UUID uuid, String key, TagResolver... resolvers) {
-        String locale = playerLocales.get(uuid);
-        if (locale == null) {
-            return getMessageList(key, resolvers);
-        }
-        FileConfiguration configForLocale = getConfigurationForLocale(locale);
-        List<String> messages = configForLocale.getStringList(key);
-        if (messages.isEmpty()) {
-            messages = fallbackConfig.getStringList(key);
-        }
-        return messages.stream()
-                .map(line -> miniMessage.deserialize(line, resolvers))
-                .collect(Collectors.toList());
     }
 }

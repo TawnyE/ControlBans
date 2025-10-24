@@ -5,14 +5,9 @@ import org.bukkit.configuration.file.FileConfiguration;
 import ret.tawny.controlbans.ControlBansPlugin;
 
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -113,156 +108,21 @@ public class ConfigManager {
     public boolean isBroadcastPlayers() { return getCachedOrLoad("punishments.broadcast.players", Boolean.class, true); }
     public boolean isSilentByDefault() { return getCachedOrLoad("punishments.broadcast.silent-by-default", Boolean.class, false); }
 
-    // Punishment workflow enhancements
-    public List<String> getSuggestedReasons() {
-        List<String> suggestions = config.getStringList("punishments.suggested-reasons");
-        return suggestions.isEmpty() ? List.of("Griefing", "Cheating", "Harassment") : suggestions;
-    }
-
-    public boolean isWarnDecayEnabled() { return getCachedOrLoad("punishments.warn-decay.enabled", Boolean.class, true); }
-    public Duration getWarnDecayDuration() {
-        long days = getCachedOrLoad("punishments.warn-decay.days", Long.class, 30L);
-        return Duration.ofDays(Math.max(1, days));
-    }
-
-    public boolean isEscalationEnabled() { return getCachedOrLoad("punishments.escalation.enabled", Boolean.class, true); }
-    public Duration getEscalationCooldown() {
-        long hours = getCachedOrLoad("punishments.escalation.cooldown-hours", Long.class, 12L);
-        return Duration.ofHours(Math.max(0, hours));
-    }
-
-    public Map<Integer, EscalationRule> getEscalationRules() {
-        String path = "punishments.escalation.warn-thresholds";
-        ConfigurationSection section = config.getConfigurationSection(path);
-        if (section == null) {
-            Map<Integer, EscalationRule> defaults = new LinkedHashMap<>();
-            defaults.put(3, new EscalationRule("tempban", Duration.ofHours(24), false));
-            defaults.put(5, new EscalationRule("ban", Duration.ofSeconds(-1), false));
-            return defaults;
-        }
-
-        Map<Integer, EscalationRule> rules = new LinkedHashMap<>();
-        for (String key : section.getKeys(false)) {
-            try {
-                int threshold = Integer.parseInt(key);
-                String value = section.getString(key, "ban:permanent");
-                rules.put(threshold, parseEscalationValue(value));
-            } catch (NumberFormatException ignored) {
-            }
-        }
-        if (rules.isEmpty()) {
-            rules.put(3, new EscalationRule("tempban", Duration.ofHours(24), false));
-        }
-        return rules;
-    }
-
-    private EscalationRule parseEscalationValue(String value) {
-        String normalized = Optional.ofNullable(value).orElse("ban:permanent").trim().toLowerCase(Locale.ROOT);
-        boolean ip = normalized.contains("ipban");
-        normalized = normalized.replace("ipban", "");
-        String[] parts = normalized.split(":");
-        String action = parts[0].isBlank() ? "ban" : parts[0];
-        Duration duration = Duration.ofSeconds(-1);
-        if (parts.length > 1) {
-            duration = parseDuration(parts[1]);
-        }
-        return new EscalationRule(action, duration, ip);
-    }
-
-    private Duration parseDuration(String token) {
-        if (token == null || token.isBlank() || token.equalsIgnoreCase("permanent")) {
-            return Duration.ofSeconds(-1);
-        }
-        try {
-            if (token.endsWith("d")) {
-                return Duration.ofDays(Long.parseLong(token.substring(0, token.length() - 1)));
-            }
-            if (token.endsWith("h")) {
-                return Duration.ofHours(Long.parseLong(token.substring(0, token.length() - 1)));
-            }
-            if (token.endsWith("m")) {
-                return Duration.ofMinutes(Long.parseLong(token.substring(0, token.length() - 1)));
-            }
-            long seconds = Long.parseLong(token);
-            return Duration.ofSeconds(seconds);
-        } catch (NumberFormatException ex) {
-            return Duration.ofSeconds(-1);
-        }
-    }
-
-    public String getDefaultCategory() { return getCachedOrLoad("punishments.categories.default", String.class, "general"); }
-
-    public Map<String, CategoryDefinition> getCategoryDefinitions() {
-        ConfigurationSection section = config.getConfigurationSection("punishments.categories.definitions");
-        if (section == null) {
-            Map<String, CategoryDefinition> defaults = new LinkedHashMap<>();
-            defaults.put("general", new CategoryDefinition("general", List.of("general"), 1));
-            defaults.put("chat", new CategoryDefinition("chat", List.of("chat", "caps", "spam"), 1));
-            defaults.put("cheating", new CategoryDefinition("cheating", List.of("cheat", "hack"), 3));
-            return defaults;
-        }
-
-        Map<String, CategoryDefinition> definitions = new LinkedHashMap<>();
-        for (String key : section.getKeys(false)) {
-            ConfigurationSection child = section.getConfigurationSection(key);
-            if (child == null) continue;
-            List<String> triggers = child.getStringList("triggers");
-            int weight = child.getInt("weight", 1);
-            definitions.put(key, new CategoryDefinition(key, triggers.isEmpty() ? List.of(key) : triggers, Math.max(1, weight)));
-        }
-        return definitions;
-    }
-
-    // Scheduling & reminders
-    public boolean isSchedulingEnabled() { return getCachedOrLoad("punishments.scheduling.enabled", Boolean.class, true); }
-    public long getSchedulingLookaheadDays() { return getCachedOrLoad("punishments.scheduling.max-future-days", Long.class, 30L); }
-    public long getSchedulingCheckIntervalSeconds() { return getCachedOrLoad("punishments.scheduling.check-interval", Long.class, 60L); }
-    public Duration getReminderLeadTime() {
-        long minutes = getCachedOrLoad("punishments.reminders.lead-time-minutes", Long.class, 15L);
-        return Duration.ofMinutes(Math.max(1, minutes));
-    }
-
-    // Appeals
-    public Duration getAppealReminderInterval() {
-        long days = getCachedOrLoad("appeals.remind-every-days", Long.class, 3L);
-        return Duration.ofDays(Math.max(1, days));
-    }
-    public String getDefaultAppealStatus() { return getCachedOrLoad("appeals.default-status", String.class, "OPEN"); }
-    public boolean isAppealNotificationsEnabled() { return getCachedOrLoad("appeals.notify-staff", Boolean.class, true); }
-    public boolean isAppealMutedOnly() { return getCachedOrLoad("appeals.muted-only", Boolean.class, true); }
+    // Appeal Configuration
+    public boolean isAppealsEnabled() { return getCachedOrLoad("appeals.enabled", Boolean.class, true); }
     public Duration getAppealCooldown() {
-        long days = getCachedOrLoad("appeals.cooldown-days", Long.class, 1L);
-        return Duration.ofDays(Math.max(0, days));
+        long hours = getCachedOrLoad("appeals.cooldown-hours", Long.class, 24L);
+        return Duration.ofHours(Math.max(0L, hours));
+    }
+    public int getAppealMaxSubmissions() {
+        return Math.max(0, getCachedOrLoad("appeals.max-submissions", Integer.class, 3));
     }
     public Duration getAppealWindowDuration() {
-        long days = getCachedOrLoad("appeals.window.days", Long.class, 7L);
-        return Duration.ofDays(Math.max(1, days));
-    }
-    public int getAppealMaxSubmissions() { return Math.max(0, getCachedOrLoad("appeals.window.max-submissions", Integer.class, 3)); }
-
-    // Analytics & monitoring
-    public boolean isBenchmarkEnabled() { return getCachedOrLoad("monitoring.benchmark.enabled", Boolean.class, true); }
-    public long getBenchmarkSampleIntervalSeconds() { return getCachedOrLoad("monitoring.benchmark.sample-interval", Long.class, 60L); }
-    public long getBenchmarkWindowMinutes() { return getCachedOrLoad("monitoring.benchmark.window-minutes", Long.class, 15L); }
-    public boolean isHealthcheckEnabled() { return getCachedOrLoad("monitoring.healthcheck.enabled", Boolean.class, true); }
-    public boolean isHealthcheckTokenRequired() { return getCachedOrLoad("monitoring.healthcheck.require-token", Boolean.class, false); }
-    public String getHealthcheckToken() { return getCachedOrLoad("monitoring.healthcheck.token", String.class, "controlbans-health"); }
-    public int getAnalyticsRecentDays() { return getCachedOrLoad("monitoring.analytics.recent-days", Integer.class, 7); }
-
-    public List<String> getRoadmapMarkers() {
-        List<String> entries = config.getStringList("project.roadmap");
-        if (!entries.isEmpty()) {
-            return entries;
+        long days = getCachedOrLoad("appeals.window-days", Long.class, 7L);
+        if (days <= 0) {
+            return Duration.ZERO;
         }
-        return List.of(
-                "Automatic escalation",
-                "Scheduled punishments",
-                "Warn decay",
-                "Punishment category system"
-        );
+        return Duration.ofDays(days);
     }
-
-    public record EscalationRule(String action, Duration duration, boolean ipBan) { }
-    public record CategoryDefinition(String name, List<String> triggers, int weight) { }
 
 }

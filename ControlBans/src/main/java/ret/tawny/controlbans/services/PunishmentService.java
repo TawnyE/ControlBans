@@ -11,7 +11,6 @@ import org.bukkit.entity.Player;
 import ret.tawny.controlbans.ControlBansPlugin;
 import ret.tawny.controlbans.model.Punishment;
 import ret.tawny.controlbans.model.PunishmentType;
-import ret.tawny.controlbans.model.ScheduledPunishment;
 import ret.tawny.controlbans.storage.DatabaseManager;
 import ret.tawny.controlbans.storage.dao.PunishmentDao;
 import ret.tawny.controlbans.util.IdUtil;
@@ -37,8 +36,6 @@ public class PunishmentService {
     private final PunishmentDao punishmentDao;
     private final SchedulerAdapter scheduler;
     private final ProxyService proxyService;
-    private EscalationService escalationService;
-    private AuditService auditService;
     private static final Pattern IP_PATTERN = Pattern.compile("^([0-9]{1,3}\\.){3}[0-9]{1,3}$");
 
     private record PunishmentCheckResult(boolean canPunish, boolean forceSilent, String reason) {
@@ -55,15 +52,6 @@ public class PunishmentService {
         this.scheduler = plugin.getSchedulerAdapter();
         this.proxyService = plugin.getProxyService();
     }
-
-    public void setEscalationService(EscalationService escalationService) {
-        this.escalationService = escalationService;
-    }
-
-    public void setAuditService(AuditService auditService) {
-        this.auditService = auditService;
-    }
-
 
     private CompletableFuture<PunishmentCheckResult> prePunishmentCheck(CommandSender sender, UUID targetUuid) {
         if (sender instanceof Player player && player.getUniqueId().equals(targetUuid)) {
@@ -320,19 +308,6 @@ public class PunishmentService {
         });
 
         plugin.getIntegrationService().onPunishment(punishment);
-        if (auditService != null) {
-            auditService.record("PUNISH_" + punishment.getType().name(), punishment, punishment.getStaffUuid(), punishment.getStaffName(), punishment.getReason())
-                    .exceptionally(error -> {
-                        plugin.getLogger().log(Level.WARNING, "Failed to record audit entry", error);
-                        return null;
-                    });
-        }
-        if (escalationService != null) {
-            escalationService.onPunishmentApplied(punishment).exceptionally(error -> {
-                plugin.getLogger().log(Level.WARNING, "Failed to process escalation logic", error);
-                return null;
-            });
-        }
         handleAltPunishment(punishment);
     }
 
@@ -355,24 +330,18 @@ public class PunishmentService {
 
             return databaseManager.executeQueryAsync(connection -> {
                 Optional<Punishment> activeBan = punishmentDao.getActiveBan(connection, targetUuid);
-                activeBan.ifPresent(p -> punishmentDao.removeBan(connection, targetUuid, staffUuid, staffName));
-                return activeBan;
-            }).thenApply(optional -> {
-                if (optional.isPresent()) {
-                    Punishment removed = optional.get();
-                    cacheService.invalidatePlayerPunishments(targetUuid);
-                    scheduler.runTask(() -> broadcastUnban(targetName, staffName));
-                    plugin.getIntegrationService().onUnban(targetName, staffName);
-                    if (auditService != null) {
-                        auditService.record("UNBAN", removed, staffUuid, staffName, "Manual unban")
-                                .exceptionally(error -> {
-                                    plugin.getLogger().log(Level.WARNING, "Failed to record unban audit entry", error);
-                                    return null;
-                                });
-                    }
+                if (activeBan.isPresent()) {
+                    punishmentDao.removeBan(connection, targetUuid, staffUuid, staffName);
                     return true;
                 }
                 return false;
+            }).thenApply(success -> {
+                if (success) {
+                    cacheService.invalidatePlayerPunishments(targetUuid);
+                    scheduler.runTask(() -> broadcastUnban(targetName, staffName));
+                    plugin.getIntegrationService().onUnban(targetName, staffName);
+                }
+                return success;
             });
         });
     }
@@ -385,23 +354,17 @@ public class PunishmentService {
             }
             return databaseManager.executeQueryAsync(connection -> {
                 Optional<Punishment> activeMute = punishmentDao.getActiveMute(connection, targetUuid);
-                activeMute.ifPresent(p -> punishmentDao.removeMute(connection, targetUuid, staffUuid, staffName));
-                return activeMute;
-            }).thenApply(optional -> {
-                if (optional.isPresent()) {
-                    Punishment removed = optional.get();
-                    cacheService.invalidatePlayerPunishments(targetUuid);
-                    scheduler.runTask(() -> broadcastUnmute(targetName, staffName));
-                    if (auditService != null) {
-                        auditService.record("UNMUTE", removed, staffUuid, staffName, "Manual unmute")
-                                .exceptionally(error -> {
-                                    plugin.getLogger().log(Level.WARNING, "Failed to record unmute audit entry", error);
-                                    return null;
-                                });
-                    }
+                if (activeMute.isPresent()) {
+                    punishmentDao.removeMute(connection, targetUuid, staffUuid, staffName);
                     return true;
                 }
                 return false;
+            }).thenApply(success -> {
+                if (success) {
+                    cacheService.invalidatePlayerPunishments(targetUuid);
+                    scheduler.runTask(() -> broadcastUnmute(targetName, staffName));
+                }
+                return success;
             });
         });
     }
@@ -484,41 +447,6 @@ public class PunishmentService {
 
     public CompletableFuture<Optional<Punishment>> getActiveIpBan(String ip) {
         return databaseManager.executeQueryAsync(connection -> punishmentDao.getActiveIpBan(connection, ip));
-    }
-
-    public CompletableFuture<Void> executeScheduledPunishment(ScheduledPunishment schedule) {
-        long created = System.currentTimeMillis();
-        long expiry = schedule.getDurationSeconds() <= 0 ? -1 : created + (schedule.getDurationSeconds() * 1000L);
-        Punishment punishment = Punishment.builder()
-                .punishmentId(IdUtil.generatePunishmentId())
-                .type(schedule.getType())
-                .targetUuid(schedule.getTargetUuid())
-                .targetName(schedule.getTargetName())
-                .targetIp(getPlayerIp(schedule.getTargetUuid()))
-                .reason(schedule.getReason())
-                .staffUuid(schedule.getStaffUuid())
-                .staffName(schedule.getStaffName())
-                .createdTime(created)
-                .expiryTime(expiry)
-                .serverOrigin(getServerName())
-                .silent(schedule.isSilent())
-                .ipBan(schedule.isIpBan())
-                .build();
-
-        return databaseManager.executeAsync(connection -> {
-            switch (schedule.getType()) {
-                case BAN, TEMPBAN, IPBAN -> punishmentDao.insertBan(connection, punishment);
-                case MUTE, TEMPMUTE -> {
-                    punishmentDao.insertMute(connection, punishment);
-                    recordPlayerHistory(connection, punishment.getTargetUuid(), punishment.getTargetName(), punishment.getTargetIp());
-                }
-                case WARN -> {
-                    punishmentDao.insertWarning(connection, punishment);
-                    recordPlayerHistory(connection, punishment.getTargetUuid(), punishment.getTargetName(), punishment.getTargetIp());
-                }
-                case KICK -> punishmentDao.insertKick(connection, punishment);
-            }
-        }).thenRun(() -> onPunishmentSuccess(punishment));
     }
 
     public CompletableFuture<List<Punishment>> getPunishmentHistory(UUID uuid, int limit) {
@@ -628,7 +556,7 @@ public class PunishmentService {
                 .resolver(Placeholder.unparsed("duration", duration))
                 .build();
 
-        return plugin.getLocaleManager().getMessageListFor(punishment.getTargetUuid(), configPath, placeholders);
+        return plugin.getLocaleManager().getMessageList(configPath, placeholders);
     }
 
     private String getPlayerIp(UUID uuid) {

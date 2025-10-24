@@ -7,10 +7,13 @@ import org.bukkit.entity.Player;
 import ret.tawny.controlbans.ControlBansPlugin;
 import ret.tawny.controlbans.model.Punishment;
 import ret.tawny.controlbans.services.AppealService;
-import ret.tawny.controlbans.services.AppealService.AppealSubmissionResult;
+import ret.tawny.controlbans.services.AppealService.AppealResult;
+import ret.tawny.controlbans.services.AppealService.AppealStatus;
 import ret.tawny.controlbans.util.TimeUtil;
 
 import java.util.List;
+import java.util.Optional;
+
 public class AppealCommand extends CommandBase {
 
     public AppealCommand(ControlBansPlugin plugin) {
@@ -26,8 +29,8 @@ public class AppealCommand extends CommandBase {
         }
 
         AppealService appealService = plugin.getAppealService();
-        if (appealService == null) {
-            player.sendMessage(locale.getMessage("appeals.unavailable"));
+        if (appealService == null || !plugin.getConfigManager().isAppealsEnabled()) {
+            player.sendMessage(locale.getMessage("appeals.disabled"));
             return true;
         }
 
@@ -49,54 +52,47 @@ public class AppealCommand extends CommandBase {
                 return;
             }
 
-            if (muteOpt.isEmpty()) {
+            Optional<Punishment> mute = muteOpt;
+            if (mute.isEmpty()) {
                 plugin.getSchedulerAdapter().runTaskForPlayer(player, () ->
                         player.sendMessage(locale.getMessage("appeals.not-muted")));
                 return;
             }
 
-            Punishment mute = muteOpt.get();
-            appealService.submitAppeal(mute, message).whenComplete((result, submitError) -> {
-                if (submitError != null || result == null) {
+            appealService.submitAppeal(mute.get(), message).whenComplete((result, error) -> {
+                if (error != null || result == null) {
                     plugin.getSchedulerAdapter().runTaskForPlayer(player, () ->
                             player.sendMessage(locale.getMessage("appeals.error")));
                     return;
                 }
 
-                plugin.getSchedulerAdapter().runTaskForPlayer(player, () -> handleResult(player, mute, result));
+                plugin.getSchedulerAdapter().runTaskForPlayer(player, () ->
+                        handleResult(player, mute.get(), result));
             });
-        }).exceptionally(throwable -> {
-            plugin.getSchedulerAdapter().runTaskForPlayer(player, () ->
-                    player.sendMessage(locale.getMessage("appeals.error")));
-            return null;
         });
 
         return true;
     }
 
-    private void handleResult(Player player, Punishment mute, AppealSubmissionResult result) {
-        switch (result.status()) {
-            case ACCEPTED -> {
-                String remaining = result.remainingSubmissions() < 0
-                        ? "∞"
-                        : Integer.toString(result.remainingSubmissions());
-                TagResolver[] resolvers = new TagResolver[]{
-                        idPlaceholder(mute.getPunishmentId()),
-                        Placeholder.unparsed("remaining", remaining)
-                };
-                player.sendMessage(locale.getMessage("appeals.submitted", resolvers));
-            }
-            case COOLDOWN -> player.sendMessage(locale.getMessage("appeals.cooldown", durationPlaceholder(result.nextAllowedAt())));
-            case LIMIT_REACHED -> player.sendMessage(locale.getMessage("appeals.limit", durationPlaceholder(result.nextAllowedAt())));
-            case ALREADY_OPEN -> player.sendMessage(locale.getMessage("appeals.already-open"));
-            default -> player.sendMessage(locale.getMessage("appeals.not-muted"));
+    private void handleResult(Player player, Punishment punishment, AppealResult result) {
+        AppealStatus status = result.status();
+        switch (status) {
+            case ACCEPTED -> player.sendMessage(locale.getMessage("appeals.submitted",
+                    idPlaceholder(punishment.getPunishmentId())));
+            case NOT_MUTED -> player.sendMessage(locale.getMessage("appeals.not-muted"));
+            case DISABLED -> player.sendMessage(locale.getMessage("appeals.disabled"));
+            case ON_COOLDOWN -> player.sendMessage(locale.getMessage("appeals.cooldown",
+                    durationPlaceholder(result.nextAllowedAt())));
+            case LIMIT_REACHED -> player.sendMessage(locale.getMessage("appeals.limit",
+                    durationPlaceholder(result.nextAllowedAt())));
         }
     }
 
-    private TagResolver durationPlaceholder(long nextAllowedAt) {
-        long millis = nextAllowedAt - System.currentTimeMillis();
-        long seconds = Math.max(1L, (millis + 999L) / 1000L);
-        return Placeholder.unparsed("duration", TimeUtil.formatDuration(seconds));
+    private TagResolver durationPlaceholder(long targetTimeMillis) {
+        long remainingMillis = Math.max(0L, targetTimeMillis - System.currentTimeMillis());
+        long seconds = (remainingMillis + 999L) / 1000L;
+        String formatted = TimeUtil.formatDuration(seconds);
+        return Placeholder.unparsed("duration", formatted);
     }
 
     @Override

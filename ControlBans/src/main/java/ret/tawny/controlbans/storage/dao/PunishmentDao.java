@@ -222,16 +222,6 @@ public class PunishmentDao {
     }
 
 
-    public void deactivateWarningById(Connection connection, String punishmentId) throws SQLException {
-        try (PreparedStatement stmt = connection.prepareStatement(
-                "UPDATE litebans_warnings SET active = FALSE, removed_by_date = ? WHERE punishment_id = ?")) {
-            stmt.setLong(1, System.currentTimeMillis());
-            stmt.setString(2, punishmentId);
-            stmt.executeUpdate();
-        }
-    }
-
-
     public List<Punishment> getRecentPunishments(Connection connection, int limit) throws SQLException {
         List<Punishment> punishments = new ArrayList<>();
 

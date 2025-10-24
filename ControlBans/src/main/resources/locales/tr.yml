@@ -10,11 +10,19 @@ errors:
   invalid-arguments: "<red>Geçersiz argümanlar. Kullanım: <usage>"
   database-error: "<red>Bir veritabanı hatası oluştu. Lütfen konsolu kontrol edin."
   import-failed: "<red>İçe aktarma başarısız: <error>"
-  operation-failed: "<red>Bu işlemi tamamlamaya çalışırken bir hata oluştu."
   cannot-punish-self: "<red>Kendinizi cezalandıramazsınız."
   cannot-punish-exempt: "<red>Bu oyuncu muaf olduğu için cezalandıramazsınız."
   command-from-console-error: "Bu komut sadece bir oyuncu tarafından çalıştırılabilir."
   id-not-found: "<red>Bu ID ile ceza bulunamadı."
+
+appeals:
+  disabled: "<red>Şu anda itiraz sistemi kullanılamıyor."
+  message-required: "<red>Lütfen itirazınıza kısa bir mesaj ekleyin."
+  not-muted: "<red>İtiraz edebileceğiniz aktif bir susturmanız yok."
+  submitted: "<green><id> numaralı ceza için itirazınız gönderildi."
+  cooldown: "<red>Yeni bir itiraz göndermeden önce <duration> beklemelisiniz."
+  limit: "<red>İtiraz limitine ulaştınız. <duration> sonra tekrar deneyin."
+  error: "<red>İtiraz gönderilirken bir hata oluştu. Lütfen yetkililerle iletişime geçin."
 success:
   ban: "<green><red><player><green> başarıyla yasaklandı."
   tempban: "<green><red><player><green> başarıyla <red><duration><green> süreliğine yasaklandı."
@@ -28,7 +36,6 @@ success:
   ipmute: "<green>IP susturması başarıyla uygulandı."
   import-complete: "<green>İçe aktarma başarıyla tamamlandı. <red><count><green> kayıt içe aktarıldı."
   reload: "<green>ControlBans yapılandırması yeniden yüklendi."
-  scheduled: "<green><type> işlemi <red><player><green> için <yellow><duration><green> içinde planlandı. Sebep: <white><reason>"
 actions:
   banning: "<yellow><player> yasaklanıyor..."
   temp-banning: "<yellow><player> geçici olarak yasaklanıyor..."
@@ -43,16 +50,6 @@ actions:
   checking-id: "<yellow>Ceza ID'si kontrol ediliyor: <id>..."
   checking-player: "<yellow><player> için ceza durumu kontrol ediliyor..."
   finding-alts: "<yellow><player> için alternatif hesaplar bulunuyor..."
-
-appeals:
-  unavailable: "<red>İtiraz sistemi şu anda kullanılamıyor."
-  message-required: "<red>Lütfen itirazınız için bir mesaj ekleyin."
-  error: "<red>İtirazınız gönderilemedi. Lütfen daha sonra tekrar deneyin."
-  not-muted: "<red>Sadece susturulmuş oyuncular itiraz gönderebilir."
-  submitted: "<green><white><id></white> için itirazınız gönderildi. Bu dönemde kalan deneme: <gold><remaining></gold>."
-  cooldown: "<red>Yeni bir itiraz göndermeden önce <gold><duration></gold> beklemelisiniz."
-  limit: "<red>Bu dönem için itiraz limitine ulaştınız. <gold><duration></gold> sonra tekrar deneyin."
-  already-open: "<yellow>Bu susturma için zaten açık bir itirazınız var. Lütfen yetkililerin yanıtını bekleyin."
 broadcasts:
   ban: "<dark_red><bold>YASAK <gray>┃ <white><player> <red>, <white><staff><red> tarafından kalıcı olarak yasaklandı. Sebep: <white><reason>"
   tempban: "<dark_red><bold>YASAK <gray>┃ <white><player> <red>, <white><staff><red> tarafından geçici olarak yasaklandı. Sebep: <white><reason>"

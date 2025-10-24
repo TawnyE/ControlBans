@@ -10,11 +10,19 @@ errors:
   invalid-arguments: "<red>Arguments invalides. Utilisation : <usage>"
   database-error: "<red>Une erreur de base de données est survenue. Veuillez vérifier la console."
   import-failed: "<red>L'importation a échoué : <error>"
-  operation-failed: "<red>Une erreur est survenue lors de cette action."
   cannot-punish-self: "<red>Vous ne pouvez pas vous sanctionner vous-même."
   cannot-punish-exempt: "<red>Vous ne pouvez pas sanctionner ce joueur car il est exempté."
   command-from-console-error: "Cette commande ne peut être exécutée que par un joueur."
   id-not-found: "<red>Aucune sanction trouvée avec cet ID."
+
+appeals:
+  disabled: "<red>Les appels ne sont pas disponibles pour le moment."
+  message-required: "<red>Veuillez inclure un court message avec votre appel."
+  not-muted: "<red>Vous n'avez pas de mute actif à contester."
+  submitted: "<green>Votre appel pour la sanction <id> a été envoyé."
+  cooldown: "<red>Vous devez attendre <duration> avant d'envoyer un nouvel appel."
+  limit: "<red>Vous avez atteint la limite d'appels. Réessayez dans <duration>."
+  error: "<red>Une erreur est survenue lors de l'envoi de votre appel. Contactez l'équipe."
 success:
   ban: "<green>Le joueur <red><player><green> a été banni avec succès."
   tempban: "<green>Le joueur <red><player><green> a été banni temporairement pour <red><duration><green>."
@@ -28,7 +36,6 @@ success:
   ipmute: "<green>Le mute par IP a été appliqué avec succès."
   import-complete: "<green>Importation terminée avec succès. <red><count><green> enregistrements importés."
   reload: "<green>Configuration de ControlBans rechargée."
-  scheduled: "<green><type> planifié pour <red><player><green> dans <yellow><duration><green>. Raison : <white><reason>"
 actions:
   banning: "<yellow>Bannissement de <player>..."
   temp-banning: "<yellow>Bannissement temporaire de <player>..."
@@ -43,16 +50,6 @@ actions:
   checking-id: "<yellow>Vérification de l'ID de sanction : <id>..."
   checking-player: "<yellow>Vérification du statut de sanction pour <player>..."
   finding-alts: "<yellow>Recherche de comptes alternatifs pour <player>..."
-
-appeals:
-  unavailable: "<red>Les appels ne sont pas disponibles pour le moment."
-  message-required: "<red>Veuillez ajouter un message expliquant votre appel."
-  error: "<red>Impossible d'envoyer votre appel. Veuillez réessayer plus tard."
-  not-muted: "<red>Seuls les joueurs réduits au silence peuvent envoyer un appel."
-  submitted: "<green>Votre appel pour <white><id></white> a été envoyé. Tentatives restantes pour cette période : <gold><remaining></gold>."
-  cooldown: "<red>Vous devez attendre <gold><duration></gold> avant d'envoyer un nouvel appel."
-  limit: "<red>Vous avez atteint la limite d'appels pour cette période. Réessayez dans <gold><duration></gold>."
-  already-open: "<yellow>Un appel est déjà ouvert pour ce mute. Merci de patienter."
 broadcasts:
   ban: "<dark_red><bold>BAN <gray>┃ <white><player> <red>a été banni de façon permanente par <white><staff><red> pour : <white><reason>"
   tempban: "<dark_red><bold>BAN <gray>┃ <white><player> <red>a été banni temporairement par <white><staff><red> pour : <white><reason>"

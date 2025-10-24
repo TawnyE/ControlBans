@@ -10,11 +10,19 @@ errors:
   invalid-arguments: "<red>Argumentos inválidos. Uso: <usage>"
   database-error: "<red>Ocurrió un error en la base de datos. Por favor, revisa la consola."
   import-failed: "<red>La importación falló: <error>"
-  operation-failed: "<red>Ocurrió un problema al completar esa acción."
   cannot-punish-self: "<red>No puedes castigarte a ti mismo."
   cannot-punish-exempt: "<red>No puedes castigar a este jugador ya que está exento."
   command-from-console-error: "Este comando solo puede ser ejecutado por un jugador."
   id-not-found: "<red>No se encontró ningún castigo con esa ID."
+
+appeals:
+  disabled: "<red>Las apelaciones no están disponibles actualmente."
+  message-required: "<red>Incluye un breve mensaje con tu apelación."
+  not-muted: "<red>No tienes un silencio activo que puedas apelar."
+  submitted: "<green>Tu apelación para el castigo <id> ha sido enviada."
+  cooldown: "<red>Debes esperar <duration> antes de enviar otra apelación."
+  limit: "<red>Has alcanzado el límite de apelaciones. Inténtalo de nuevo en <duration>."
+  error: "<red>Ocurrió un error al enviar tu apelación. Contacta al personal."
 success:
   ban: "<green>Se ha baneado a <red><player><green> correctamente."
   tempban: "<green>Se ha baneado temporalmente a <red><player><green> por <red><duration><green>."
@@ -28,7 +36,6 @@ success:
   ipmute: "<green>Se ha aplicado el silencio de IP correctamente."
   import-complete: "<green>Importación completada con éxito. Se importaron <red><count><green> registros."
   reload: "<green>Configuración de ControlBans recargada."
-  scheduled: "<green>Se programó <type> para <red><player><green> en <yellow><duration><green>. Motivo: <white><reason>"
 actions:
   banning: "<yellow>Baneando a <player>..."
   temp-banning: "<yellow>Baneando temporalmente a <player>..."
@@ -43,16 +50,6 @@ actions:
   checking-id: "<yellow>Comprobando ID de castigo: <id>..."
   checking-player: "<yellow>Comprobando estado de castigo para <player>..."
   finding-alts: "<yellow>Buscando cuentas alternativas para <player>..."
-
-appeals:
-  unavailable: "<red>Las apelaciones no están disponibles en este momento."
-  message-required: "<red>Incluye un mensaje explicando tu apelación."
-  error: "<red>No se pudo enviar tu apelación. Inténtalo de nuevo más tarde."
-  not-muted: "<red>Solo los jugadores silenciados pueden enviar apelaciones."
-  submitted: "<green>Tu apelación para <white><id></white> se ha enviado. Intentos restantes en este período: <gold><remaining></gold>."
-  cooldown: "<red>Debes esperar <gold><duration></gold> antes de enviar otra apelación."
-  limit: "<red>Has alcanzado el límite de apelaciones para este período. Podrás intentarlo de nuevo en <gold><duration></gold>."
-  already-open: "<yellow>Ya tienes una apelación abierta para este silencio. Espera a que el equipo responda."
 broadcasts:
   ban: "<dark_red><bold>BAN <gray>┃ <white><player> <red>fue baneado permanentemente por <white><staff><red> por: <white><reason>"
   tempban: "<dark_red><bold>BAN <gray>┃ <white><player> <red>fue baneado temporalmente por <white><staff><red> por: <white><reason>"
