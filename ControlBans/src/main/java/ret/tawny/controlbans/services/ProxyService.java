@@ -8,6 +8,7 @@ import ret.tawny.controlbans.ControlBansPlugin;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -39,6 +40,23 @@ public class ProxyService {
     }
 
     private void sendPluginMessage(String message) {
+        Runnable dispatcher = () -> dispatchDirectly(message);
+
+        if (Bukkit.isPrimaryThread()) {
+            dispatcher.run();
+        } else {
+            Bukkit.getScheduler().runTask(plugin, dispatcher);
+        }
+    }
+
+    private byte[] encodePayload(String message) {
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+             DataOutputStream dataOutputStream = new DataOutputStream(outputStream)) {
+            dataOutputStream.writeUTF(message);
+            return outputStream.toByteArray();
+        } catch (IOException exception) {
+            plugin.getLogger().log(Level.WARNING, "Failed to encode proxy plugin message", exception);
+            return message.getBytes(StandardCharsets.UTF_8);
         byte[] payload;
         try {
             payload = encodeMessage(message);
@@ -59,7 +77,19 @@ public class ProxyService {
             flushQueuedMessages(player.get());
             return;
         }
+    }
 
+    private void dispatchDirectly(String message) {
+        byte[] payload = encodePayload(message);
+        plugin.getServer().sendPluginMessage(plugin, CHANNEL, payload);
+    }
+
+    public void flushQueuedMessages() {
+        // No queued messages are maintained in the direct-dispatch implementation.
+    }
+
+    public void flushQueuedMessages(Player player) {
+        // No queued messages are maintained in the direct-dispatch implementation.
         player.get().sendPluginMessage(plugin, CHANNEL, payload);
     }
 
