@@ -9,12 +9,16 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 
 public class ProxyService {
 
     private final ControlBansPlugin plugin;
     private static final String CHANNEL = "controlbans:main";
+    private final Queue<byte[]> pendingMessages = new ConcurrentLinkedQueue<>();
 
     public ProxyService(ControlBansPlugin plugin) {
         this.plugin = plugin;
@@ -53,6 +57,25 @@ public class ProxyService {
         } catch (IOException exception) {
             plugin.getLogger().log(Level.WARNING, "Failed to encode proxy plugin message", exception);
             return message.getBytes(StandardCharsets.UTF_8);
+        byte[] payload;
+        try {
+            payload = encodeMessage(message);
+        } catch (IOException e) {
+            plugin.getLogger().log(Level.WARNING, "Failed to encode proxy message.", e);
+            return;
+        }
+
+        Optional<Player> player = Bukkit.getOnlinePlayers().stream().findFirst();
+        if (player.isEmpty()) {
+            pendingMessages.add(payload);
+            plugin.getLogger().info("Queued proxy message because no players are online to relay it.");
+            return;
+        }
+
+        if (!pendingMessages.isEmpty()) {
+            pendingMessages.add(payload);
+            flushQueuedMessages(player.get());
+            return;
         }
     }
 
@@ -67,5 +90,27 @@ public class ProxyService {
 
     public void flushQueuedMessages(Player player) {
         // No queued messages are maintained in the direct-dispatch implementation.
+        player.get().sendPluginMessage(plugin, CHANNEL, payload);
+    }
+
+    public void flushQueuedMessages(Player player) {
+        byte[] data;
+        while ((data = pendingMessages.poll()) != null) {
+            player.sendPluginMessage(plugin, CHANNEL, data);
+        }
+    }
+
+    public void flushQueuedMessagesIfPossible() {
+        Optional<Player> relay = Bukkit.getOnlinePlayers().stream().findFirst();
+        relay.ifPresent(this::flushQueuedMessages);
+    }
+
+    private byte[] encodeMessage(String message) throws IOException {
+        ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+        try (DataOutputStream out = new DataOutputStream(byteStream)) {
+            out.writeUTF(message);
+            out.flush();
+            return byteStream.toByteArray();
+        }
     }
 }
