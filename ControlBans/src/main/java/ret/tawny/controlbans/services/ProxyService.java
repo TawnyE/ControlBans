@@ -18,7 +18,6 @@ public class ProxyService {
     private final ControlBansPlugin plugin;
     private static final String CHANNEL = "controlbans:main";
     private final Queue<byte[]> queuedMessages = new ConcurrentLinkedQueue<>();
-    private volatile boolean directDispatchSupported = true;
 
     public ProxyService(ControlBansPlugin plugin) {
         this.plugin = plugin;
@@ -51,11 +50,6 @@ public class ProxyService {
 
     private void dispatch(String message) {
         byte[] payload = encodePayload(message);
-
-        if (sendDirectly(payload)) {
-            flushQueuedMessagesInternal(null);
-            return;
-        }
 
         if (sendThroughAnyPlayer(payload)) {
             flushQueuedMessagesInternal(null);
@@ -133,41 +127,22 @@ public class ProxyService {
     private void flushQueuedMessagesInternal(Player preferredMessenger) {
         byte[] payload;
         while ((payload = queuedMessages.peek()) != null) {
-            if (sendDirectly(payload)) {
-                queuedMessages.poll();
-                continue;
-            }
-
             Player messenger = preferredMessenger;
             if (messenger == null || !messenger.isOnline()) {
                 messenger = findMessenger();
             }
 
-            if (messenger == null || !sendThroughPlayer(messenger, payload)) {
+            if (messenger == null) {
                 plugin.getLogger().log(Level.FINE, "Deferred proxy message delivery; no players available.");
                 return;
             }
 
+            if (!sendThroughPlayer(messenger, payload)) {
+                plugin.getLogger().log(Level.FINE, "Failed to flush proxy message through " + messenger.getName() + "; will retry later.");
+                return;
+            }
+
             queuedMessages.poll();
-        }
-    }
-
-    private boolean sendDirectly(byte[] payload) {
-        if (!directDispatchSupported) {
-            return false;
-        }
-
-        try {
-            plugin.getServer().sendPluginMessage(plugin, CHANNEL, payload);
-            return true;
-        } catch (IllegalArgumentException | IllegalStateException exception) {
-            directDispatchSupported = false;
-            plugin.getLogger().log(Level.FINE, "Direct proxy dispatch is not supported on this server; falling back to player messenger.", exception);
-            return false;
-        } catch (Throwable throwable) {
-            directDispatchSupported = false;
-            plugin.getLogger().log(Level.WARNING, "Unexpected failure sending proxy message directly; falling back to player messenger.", throwable);
-            return false;
         }
     }
 }
