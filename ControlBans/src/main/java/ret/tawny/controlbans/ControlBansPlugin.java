@@ -11,6 +11,7 @@ import ret.tawny.controlbans.config.ConfigManager;
 import ret.tawny.controlbans.listeners.GuiListener;
 import ret.tawny.controlbans.listeners.PlayerChatListener;
 import ret.tawny.controlbans.listeners.PlayerJoinListener;
+import ret.tawny.controlbans.listeners.ProxyMessengerListener;
 import ret.tawny.controlbans.locale.LocaleManager;
 import ret.tawny.controlbans.services.*;
 import ret.tawny.controlbans.storage.DatabaseManager;
@@ -141,6 +142,7 @@ public class ControlBansPlugin extends JavaPlugin {
 
     private void registerListeners() {
         getServer().getPluginManager().registerEvents(new PlayerJoinListener(this), this);
+        getServer().getPluginManager().registerEvents(new ProxyMessengerListener(this), this);
         getServer().getPluginManager().registerEvents(new PlayerChatListener(this), this);
         getServer().getPluginManager().registerEvents(new GuiListener(historyGuiManager, altsGuiManager), this);
         getLogger().info("Listeners registered");

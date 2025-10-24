@@ -11,7 +11,6 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import ret.tawny.controlbans.ControlBansPlugin;
 import ret.tawny.controlbans.model.Punishment;
 import ret.tawny.controlbans.services.PunishmentService;
-import ret.tawny.controlbans.services.ProxyService;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -20,12 +19,10 @@ public class PlayerJoinListener implements Listener {
 
     private final ControlBansPlugin plugin;
     private final PunishmentService punishmentService;
-    private final ProxyService proxyService;
 
     public PlayerJoinListener(ControlBansPlugin plugin) {
         this.plugin = plugin;
         this.punishmentService = plugin.getPunishmentService();
-        this.proxyService = plugin.getProxyService();
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
@@ -66,6 +63,5 @@ public class PlayerJoinListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerJoin(PlayerJoinEvent event) {
         punishmentService.recordPlayerLogin(event.getPlayer());
-        proxyService.flushQueuedMessagesIfPossible(event.getPlayer());
     }
 }

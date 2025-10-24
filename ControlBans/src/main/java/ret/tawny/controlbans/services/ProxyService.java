@@ -42,17 +42,7 @@ public class ProxyService {
     private void sendPluginMessage(String message) {
         byte[] payload = encodePayload(message);
 
-        Runnable dispatcher = () -> {
-            Optional<Player> messenger = findAvailableMessenger();
-            if (messenger.isPresent()) {
-                Player player = messenger.get();
-                flushQueuedMessagesIfPossible(player);
-                player.sendPluginMessage(plugin, CHANNEL, payload);
-            } else {
-                queuedMessages.offer(payload);
-                plugin.getLogger().fine("Queued proxy message because no players are online.");
-            }
-        };
+        Runnable dispatcher = () -> dispatchOrQueue(payload);
 
         if (Bukkit.isPrimaryThread()) {
             dispatcher.run();
@@ -72,6 +62,24 @@ public class ProxyService {
         }
     }
 
+    private void dispatchOrQueue(byte[] payload) {
+        Optional<Player> messenger = findAvailableMessenger();
+        if (messenger.isPresent()) {
+            Player player = messenger.get();
+            flushQueuedMessages(player);
+            player.sendPluginMessage(plugin, CHANNEL, payload);
+            return;
+        }
+
+        queuedMessages.offer(payload);
+        plugin.getLogger().fine("Queued proxy message because no players are online.");
+
+        // Attempt the legacy server-level dispatch as a best-effort fallback for environments
+        // that might support it. The queued payload ensures delivery once a player joins even
+        // if this direct send is ignored by the proxy implementation.
+        plugin.getServer().sendPluginMessage(plugin, CHANNEL, payload);
+    }
+
     private Optional<Player> findAvailableMessenger() {
         return plugin.getServer().getOnlinePlayers().stream()
                 .filter(Player::isOnline)
@@ -79,7 +87,11 @@ public class ProxyService {
                 .map(Player.class::cast);
     }
 
-    public void flushQueuedMessagesIfPossible(Player player) {
+    public void flushQueuedMessages() {
+        findAvailableMessenger().ifPresent(this::flushQueuedMessages);
+    }
+
+    public void flushQueuedMessages(Player player) {
         if (player == null || !player.isOnline()) {
             return;
         }
