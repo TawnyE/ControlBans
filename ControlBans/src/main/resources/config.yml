@@ -311,6 +311,20 @@ cache:
   # Clear cache on punishment changes
   clear-on-change: true
 
+# Appeal Settings
+appeals:
+  # Enable the /appeal command for muted players
+  enabled: true
+
+  # Minimum time (in hours) a player must wait between appeals
+  cooldown-hours: 24
+
+  # Maximum number of appeals allowed during the rolling window
+  max-submissions: 3
+
+  # Length of the rolling window (in days) for appeal limits. Set to 0 to disable the window limit.
+  window-days: 7
+
 # Performance Settings
 performance:
   # Use async database operations

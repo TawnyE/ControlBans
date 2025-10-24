@@ -22,6 +22,7 @@ public class SchemaMigrator {
         createWarningsTable();
         createHistoryTable();
         createConfigTable();
+        createAppealsTable();
 
         // Create indexes for performance
         createIndexes();
@@ -184,6 +185,22 @@ public class SchemaMigrator {
         }
     }
 
+    private void createAppealsTable() throws SQLException {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS controlbans_appeals (
+                id INTEGER %s,
+                target_uuid VARCHAR(36) NOT NULL,
+                punishment_id VARCHAR(8) NOT NULL,
+                message TEXT NOT NULL,
+                created_at BIGINT NOT NULL
+            )
+        """.formatted(getPrimaryKeyDefinition());
+
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+
     private void createIndexes() throws SQLException {
         String[] indexes = {
                 "CREATE UNIQUE INDEX IF NOT EXISTS idx_bans_punishment_id ON litebans_bans(punishment_id)",
@@ -201,7 +218,10 @@ public class SchemaMigrator {
                 "CREATE INDEX IF NOT EXISTS idx_kicks_uuid ON litebans_kicks(uuid)",
 
                 "CREATE INDEX IF NOT EXISTS idx_history_uuid ON litebans_history(uuid)",
-                "CREATE INDEX IF NOT EXISTS idx_history_ip ON litebans_history(ip)"
+                "CREATE INDEX IF NOT EXISTS idx_history_ip ON litebans_history(ip)",
+
+                "CREATE INDEX IF NOT EXISTS idx_appeals_target ON controlbans_appeals(target_uuid)",
+                "CREATE INDEX IF NOT EXISTS idx_appeals_created ON controlbans_appeals(created_at)"
         };
 
         try (Statement stmt = connection.createStatement()) {
