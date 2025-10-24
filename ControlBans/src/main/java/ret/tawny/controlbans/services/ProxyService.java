@@ -109,15 +109,6 @@ public class ProxyService {
             return false;
         }
 
-    private byte[] encodePayload(String message) {
-        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-             DataOutputStream dataOutputStream = new DataOutputStream(outputStream)) {
-            dataOutputStream.writeUTF(message);
-            return outputStream.toByteArray();
-        } catch (IOException exception) {
-            plugin.getLogger().log(Level.WARNING, "Failed to encode proxy plugin message", exception);
-            return message.getBytes(StandardCharsets.UTF_8);
-        byte[] payload;
         try {
             player.sendPluginMessage(plugin, CHANNEL, payload);
             return true;
@@ -138,17 +129,6 @@ public class ProxyService {
     }
 
     public void flushQueuedMessages(Player player) {
-        if (player == null) {
-            flushQueuedMessages();
-            return;
-        }
-    }
-
-    private void dispatchDirectly(String message) {
-        byte[] payload = encodePayload(message);
-        plugin.getServer().sendPluginMessage(plugin, CHANNEL, payload);
-    }
-
         Runnable flusher = () -> flushQueuedMessagesInternal(player);
 
         if (Bukkit.isPrimaryThread()) {
