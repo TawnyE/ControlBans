@@ -6,7 +6,6 @@ import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
-import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import ret.tawny.controlbans.ControlBansPlugin;
 import ret.tawny.controlbans.model.Punishment;
@@ -38,10 +37,18 @@ public class PunishmentService {
     private final ProxyService proxyService;
     private static final Pattern IP_PATTERN = Pattern.compile("^([0-9]{1,3}\\.){3}[0-9]{1,3}$");
 
-    private record PunishmentCheckResult(boolean canPunish, boolean forceSilent, String reason) {
-        static PunishmentCheckResult allow() { return new PunishmentCheckResult(true, false, null); }
-        static PunishmentCheckResult deny(String reason) { return new PunishmentCheckResult(false, false, reason); }
-        static PunishmentCheckResult allowAndForceSilent(String reason) { return new PunishmentCheckResult(true, true, reason); }
+    private record PunishmentCheckResult(boolean canPunish, boolean forceSilent, boolean staffIsAdmin, String failureMessage) {
+        static PunishmentCheckResult allow(boolean staffIsAdmin) {
+            return new PunishmentCheckResult(true, false, staffIsAdmin, null);
+        }
+
+        static PunishmentCheckResult allowAndForceSilent(boolean staffIsAdmin) {
+            return new PunishmentCheckResult(true, true, staffIsAdmin, null);
+        }
+
+        static PunishmentCheckResult deny(String message) {
+            return new PunishmentCheckResult(false, false, false, message);
+        }
     }
 
     public PunishmentService(ControlBansPlugin plugin, DatabaseManager databaseManager, CacheService cacheService) {
@@ -53,23 +60,28 @@ public class PunishmentService {
         this.proxyService = plugin.getProxyService();
     }
 
-    private CompletableFuture<PunishmentCheckResult> prePunishmentCheck(CommandSender sender, UUID targetUuid) {
-        if (sender instanceof Player player && player.getUniqueId().equals(targetUuid)) {
-            return CompletableFuture.completedFuture(PunishmentCheckResult.deny(plugin.getLocaleManager().getRawMessage("errors.cannot-punish-self")));
+    private CompletableFuture<PunishmentCheckResult> prePunishmentCheck(UUID staffUuid, UUID targetUuid) {
+        if (staffUuid != null && staffUuid.equals(targetUuid)) {
+            String message = plugin.getLocaleManager().getRawMessage("errors.cannot-punish-self");
+            return CompletableFuture.completedFuture(PunishmentCheckResult.deny(message));
         }
 
-        return CompletableFuture.supplyAsync(() -> {
+        return scheduler.callSync(() -> {
             Player targetPlayer = Bukkit.getPlayer(targetUuid);
+            Player staffPlayer = staffUuid != null ? Bukkit.getPlayer(staffUuid) : null;
+            boolean staffIsAdmin = staffUuid == null || (staffPlayer != null && staffPlayer.hasPermission("controlbans.admin"));
+
             if (targetPlayer != null && targetPlayer.isOnline()) {
                 if (targetPlayer.hasPermission("controlbans.exempt") || targetPlayer.isOp()) {
-                    if (sender instanceof Player) {
-                        return PunishmentCheckResult.deny(plugin.getLocaleManager().getRawMessage("errors.cannot-punish-exempt"));
-                    } else {
-                        return PunishmentCheckResult.allowAndForceSilent("Player is exempt. Issuing punishment silently.");
+                    if (staffUuid == null) {
+                        return PunishmentCheckResult.allowAndForceSilent(true);
                     }
+                    String message = plugin.getLocaleManager().getRawMessage("errors.cannot-punish-exempt");
+                    return PunishmentCheckResult.deny(message);
                 }
             }
-            return PunishmentCheckResult.allow();
+
+            return PunishmentCheckResult.allow(staffIsAdmin);
         });
     }
 
@@ -79,10 +91,9 @@ public class PunishmentService {
                 String errorMessage = plugin.getLocaleManager().getRawMessage("errors.player-not-found").replace("<player>", targetName);
                 return CompletableFuture.failedFuture(new IllegalArgumentException(errorMessage));
             }
-            CommandSender sender = staffUuid == null ? Bukkit.getConsoleSender() : Bukkit.getPlayer(staffUuid);
-            return prePunishmentCheck(sender, targetUuid).thenCompose(checkResult -> {
+            return prePunishmentCheck(staffUuid, targetUuid).thenCompose(checkResult -> {
                 if (!checkResult.canPunish()) {
-                    return CompletableFuture.failedFuture(new IllegalStateException(checkResult.reason()));
+                    return CompletableFuture.failedFuture(new IllegalStateException(checkResult.failureMessage()));
                 }
 
                 Punishment punishment = Punishment.builder()
@@ -112,10 +123,14 @@ public class PunishmentService {
                 String errorMessage = plugin.getLocaleManager().getRawMessage("errors.player-not-found").replace("<player>", targetName);
                 return CompletableFuture.failedFuture(new IllegalArgumentException(errorMessage));
             }
-            CommandSender sender = staffUuid == null ? Bukkit.getConsoleSender() : Bukkit.getPlayer(staffUuid);
-            return prePunishmentCheck(sender, targetUuid).thenCompose(checkResult -> {
+            return prePunishmentCheck(staffUuid, targetUuid).thenCompose(checkResult -> {
                 if (!checkResult.canPunish()) {
-                    return CompletableFuture.failedFuture(new IllegalStateException(checkResult.reason()));
+                    return CompletableFuture.failedFuture(new IllegalStateException(checkResult.failureMessage()));
+                }
+                if (!checkResult.staffIsAdmin() && duration > plugin.getConfigManager().getMaxTempBanDuration()) {
+                    String formattedMax = TimeUtil.formatDuration(plugin.getConfigManager().getMaxTempBanDuration());
+                    String message = "Duration exceeds maximum allowed (" + formattedMax + ")";
+                    return CompletableFuture.failedFuture(new IllegalArgumentException(message));
                 }
                 long expiryTime = System.currentTimeMillis() + (duration * 1000);
 
@@ -146,30 +161,30 @@ public class PunishmentService {
                 String errorMessage = plugin.getLocaleManager().getRawMessage("errors.player-not-found").replace("<player>", targetName);
                 return CompletableFuture.failedFuture(new IllegalArgumentException(errorMessage));
             }
-            CommandSender sender = staffUuid == null ? Bukkit.getConsoleSender() : Bukkit.getPlayer(staffUuid);
-            return prePunishmentCheck(sender, targetUuid).thenCompose(checkResult -> {
+            return prePunishmentCheck(staffUuid, targetUuid).thenCompose(checkResult -> {
                 if (!checkResult.canPunish()) {
-                    return CompletableFuture.failedFuture(new IllegalStateException(checkResult.reason()));
+                    return CompletableFuture.failedFuture(new IllegalStateException(checkResult.failureMessage()));
                 }
-                Punishment punishment = Punishment.builder()
-                        .punishmentId(IdUtil.generatePunishmentId())
-                        .type(PunishmentType.MUTE)
-                        .targetUuid(targetUuid)
-                        .targetName(targetName)
-                        .targetIp(getPlayerIp(targetUuid))
-                        .reason(reason != null ? reason : plugin.getConfigManager().getDefaultMuteReason())
-                        .staffUuid(staffUuid)
-                        .staffName(staffName)
-                        .createdTime(System.currentTimeMillis())
-                        .expiryTime(-1)
-                        .serverOrigin(getServerName())
-                        .silent(silent || checkResult.forceSilent())
-                        .build();
-
-                return databaseManager.executeAsync(connection -> {
+                return scheduler.callSync(() -> {
+                    String targetIp = getPlayerIp(targetUuid);
+                    return Punishment.builder()
+                            .punishmentId(IdUtil.generatePunishmentId())
+                            .type(PunishmentType.MUTE)
+                            .targetUuid(targetUuid)
+                            .targetName(targetName)
+                            .targetIp(targetIp)
+                            .reason(reason != null ? reason : plugin.getConfigManager().getDefaultMuteReason())
+                            .staffUuid(staffUuid)
+                            .staffName(staffName)
+                            .createdTime(System.currentTimeMillis())
+                            .expiryTime(-1)
+                            .serverOrigin(getServerName())
+                            .silent(silent || checkResult.forceSilent())
+                            .build();
+                }).thenCompose(punishment -> databaseManager.executeAsync(connection -> {
                     punishmentDao.insertMute(connection, punishment);
-                    recordPlayerHistory(connection, targetUuid, targetName, getPlayerIp(targetUuid));
-                }).thenRun(() -> onPunishmentSuccess(punishment));
+                    recordPlayerHistory(connection, targetUuid, targetName, punishment.getTargetIp());
+                }).thenRun(() -> onPunishmentSuccess(punishment)));
             });
         });
     }
@@ -180,35 +195,37 @@ public class PunishmentService {
                 String errorMessage = plugin.getLocaleManager().getRawMessage("errors.player-not-found").replace("<player>", targetName);
                 return CompletableFuture.failedFuture(new IllegalArgumentException(errorMessage));
             }
-            CommandSender sender = staffUuid == null ? Bukkit.getConsoleSender() : Bukkit.getPlayer(staffUuid);
-            return prePunishmentCheck(sender, targetUuid).thenCompose(checkResult -> {
+            return prePunishmentCheck(staffUuid, targetUuid).thenCompose(checkResult -> {
                 if (!checkResult.canPunish()) {
-                    return CompletableFuture.failedFuture(new IllegalStateException(checkResult.reason()));
+                    return CompletableFuture.failedFuture(new IllegalStateException(checkResult.failureMessage()));
                 }
-                if (!hasAdminPermission(staffUuid) && duration > plugin.getConfigManager().getMaxTempMuteDuration()) {
-                    return CompletableFuture.failedFuture(new IllegalArgumentException("Duration exceeds maximum allowed"));
+                if (!checkResult.staffIsAdmin() && duration > plugin.getConfigManager().getMaxTempMuteDuration()) {
+                    String formattedMax = TimeUtil.formatDuration(plugin.getConfigManager().getMaxTempMuteDuration());
+                    String message = "Duration exceeds maximum allowed (" + formattedMax + ")";
+                    return CompletableFuture.failedFuture(new IllegalArgumentException(message));
                 }
 
                 long expiryTime = System.currentTimeMillis() + (duration * 1000);
-                Punishment punishment = Punishment.builder()
-                        .punishmentId(IdUtil.generatePunishmentId())
-                        .type(PunishmentType.TEMPMUTE)
-                        .targetUuid(targetUuid)
-                        .targetName(targetName)
-                        .targetIp(getPlayerIp(targetUuid))
-                        .reason(reason != null ? reason : plugin.getConfigManager().getDefaultMuteReason())
-                        .staffUuid(staffUuid)
-                        .staffName(staffName)
-                        .createdTime(System.currentTimeMillis())
-                        .expiryTime(expiryTime)
-                        .serverOrigin(getServerName())
-                        .silent(silent || checkResult.forceSilent())
-                        .build();
-
-                return databaseManager.executeAsync(connection -> {
+                return scheduler.callSync(() -> {
+                    String targetIp = getPlayerIp(targetUuid);
+                    return Punishment.builder()
+                            .punishmentId(IdUtil.generatePunishmentId())
+                            .type(PunishmentType.TEMPMUTE)
+                            .targetUuid(targetUuid)
+                            .targetName(targetName)
+                            .targetIp(targetIp)
+                            .reason(reason != null ? reason : plugin.getConfigManager().getDefaultMuteReason())
+                            .staffUuid(staffUuid)
+                            .staffName(staffName)
+                            .createdTime(System.currentTimeMillis())
+                            .expiryTime(expiryTime)
+                            .serverOrigin(getServerName())
+                            .silent(silent || checkResult.forceSilent())
+                            .build();
+                }).thenCompose(punishment -> databaseManager.executeAsync(connection -> {
                     punishmentDao.insertMute(connection, punishment);
-                    recordPlayerHistory(connection, targetUuid, targetName, getPlayerIp(targetUuid));
-                }).thenRun(() -> onPunishmentSuccess(punishment));
+                    recordPlayerHistory(connection, targetUuid, targetName, punishment.getTargetIp());
+                }).thenRun(() -> onPunishmentSuccess(punishment)));
             });
         });
     }
@@ -219,31 +236,30 @@ public class PunishmentService {
                 String errorMessage = plugin.getLocaleManager().getRawMessage("errors.player-not-found").replace("<player>", targetName);
                 return CompletableFuture.failedFuture(new IllegalArgumentException(errorMessage));
             }
-            CommandSender sender = staffUuid == null ? Bukkit.getConsoleSender() : Bukkit.getPlayer(staffUuid);
-            return prePunishmentCheck(sender, targetUuid).thenCompose(checkResult -> {
+            return prePunishmentCheck(staffUuid, targetUuid).thenCompose(checkResult -> {
                 if (!checkResult.canPunish()) {
-                    return CompletableFuture.failedFuture(new IllegalStateException(checkResult.reason()));
+                    return CompletableFuture.failedFuture(new IllegalStateException(checkResult.failureMessage()));
                 }
-
-                Punishment punishment = Punishment.builder()
-                        .punishmentId(IdUtil.generatePunishmentId())
-                        .type(PunishmentType.KICK)
-                        .targetUuid(targetUuid)
-                        .targetName(targetName)
-                        .targetIp(getPlayerIp(targetUuid))
-                        .reason(reason != null ? reason : plugin.getConfigManager().getDefaultKickReason())
-                        .staffUuid(staffUuid)
-                        .staffName(staffName)
-                        .createdTime(System.currentTimeMillis())
-                        .expiryTime(System.currentTimeMillis())
-                        .serverOrigin(getServerName())
-                        .silent(silent || checkResult.forceSilent())
-                        .build();
-
-                return databaseManager.executeAsync(connection -> {
+                return scheduler.callSync(() -> {
+                    String targetIp = getPlayerIp(targetUuid);
+                    return Punishment.builder()
+                            .punishmentId(IdUtil.generatePunishmentId())
+                            .type(PunishmentType.KICK)
+                            .targetUuid(targetUuid)
+                            .targetName(targetName)
+                            .targetIp(targetIp)
+                            .reason(reason != null ? reason : plugin.getConfigManager().getDefaultKickReason())
+                            .staffUuid(staffUuid)
+                            .staffName(staffName)
+                            .createdTime(System.currentTimeMillis())
+                            .expiryTime(System.currentTimeMillis())
+                            .serverOrigin(getServerName())
+                            .silent(silent || checkResult.forceSilent())
+                            .build();
+                }).thenCompose(punishment -> databaseManager.executeAsync(connection -> {
                     punishmentDao.insertKick(connection, punishment);
-                    recordPlayerHistory(connection, targetUuid, targetName, getPlayerIp(targetUuid));
-                }).thenRun(() -> onPunishmentSuccess(punishment));
+                    recordPlayerHistory(connection, targetUuid, targetName, punishment.getTargetIp());
+                }).thenRun(() -> onPunishmentSuccess(punishment)));
             });
         });
     }
@@ -254,29 +270,29 @@ public class PunishmentService {
                 String errorMessage = plugin.getLocaleManager().getRawMessage("errors.player-not-found").replace("<player>", targetName);
                 return CompletableFuture.failedFuture(new IllegalArgumentException(errorMessage));
             }
-            CommandSender sender = staffUuid == null ? Bukkit.getConsoleSender() : Bukkit.getPlayer(staffUuid);
-            return prePunishmentCheck(sender, targetUuid).thenCompose(checkResult -> {
+            return prePunishmentCheck(staffUuid, targetUuid).thenCompose(checkResult -> {
                 if (!checkResult.canPunish()) {
-                    return CompletableFuture.failedFuture(new IllegalStateException(checkResult.reason()));
+                    return CompletableFuture.failedFuture(new IllegalStateException(checkResult.failureMessage()));
                 }
-                Punishment punishment = Punishment.builder()
-                        .punishmentId(IdUtil.generatePunishmentId())
-                        .type(PunishmentType.WARN)
-                        .targetUuid(targetUuid)
-                        .targetName(targetName)
-                        .targetIp(getPlayerIp(targetUuid))
-                        .reason(reason != null ? reason : plugin.getConfigManager().getDefaultWarnReason())
-                        .staffUuid(staffUuid)
-                        .staffName(staffName)
-                        .createdTime(System.currentTimeMillis())
-                        .expiryTime(-1)
-                        .serverOrigin(getServerName())
-                        .silent(silent || checkResult.forceSilent())
-                        .build();
-
-                return databaseManager.executeAsync(connection -> {
+                return scheduler.callSync(() -> {
+                    String targetIp = getPlayerIp(targetUuid);
+                    return Punishment.builder()
+                            .punishmentId(IdUtil.generatePunishmentId())
+                            .type(PunishmentType.WARN)
+                            .targetUuid(targetUuid)
+                            .targetName(targetName)
+                            .targetIp(targetIp)
+                            .reason(reason != null ? reason : plugin.getConfigManager().getDefaultWarnReason())
+                            .staffUuid(staffUuid)
+                            .staffName(staffName)
+                            .createdTime(System.currentTimeMillis())
+                            .expiryTime(-1)
+                            .serverOrigin(getServerName())
+                            .silent(silent || checkResult.forceSilent())
+                            .build();
+                }).thenCompose(punishment -> databaseManager.executeAsync(connection -> {
                     punishmentDao.insertWarning(connection, punishment);
-                    recordPlayerHistory(connection, targetUuid, targetName, getPlayerIp(targetUuid));
+                    recordPlayerHistory(connection, targetUuid, targetName, punishment.getTargetIp());
                 }).thenRun(() -> {
                     scheduler.runTask(() -> {
                         Player player = Bukkit.getPlayer(targetUuid);
@@ -286,7 +302,7 @@ public class PunishmentService {
                         }
                     });
                     onPunishmentSuccess(punishment);
-                });
+                }));
             });
         });
     }
@@ -370,8 +386,9 @@ public class PunishmentService {
     }
 
     public void recordPlayerLogin(Player player) {
-        databaseManager.executeAsync(connection -> {
-            recordPlayerHistory(connection, player.getUniqueId(), player.getName(), getPlayerIp(player.getUniqueId()));
+        scheduler.runTaskForPlayer(player, () -> {
+            String ip = getPlayerIp(player.getUniqueId());
+            databaseManager.executeAsync(connection -> recordPlayerHistory(connection, player.getUniqueId(), player.getName(), ip));
         });
     }
 
@@ -574,12 +591,6 @@ public class PunishmentService {
         return "global";
     }
 
-    private boolean hasAdminPermission(UUID uuid) {
-        if (uuid == null) return true; // Console
-        Player player = Bukkit.getPlayer(uuid);
-        return player != null && player.hasPermission("controlbans.admin");
-    }
-
     private void handleAltPunishment(Punishment punishment) {
         if (!plugin.getConfigManager().isAltPunishEnabled() || !punishment.getType().isBan()) {
             return;
@@ -592,7 +603,7 @@ public class PunishmentService {
 
     private CompletableFuture<UUID> getPlayerUuid(String playerName) {
         return cacheService.getOrCache("uuid_" + playerName.toLowerCase(),
-                () -> UuidUtil.getUuid(playerName),
+                () -> scheduler.callSync(() -> UuidUtil.lookupUuid(playerName)),
                 plugin.getConfigManager().getPlayerLookupTTL()
         );
     }

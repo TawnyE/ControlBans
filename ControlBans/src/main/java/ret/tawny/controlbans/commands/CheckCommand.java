@@ -11,6 +11,7 @@ import ret.tawny.controlbans.util.UuidUtil;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.logging.Level;
 
 public class CheckCommand extends CommandBase {
 
@@ -43,35 +44,45 @@ public class CheckCommand extends CommandBase {
             });
         } else {
             sender.sendMessage(locale.getMessage("actions.checking-player", playerPlaceholder(target)));
-            UuidUtil.getUuid(target).thenAccept(uuid -> {
+            scheduler.callSync(() -> UuidUtil.lookupUuid(target)).thenAccept(uuid -> {
                 if (uuid == null) {
-                    sender.sendMessage(locale.getMessage("errors.player-not-found", playerPlaceholder(target)));
+                    scheduler.runTask(() -> sender.sendMessage(locale.getMessage("errors.player-not-found", playerPlaceholder(target))));
                     return;
                 }
 
-                CompletableFuture<Void> banCheck = punishmentService.getActiveBan(uuid).thenAccept(banOpt -> {
-                    if (banOpt.isPresent()) {
-                        sender.sendMessage(locale.getMessage("check.banned",
-                                reasonPlaceholder(banOpt.get().getReason()),
-                                idPlaceholder(banOpt.get().getPunishmentId())
-                        ));
-                    } else {
-                        sender.sendMessage(locale.getMessage("check.not-banned"));
-                    }
-                });
+                CompletableFuture<java.util.Optional<Punishment>> banFuture = punishmentService.getActiveBan(uuid);
+                CompletableFuture<java.util.Optional<Punishment>> muteFuture = punishmentService.getActiveMute(uuid);
 
-                CompletableFuture<Void> muteCheck = punishmentService.getActiveMute(uuid).thenAccept(muteOpt -> {
-                    if (muteOpt.isPresent()) {
-                        sender.sendMessage(locale.getMessage("check.muted",
-                                reasonPlaceholder(muteOpt.get().getReason()),
-                                idPlaceholder(muteOpt.get().getPunishmentId())
-                        ));
-                    } else {
-                        sender.sendMessage(locale.getMessage("check.not-muted"));
+                CompletableFuture.allOf(banFuture, muteFuture).whenComplete((ignored, throwable) -> {
+                    if (throwable != null) {
+                        plugin.getLogger().log(Level.WARNING, "Failed to complete punishment lookup for " + target, throwable);
+                        scheduler.runTask(() -> sender.sendMessage(locale.getMessage("errors.database-error")));
+                        return;
                     }
-                });
 
-                CompletableFuture.allOf(banCheck, muteCheck).join();
+                    java.util.Optional<Punishment> banOpt = banFuture.join();
+                    java.util.Optional<Punishment> muteOpt = muteFuture.join();
+
+                    scheduler.runTask(() -> {
+                        if (banOpt.isPresent()) {
+                            sender.sendMessage(locale.getMessage("check.banned",
+                                    reasonPlaceholder(banOpt.get().getReason()),
+                                    idPlaceholder(banOpt.get().getPunishmentId())
+                            ));
+                        } else {
+                            sender.sendMessage(locale.getMessage("check.not-banned"));
+                        }
+
+                        if (muteOpt.isPresent()) {
+                            sender.sendMessage(locale.getMessage("check.muted",
+                                    reasonPlaceholder(muteOpt.get().getReason()),
+                                    idPlaceholder(muteOpt.get().getPunishmentId())
+                            ));
+                        } else {
+                            sender.sendMessage(locale.getMessage("check.not-muted"));
+                        }
+                    });
+                });
             });
         }
         return true;

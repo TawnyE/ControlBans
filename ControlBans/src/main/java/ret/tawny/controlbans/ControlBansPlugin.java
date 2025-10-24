@@ -85,7 +85,7 @@ public class ControlBansPlugin extends JavaPlugin {
         localeManager = new LocaleManager(this);
 
         schedulerAdapter = new SchedulerAdapter(this);
-        proxyService = new ProxyService(this);
+        proxyService = new ProxyService(this, schedulerAdapter);
 
         databaseManager = new DatabaseManager(this, configManager);
         databaseManager.initialize();

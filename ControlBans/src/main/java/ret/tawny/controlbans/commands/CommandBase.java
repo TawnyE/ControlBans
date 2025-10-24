@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 import ret.tawny.controlbans.ControlBansPlugin;
 import ret.tawny.controlbans.locale.LocaleManager;
 import ret.tawny.controlbans.services.PunishmentService;
+import ret.tawny.controlbans.util.SchedulerAdapter;
 
 import java.util.List;
 import java.util.Objects;
@@ -20,6 +21,7 @@ public abstract class CommandBase implements CommandExecutor, TabCompleter {
     protected final ControlBansPlugin plugin;
     protected final LocaleManager locale;
     protected final PunishmentService punishmentService;
+    protected final SchedulerAdapter scheduler;
     protected String commandName;
     protected String label;
 
@@ -27,6 +29,7 @@ public abstract class CommandBase implements CommandExecutor, TabCompleter {
         this.plugin = plugin;
         this.locale = plugin.getLocaleManager();
         this.punishmentService = plugin.getPunishmentService();
+        this.scheduler = plugin.getSchedulerAdapter();
     }
 
     protected void setCommand(String commandName) {
