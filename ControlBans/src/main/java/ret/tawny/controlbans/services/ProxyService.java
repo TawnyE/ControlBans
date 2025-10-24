@@ -77,6 +77,13 @@ public class ProxyService {
         // Attempt the legacy server-level dispatch as a best-effort fallback for environments
         // that might support it. The queued payload ensures delivery once a player joins even
         // if this direct send is ignored by the proxy implementation.
+        sendDirectly(payload);
+    }
+
+    private void sendDirectly(byte[] payload) {
+        // This mirrors the original behaviour that wrote UTF strings into the payload and
+        // immediately dispatched them via the server messenger. Some proxy bridges are happy
+        // to consume these messages even when no player transport is available.
         plugin.getServer().sendPluginMessage(plugin, CHANNEL, payload);
     }
 
