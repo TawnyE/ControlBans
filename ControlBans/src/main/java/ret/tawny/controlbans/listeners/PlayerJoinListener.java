@@ -63,5 +63,6 @@ public class PlayerJoinListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerJoin(PlayerJoinEvent event) {
         punishmentService.recordPlayerLogin(event.getPlayer());
+        plugin.getProxyService().flushQueuedMessages(event.getPlayer());
     }
 }

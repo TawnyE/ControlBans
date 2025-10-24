@@ -86,6 +86,15 @@ public class ProxyService {
             return false;
         }
 
+    private byte[] encodePayload(String message) {
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+             DataOutputStream dataOutputStream = new DataOutputStream(outputStream)) {
+            dataOutputStream.writeUTF(message);
+            return outputStream.toByteArray();
+        } catch (IOException exception) {
+            plugin.getLogger().log(Level.WARNING, "Failed to encode proxy plugin message", exception);
+            return message.getBytes(StandardCharsets.UTF_8);
+        byte[] payload;
         try {
             player.sendPluginMessage(plugin, CHANNEL, payload);
             return true;
@@ -110,6 +119,33 @@ public class ProxyService {
             flushQueuedMessages();
             return;
         }
+    }
+
+    private void dispatchDirectly(String message) {
+        byte[] payload = encodePayload(message);
+        plugin.getServer().sendPluginMessage(plugin, CHANNEL, payload);
+    }
+
+    public void flushQueuedMessages() {
+        // No queued messages are maintained in the direct-dispatch implementation.
+    }
+
+    public void flushQueuedMessages(Player player) {
+        // No queued messages are maintained in the direct-dispatch implementation.
+        player.get().sendPluginMessage(plugin, CHANNEL, payload);
+    }
+
+    public void flushQueuedMessages(Player player) {
+        byte[] data;
+        while ((data = pendingMessages.poll()) != null) {
+            player.sendPluginMessage(plugin, CHANNEL, data);
+        }
+    }
+
+    public void flushQueuedMessagesIfPossible() {
+        Optional<Player> relay = Bukkit.getOnlinePlayers().stream().findFirst();
+        relay.ifPresent(this::flushQueuedMessages);
+    }
 
         Runnable flusher = () -> flushQueuedMessagesInternal(player);
 
