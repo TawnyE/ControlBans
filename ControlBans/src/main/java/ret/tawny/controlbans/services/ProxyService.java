@@ -17,7 +17,10 @@ public class ProxyService {
 
     private final ControlBansPlugin plugin;
     private static final String CHANNEL = "controlbans:main";
+    private static final int MAX_QUEUE_SIZE = 1024;
+
     private final Queue<byte[]> queuedMessages = new ConcurrentLinkedQueue<>();
+    private volatile boolean directDispatchSupported = true;
 
     public ProxyService(ControlBansPlugin plugin) {
         this.plugin = plugin;
@@ -51,10 +54,14 @@ public class ProxyService {
     private void dispatch(String message) {
         byte[] payload = encodePayload(message);
 
-        Player messenger = findMessenger();
-        if (messenger != null && sendThroughPlayer(messenger, payload)) {
-            flushQueuedMessages(messenger);
+        if (tryDispatch(payload, null)) {
+            flushQueuedMessagesInternal(null);
             return;
+        }
+
+        if (queuedMessages.size() >= MAX_QUEUE_SIZE) {
+            queuedMessages.poll();
+            plugin.getLogger().log(Level.FINE, "Dropped oldest proxy plugin message because the queue is full.");
         }
 
         queuedMessages.add(payload);
@@ -72,13 +79,29 @@ public class ProxyService {
         }
     }
 
-    private Player findMessenger() {
+    private boolean tryDispatch(byte[] payload, Player preferredMessenger) {
+        if (sendDirectly(payload)) {
+            return true;
+        }
+
+        if (preferredMessenger != null && sendThroughPlayer(preferredMessenger, payload)) {
+            return true;
+        }
+
+        return sendThroughAnyPlayer(payload, preferredMessenger);
+    }
+
+    private boolean sendThroughAnyPlayer(byte[] payload, Player preferredMessenger) {
         for (Player player : plugin.getServer().getOnlinePlayers()) {
-            if (player != null && player.isOnline()) {
-                return player;
+            if (player == preferredMessenger) {
+                continue;
+            }
+
+            if (sendThroughPlayer(player, payload)) {
+                return true;
             }
         }
-        return null;
+        return false;
     }
 
     private boolean sendThroughPlayer(Player player, byte[] payload) {
@@ -105,7 +128,7 @@ public class ProxyService {
     }
 
     public void flushQueuedMessages() {
-        Runnable flusher = () -> flushQueuedMessagesInternal(findMessenger());
+        Runnable flusher = () -> flushQueuedMessagesInternal(null);
 
         if (Bukkit.isPrimaryThread()) {
             flusher.run();
@@ -126,27 +149,6 @@ public class ProxyService {
         plugin.getServer().sendPluginMessage(plugin, CHANNEL, payload);
     }
 
-    public void flushQueuedMessages() {
-        // No queued messages are maintained in the direct-dispatch implementation.
-    }
-
-    public void flushQueuedMessages(Player player) {
-        // No queued messages are maintained in the direct-dispatch implementation.
-        player.get().sendPluginMessage(plugin, CHANNEL, payload);
-    }
-
-    public void flushQueuedMessages(Player player) {
-        byte[] data;
-        while ((data = pendingMessages.poll()) != null) {
-            player.sendPluginMessage(plugin, CHANNEL, data);
-        }
-    }
-
-    public void flushQueuedMessagesIfPossible() {
-        Optional<Player> relay = Bukkit.getOnlinePlayers().stream().findFirst();
-        relay.ifPresent(this::flushQueuedMessages);
-    }
-
         Runnable flusher = () -> flushQueuedMessagesInternal(player);
 
         if (Bukkit.isPrimaryThread()) {
@@ -157,23 +159,39 @@ public class ProxyService {
     }
 
     private void flushQueuedMessagesInternal(Player preferredMessenger) {
-        Player messenger = preferredMessenger != null && preferredMessenger.isOnline()
-            ? preferredMessenger
-            : findMessenger();
-
-        if (messenger == null) {
-            if (!queuedMessages.isEmpty()) {
-                plugin.getLogger().log(Level.FINE, "Deferred proxy message delivery; no players available.");
+        byte[] payload;
+        while ((payload = queuedMessages.peek()) != null) {
+            Player messenger = preferredMessenger;
+            if (messenger != null && !messenger.isOnline()) {
+                messenger = null;
             }
+
+            if (tryDispatch(payload, messenger)) {
+                queuedMessages.poll();
+                continue;
+            }
+
+            plugin.getLogger().log(Level.FINE, "Deferred proxy message delivery; no players available.");
             return;
         }
+    }
 
-        byte[] payload;
-        while ((payload = queuedMessages.poll()) != null) {
-            if (!sendThroughPlayer(messenger, payload)) {
-                queuedMessages.add(payload);
-                break;
-            }
+    private boolean sendDirectly(byte[] payload) {
+        if (!directDispatchSupported) {
+            return false;
+        }
+
+        try {
+            plugin.getServer().sendPluginMessage(plugin, CHANNEL, payload);
+            return true;
+        } catch (IllegalArgumentException | IllegalStateException exception) {
+            directDispatchSupported = false;
+            plugin.getLogger().log(Level.FINE, "Direct proxy dispatch is not supported on this server; falling back to player messenger.", exception);
+            return false;
+        } catch (Throwable throwable) {
+            directDispatchSupported = false;
+            plugin.getLogger().log(Level.WARNING, "Unexpected failure sending proxy message directly; falling back to player messenger.", throwable);
+            return false;
         }
     }
 }
