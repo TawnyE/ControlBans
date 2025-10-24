@@ -19,6 +19,15 @@ errors:
   command-from-console-error: "This command can only be run by a player."
   id-not-found: "<red>No punishment found with that ID."
 
+appeals:
+  disabled: "<red>Appeals are currently unavailable."
+  message-required: "<red>Please include a short message with your appeal."
+  not-muted: "<red>You do not have an active mute to appeal."
+  submitted: "<green>Your appeal for punishment <id> has been submitted."
+  cooldown: "<red>You must wait <duration> before submitting another appeal."
+  limit: "<red>You have reached the appeal limit. Try again in <duration>."
+  error: "<red>Something went wrong while submitting your appeal. Please contact staff."
+
 success:
   ban: "<green>Successfully banned <red><player><green>."
   tempban: "<green>Successfully temporarily banned <red><player><green> for <red><duration><green>."

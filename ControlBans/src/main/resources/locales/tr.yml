@@ -14,6 +14,15 @@ errors:
   cannot-punish-exempt: "<red>Bu oyuncu muaf olduğu için cezalandıramazsınız."
   command-from-console-error: "Bu komut sadece bir oyuncu tarafından çalıştırılabilir."
   id-not-found: "<red>Bu ID ile ceza bulunamadı."
+
+appeals:
+  disabled: "<red>Şu anda itiraz sistemi kullanılamıyor."
+  message-required: "<red>Lütfen itirazınıza kısa bir mesaj ekleyin."
+  not-muted: "<red>İtiraz edebileceğiniz aktif bir susturmanız yok."
+  submitted: "<green><id> numaralı ceza için itirazınız gönderildi."
+  cooldown: "<red>Yeni bir itiraz göndermeden önce <duration> beklemelisiniz."
+  limit: "<red>İtiraz limitine ulaştınız. <duration> sonra tekrar deneyin."
+  error: "<red>İtiraz gönderilirken bir hata oluştu. Lütfen yetkililerle iletişime geçin."
 success:
   ban: "<green><red><player><green> başarıyla yasaklandı."
   tempban: "<green><red><player><green> başarıyla <red><duration><green> süreliğine yasaklandı."

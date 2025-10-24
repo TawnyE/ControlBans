@@ -8,12 +8,16 @@ import ret.tawny.controlbans.ControlBansPlugin;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 
 public class ProxyService {
 
     private final ControlBansPlugin plugin;
     private static final String CHANNEL = "controlbans:main";
+    private final Queue<byte[]> queuedMessages = new ConcurrentLinkedQueue<>();
 
     public ProxyService(ControlBansPlugin plugin) {
         this.plugin = plugin;
@@ -35,27 +39,105 @@ public class ProxyService {
     }
 
     private void sendPluginMessage(String message) {
-        // This method is now reliable. It doesn't depend on any players being online.
-        // It sends the message directly to the proxy (BungeeCord/Velocity).
-        if (Bukkit.getOnlinePlayers().isEmpty()) {
-            // If no players are online, we can't send a message.
-            // However, the proxy bridge should still function correctly.
-            // The Bukkit server itself will send this message to the proxy.
+        Runnable dispatcher = () -> dispatch(message);
+
+        if (Bukkit.isPrimaryThread()) {
+            dispatcher.run();
+        } else {
+            Bukkit.getScheduler().runTask(plugin, dispatcher);
         }
+    }
 
-        ByteArrayOutputStream b = new ByteArrayOutputStream();
-        DataOutputStream out = new DataOutputStream(b);
+    private void dispatch(String message) {
+        byte[] payload = encodePayload(message);
 
-        try {
-            out.writeUTF(message);
-        } catch (IOException e) {
-            plugin.getLogger().log(Level.WARNING, "Failed to write plugin message.", e);
+        Player messenger = findMessenger();
+        if (messenger != null && sendThroughPlayer(messenger, payload)) {
+            flushQueuedMessages(messenger);
             return;
         }
 
-        // Send the plugin message from the server itself.
-        // This is the correct way to send messages to the proxy.
-        // The last parameter being the message bytes.
-        plugin.getServer().sendPluginMessage(plugin, CHANNEL, b.toByteArray());
+        queuedMessages.add(payload);
+        plugin.getLogger().log(Level.FINE, "Queued proxy plugin message; no messenger available.");
+    }
+
+    private byte[] encodePayload(String message) {
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+             DataOutputStream dataOutputStream = new DataOutputStream(outputStream)) {
+            dataOutputStream.writeUTF(message);
+            return outputStream.toByteArray();
+        } catch (IOException exception) {
+            plugin.getLogger().log(Level.WARNING, "Failed to encode proxy plugin message", exception);
+            return message.getBytes(StandardCharsets.UTF_8);
+        }
+    }
+
+    private Player findMessenger() {
+        for (Player player : plugin.getServer().getOnlinePlayers()) {
+            if (player != null && player.isOnline()) {
+                return player;
+            }
+        }
+        return null;
+    }
+
+    private boolean sendThroughPlayer(Player player, byte[] payload) {
+        if (player == null || !player.isOnline()) {
+            return false;
+        }
+
+        try {
+            player.sendPluginMessage(plugin, CHANNEL, payload);
+            return true;
+        } catch (Exception exception) {
+            plugin.getLogger().log(Level.FINE, "Failed to relay proxy plugin message through player " + player.getName(), exception);
+            return false;
+        }
+    }
+
+    public void flushQueuedMessages() {
+        Runnable flusher = () -> flushQueuedMessagesInternal(findMessenger());
+
+        if (Bukkit.isPrimaryThread()) {
+            flusher.run();
+        } else {
+            Bukkit.getScheduler().runTask(plugin, flusher);
+        }
+    }
+
+    public void flushQueuedMessages(Player player) {
+        if (player == null) {
+            flushQueuedMessages();
+            return;
+        }
+
+        Runnable flusher = () -> flushQueuedMessagesInternal(player);
+
+        if (Bukkit.isPrimaryThread()) {
+            flusher.run();
+        } else {
+            Bukkit.getScheduler().runTask(plugin, flusher);
+        }
+    }
+
+    private void flushQueuedMessagesInternal(Player preferredMessenger) {
+        Player messenger = preferredMessenger != null && preferredMessenger.isOnline()
+            ? preferredMessenger
+            : findMessenger();
+
+        if (messenger == null) {
+            if (!queuedMessages.isEmpty()) {
+                plugin.getLogger().log(Level.FINE, "Deferred proxy message delivery; no players available.");
+            }
+            return;
+        }
+
+        byte[] payload;
+        while ((payload = queuedMessages.poll()) != null) {
+            if (!sendThroughPlayer(messenger, payload)) {
+                queuedMessages.add(payload);
+                break;
+            }
+        }
     }
 }
