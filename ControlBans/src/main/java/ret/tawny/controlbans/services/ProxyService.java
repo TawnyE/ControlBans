@@ -9,16 +9,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Optional;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 
 public class ProxyService {
 
     private final ControlBansPlugin plugin;
     private static final String CHANNEL = "controlbans:main";
-    private final Queue<byte[]> queuedMessages = new ConcurrentLinkedQueue<>();
 
     public ProxyService(ControlBansPlugin plugin) {
         this.plugin = plugin;
@@ -40,9 +36,7 @@ public class ProxyService {
     }
 
     private void sendPluginMessage(String message) {
-        byte[] payload = encodePayload(message);
-
-        Runnable dispatcher = () -> dispatchOrQueue(payload);
+        Runnable dispatcher = () -> dispatchDirectly(message);
 
         if (Bukkit.isPrimaryThread()) {
             dispatcher.run();
@@ -62,54 +56,16 @@ public class ProxyService {
         }
     }
 
-    private void dispatchOrQueue(byte[] payload) {
-        Optional<Player> messenger = findAvailableMessenger();
-        if (messenger.isPresent()) {
-            Player player = messenger.get();
-            flushQueuedMessages(player);
-            player.sendPluginMessage(plugin, CHANNEL, payload);
-            return;
-        }
-
-        queuedMessages.offer(payload);
-        plugin.getLogger().fine("Queued proxy message because no players are online.");
-
-        // Attempt the legacy server-level dispatch as a best-effort fallback for environments
-        // that might support it. The queued payload ensures delivery once a player joins even
-        // if this direct send is ignored by the proxy implementation.
-        sendDirectly(payload);
-    }
-
-    private void sendDirectly(byte[] payload) {
-        // This mirrors the original behaviour that wrote UTF strings into the payload and
-        // immediately dispatched them via the server messenger. Some proxy bridges are happy
-        // to consume these messages even when no player transport is available.
+    private void dispatchDirectly(String message) {
+        byte[] payload = encodePayload(message);
         plugin.getServer().sendPluginMessage(plugin, CHANNEL, payload);
     }
 
-    private Optional<Player> findAvailableMessenger() {
-        return plugin.getServer().getOnlinePlayers().stream()
-                .filter(Player::isOnline)
-                .findAny()
-                .map(Player.class::cast);
-    }
-
     public void flushQueuedMessages() {
-        findAvailableMessenger().ifPresent(this::flushQueuedMessages);
+        // No queued messages are maintained in the direct-dispatch implementation.
     }
 
     public void flushQueuedMessages(Player player) {
-        if (player == null || !player.isOnline()) {
-            return;
-        }
-
-        if (!queuedMessages.isEmpty()) {
-            plugin.getLogger().fine("Flushing " + queuedMessages.size() + " queued proxy message(s).");
-        }
-
-        byte[] payload;
-        while ((payload = queuedMessages.poll()) != null) {
-            player.sendPluginMessage(plugin, CHANNEL, payload);
-        }
+        // No queued messages are maintained in the direct-dispatch implementation.
     }
 }
