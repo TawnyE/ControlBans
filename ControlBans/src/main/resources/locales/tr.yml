@@ -43,6 +43,16 @@ actions:
   checking-id: "<yellow>Ceza ID'si kontrol ediliyor: <id>..."
   checking-player: "<yellow><player> için ceza durumu kontrol ediliyor..."
   finding-alts: "<yellow><player> için alternatif hesaplar bulunuyor..."
+
+appeals:
+  unavailable: "<red>İtiraz sistemi şu anda kullanılamıyor."
+  message-required: "<red>Lütfen itirazınız için bir mesaj ekleyin."
+  error: "<red>İtirazınız gönderilemedi. Lütfen daha sonra tekrar deneyin."
+  not-muted: "<red>Sadece susturulmuş oyuncular itiraz gönderebilir."
+  submitted: "<green><white><id></white> için itirazınız gönderildi. Bu dönemde kalan deneme: <gold><remaining></gold>."
+  cooldown: "<red>Yeni bir itiraz göndermeden önce <gold><duration></gold> beklemelisiniz."
+  limit: "<red>Bu dönem için itiraz limitine ulaştınız. <gold><duration></gold> sonra tekrar deneyin."
+  already-open: "<yellow>Bu susturma için zaten açık bir itirazınız var. Lütfen yetkililerin yanıtını bekleyin."
 broadcasts:
   ban: "<dark_red><bold>YASAK <gray>┃ <white><player> <red>, <white><staff><red> tarafından kalıcı olarak yasaklandı. Sebep: <white><reason>"
   tempban: "<dark_red><bold>YASAK <gray>┃ <white><player> <red>, <white><staff><red> tarafından geçici olarak yasaklandı. Sebep: <white><reason>"

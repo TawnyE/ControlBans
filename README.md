@@ -37,6 +37,7 @@ Built with performance as the top priority, ControlBans uses asynchronous databa
 -   ✅ **Full Punishment Suite:** Permanent/temporary bans and mutes, warnings, and kicks.
 -   🚫 **IP Punishments:** Ban or mute players by their IP address to stop alternate accounts.
 -   🕵️ **Alternate Account Detection:** Automatically detects and links accounts that share the same IP address.
+-   🎤 **Player Appeals with Rate Limits:** Muted players can submit `/appeal` requests with configurable cooldowns and attempt caps.
 -   📜 **Comprehensive History:** Check any player's full punishment history with a simple command.
 -   🤫 **Advanced Silent Mode:** Punishments can be broadcast *only* to staff members with permission, keeping public chat clean while keeping your team informed.
 -   🗃️ **Broad Database Support:** Works with MySQL, MariaDB, PostgreSQL, and SQLite out of the box.

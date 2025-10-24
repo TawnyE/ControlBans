@@ -43,6 +43,16 @@ actions:
   checking-id: "<yellow>Проверяем ID наказания: <id>..."
   checking-player: "<yellow>Проверяем статус наказаний для <player>..."
   finding-alts: "<yellow>Ищем альтернативные аккаунты для <player>..."
+
+appeals:
+  unavailable: "<red>Система апелляций сейчас недоступна."
+  message-required: "<red>Укажите сообщение с причиной вашей апелляции."
+  error: "<red>Не удалось отправить апелляцию. Попробуйте позже."
+  not-muted: "<red>Только заглушенные игроки могут отправлять апелляции."
+  submitted: "<green>Ваша апелляция по <white><id></white> отправлена. Осталось попыток в этом периоде: <gold><remaining></gold>."
+  cooldown: "<red>Подождите <gold><duration></gold> перед следующей апелляцией."
+  limit: "<red>Достигнут лимит апелляций на этот период. Повторите через <gold><duration></gold>."
+  already-open: "<yellow>По этому муту уже есть открытая апелляция. Пожалуйста, дождитесь ответа администрации."
 broadcasts:
   ban: "<dark_red><bold>БАН <gray>┃ <white><player> <red>был навсегда забанен игроком <white><staff><red> по причине: <white><reason>"
   tempban: "<dark_red><bold>БАН <gray>┃ <white><player> <red>был временно забанен игроком <white><staff><red> по причине: <white><reason>"

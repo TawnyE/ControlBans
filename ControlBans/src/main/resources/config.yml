@@ -350,6 +350,12 @@ appeals:
   default-status: "OPEN"
   remind-every-days: 3
   notify-staff: true
+  # Require players to be muted and enforce cooldown + attempt limits
+  muted-only: true
+  cooldown-days: 1
+  window:
+    days: 7
+    max-submissions: 3
 
 # Cache Settings
 cache:

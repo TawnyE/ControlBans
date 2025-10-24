@@ -24,6 +24,8 @@ public class SchemaMigrator {
         createConfigTable();
         createScheduledPunishmentsTable();
         createAppealsTable();
+        createAppealLimitTable();
+        ensureAppealColumns();
         createAuditTable();
         createPunishmentMetadataTable();
 
@@ -223,12 +225,43 @@ public class SchemaMigrator {
                 submitted_at BIGINT NOT NULL,
                 updated_at BIGINT NOT NULL,
                 reviewer VARCHAR(32),
-                notes TEXT
+                notes TEXT,
+                submission_count INTEGER NOT NULL DEFAULT 0,
+                last_submitted_at BIGINT NOT NULL DEFAULT 0
             )
         """.formatted(getPrimaryKeyDefinition());
 
         try (Statement stmt = connection.createStatement()) {
             stmt.execute(sql);
+        }
+    }
+
+    private void createAppealLimitTable() throws SQLException {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS controlbans_appeal_limits (
+                id INTEGER %s,
+                target_uuid VARCHAR(36) UNIQUE,
+                window_start BIGINT NOT NULL DEFAULT 0,
+                submission_count INTEGER NOT NULL DEFAULT 0,
+                last_submitted_at BIGINT NOT NULL DEFAULT 0
+            )
+        """.formatted(getPrimaryKeyDefinition());
+
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+
+    private void ensureAppealColumns() throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            try {
+                stmt.execute("ALTER TABLE controlbans_appeals ADD COLUMN submission_count INTEGER NOT NULL DEFAULT 0");
+            } catch (SQLException ignored) {
+            }
+            try {
+                stmt.execute("ALTER TABLE controlbans_appeals ADD COLUMN last_submitted_at BIGINT NOT NULL DEFAULT 0");
+            } catch (SQLException ignored) {
+            }
         }
     }
 
@@ -288,6 +321,7 @@ public class SchemaMigrator {
                 "CREATE INDEX IF NOT EXISTS idx_sched_execution ON controlbans_scheduled_punishments(execution_time)",
                 "CREATE INDEX IF NOT EXISTS idx_sched_category ON controlbans_scheduled_punishments(category)",
                 "CREATE INDEX IF NOT EXISTS idx_appeals_status ON controlbans_appeals(status)",
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_appeal_limits_target ON controlbans_appeal_limits(target_uuid)",
                 "CREATE INDEX IF NOT EXISTS idx_audit_created ON controlbans_audit_log(created_at)",
                 "CREATE INDEX IF NOT EXISTS idx_meta_category ON controlbans_punishment_meta(category)"
 

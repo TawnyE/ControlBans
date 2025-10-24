@@ -43,6 +43,16 @@ actions:
   checking-id: "<yellow>Vérification de l'ID de sanction : <id>..."
   checking-player: "<yellow>Vérification du statut de sanction pour <player>..."
   finding-alts: "<yellow>Recherche de comptes alternatifs pour <player>..."
+
+appeals:
+  unavailable: "<red>Les appels ne sont pas disponibles pour le moment."
+  message-required: "<red>Veuillez ajouter un message expliquant votre appel."
+  error: "<red>Impossible d'envoyer votre appel. Veuillez réessayer plus tard."
+  not-muted: "<red>Seuls les joueurs réduits au silence peuvent envoyer un appel."
+  submitted: "<green>Votre appel pour <white><id></white> a été envoyé. Tentatives restantes pour cette période : <gold><remaining></gold>."
+  cooldown: "<red>Vous devez attendre <gold><duration></gold> avant d'envoyer un nouvel appel."
+  limit: "<red>Vous avez atteint la limite d'appels pour cette période. Réessayez dans <gold><duration></gold>."
+  already-open: "<yellow>Un appel est déjà ouvert pour ce mute. Merci de patienter."
 broadcasts:
   ban: "<dark_red><bold>BAN <gray>┃ <white><player> <red>a été banni de façon permanente par <white><staff><red> pour : <white><reason>"
   tempban: "<dark_red><bold>BAN <gray>┃ <white><player> <red>a été banni temporairement par <white><staff><red> pour : <white><reason>"

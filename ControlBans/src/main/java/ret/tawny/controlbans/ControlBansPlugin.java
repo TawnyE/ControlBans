@@ -153,6 +153,7 @@ public class ControlBansPlugin extends JavaPlugin {
         new HistoryCommand(this, historyGuiManager).register();
         new CheckCommand(this).register();
         new AltsCommand(this, altsGuiManager).register();
+        new AppealCommand(this).register();
         new ControlBansCommand(this).register();
         getLogger().info("Commands registered");
     }
@@ -184,7 +185,6 @@ public class ControlBansPlugin extends JavaPlugin {
         }
 
         appealService = new AppealService(databaseManager, configManager, integrationService);
-        punishmentService.setAppealService(appealService);
         healthService = new HealthService(this, databaseManager, integrationService, proxyService, scheduledPunishmentService, benchmarkService);
 
         importService = new ImportService(this, databaseManager);

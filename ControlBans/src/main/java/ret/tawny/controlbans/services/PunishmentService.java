@@ -39,7 +39,6 @@ public class PunishmentService {
     private final ProxyService proxyService;
     private EscalationService escalationService;
     private AuditService auditService;
-    private AppealService appealService;
     private static final Pattern IP_PATTERN = Pattern.compile("^([0-9]{1,3}\\.){3}[0-9]{1,3}$");
 
     private record PunishmentCheckResult(boolean canPunish, boolean forceSilent, String reason) {
@@ -63,10 +62,6 @@ public class PunishmentService {
 
     public void setAuditService(AuditService auditService) {
         this.auditService = auditService;
-    }
-
-    public void setAppealService(AppealService appealService) {
-        this.appealService = appealService;
     }
 
 
@@ -335,12 +330,6 @@ public class PunishmentService {
         if (escalationService != null) {
             escalationService.onPunishmentApplied(punishment).exceptionally(error -> {
                 plugin.getLogger().log(Level.WARNING, "Failed to process escalation logic", error);
-                return null;
-            });
-        }
-        if (appealService != null) {
-            appealService.ensureAppealRecord(punishment).exceptionally(error -> {
-                plugin.getLogger().log(Level.WARNING, "Failed to seed appeal entry", error);
                 return null;
             });
         }

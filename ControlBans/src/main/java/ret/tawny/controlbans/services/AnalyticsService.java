@@ -38,9 +38,14 @@ public class AnalyticsService {
         int warningsRecent = countByQuery(connection,
                 "SELECT COUNT(*) FROM litebans_warnings WHERE time >= ?",
                 warningCutoff);
-        int appealsOpen = countByQuery(connection,
-                "SELECT COUNT(*) FROM controlbans_appeals WHERE status = 'OPEN'",
-                null);
+        int appealsOpen;
+        try (PreparedStatement stmt = connection.prepareStatement(
+                "SELECT COUNT(*) FROM controlbans_appeals WHERE status = ? AND submission_count > 0")) {
+            stmt.setString(1, configManager.getDefaultAppealStatus());
+            try (ResultSet rs = stmt.executeQuery()) {
+                appealsOpen = rs.next() ? rs.getInt(1) : 0;
+            }
+        }
 
         Map<String, Integer> categories = new LinkedHashMap<>();
         try (PreparedStatement stmt = connection.prepareStatement(

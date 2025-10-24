@@ -43,6 +43,16 @@ actions:
   checking-id: "<yellow>Comprobando ID de castigo: <id>..."
   checking-player: "<yellow>Comprobando estado de castigo para <player>..."
   finding-alts: "<yellow>Buscando cuentas alternativas para <player>..."
+
+appeals:
+  unavailable: "<red>Las apelaciones no están disponibles en este momento."
+  message-required: "<red>Incluye un mensaje explicando tu apelación."
+  error: "<red>No se pudo enviar tu apelación. Inténtalo de nuevo más tarde."
+  not-muted: "<red>Solo los jugadores silenciados pueden enviar apelaciones."
+  submitted: "<green>Tu apelación para <white><id></white> se ha enviado. Intentos restantes en este período: <gold><remaining></gold>."
+  cooldown: "<red>Debes esperar <gold><duration></gold> antes de enviar otra apelación."
+  limit: "<red>Has alcanzado el límite de apelaciones para este período. Podrás intentarlo de nuevo en <gold><duration></gold>."
+  already-open: "<yellow>Ya tienes una apelación abierta para este silencio. Espera a que el equipo responda."
 broadcasts:
   ban: "<dark_red><bold>BAN <gray>┃ <white><player> <red>fue baneado permanentemente por <white><staff><red> por: <white><reason>"
   tempban: "<dark_red><bold>BAN <gray>┃ <white><player> <red>fue baneado temporalmente por <white><staff><red> por: <white><reason>"

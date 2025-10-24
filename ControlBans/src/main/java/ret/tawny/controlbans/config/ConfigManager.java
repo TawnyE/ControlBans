@@ -229,6 +229,16 @@ public class ConfigManager {
     }
     public String getDefaultAppealStatus() { return getCachedOrLoad("appeals.default-status", String.class, "OPEN"); }
     public boolean isAppealNotificationsEnabled() { return getCachedOrLoad("appeals.notify-staff", Boolean.class, true); }
+    public boolean isAppealMutedOnly() { return getCachedOrLoad("appeals.muted-only", Boolean.class, true); }
+    public Duration getAppealCooldown() {
+        long days = getCachedOrLoad("appeals.cooldown-days", Long.class, 1L);
+        return Duration.ofDays(Math.max(0, days));
+    }
+    public Duration getAppealWindowDuration() {
+        long days = getCachedOrLoad("appeals.window.days", Long.class, 7L);
+        return Duration.ofDays(Math.max(1, days));
+    }
+    public int getAppealMaxSubmissions() { return Math.max(0, getCachedOrLoad("appeals.window.max-submissions", Integer.class, 3)); }
 
     // Analytics & monitoring
     public boolean isBenchmarkEnabled() { return getCachedOrLoad("monitoring.benchmark.enabled", Boolean.class, true); }
