@@ -1,4 +1,4 @@
-name: Build & Release
+name: Build & Release (ControlBans)
 
 on:
   push:
@@ -19,60 +19,58 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        module:
-          - ControlBans
-          - ControlBans-Bungee
-          - ControlBans-Velocity
+        module: [ "ControlBans", "ControlBans-Bungee", "ControlBans-Velocity" ]
 
     steps:
-      - name: 🧾 Checkout Repository
+      - name: 🧾 Checkout repository
         uses: actions/checkout@v4
 
-      - name: ☕ Setup Temurin JDK 17
+      - name: ☕ Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: 17
           cache: maven
 
       - name: 🏗️ Build ${{ matrix.module }}
         working-directory: ./${{ matrix.module }}
         run: |
-          echo "Building ${{ matrix.module }} from $(pwd)"
-          mvn -B -e -DskipTests clean package \
-            --fail-never \
-            -Dmaven.wagon.http.retryHandler.count=5 \
-            -Dmaven.repo.remote.retry=5 \
-            -Dmaven.artifact.threads=8 || true
-          echo "✅ Finished ${{ matrix.module }} build step."
+          echo "🧩 Building ${{ matrix.module }} ..."
+          mvn -B -U clean package -DskipTests -Dmaven.javadoc.skip=true
+          echo "✅ Build finished for ${{ matrix.module }}"
+        env:
+          MAVEN_OPTS: -Dmaven.repo.local=.m2/repository
 
-      - name: 📦 Upload Artifact (${{ matrix.module }})
+      - name: 📦 Upload built JAR
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.module }}
           path: |
             ${{ matrix.module }}/target/*.jar
-          if-no-files-found: warn
+          if-no-files-found: error
 
   release:
-    name: Publish GitHub Release (on tag)
+    name: 🚀 Publish GitHub Release
     needs: build
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     steps:
-      - name: 📥 Download All Build Artifacts
+      - name: 📥 Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: dist
 
-      - name: 🧩 List Downloaded Files
+      - name: 🧩 List built files
         run: |
-          echo "Downloaded artifacts:"
+          echo "Artifacts ready for release:"
           find dist -type f -name "*.jar" -print
 
-      - name: 🚀 Publish GitHub Release
+      - name: 🚀 Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: dist/**/*.jar
+          draft: false
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
