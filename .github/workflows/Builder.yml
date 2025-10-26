@@ -25,11 +25,11 @@ jobs:
           java-version: 17
           cache: maven
 
-      # 👇 Fix: explicitly change to the repo root before running Maven
-      - name: Build project with Maven
-        working-directory: ${{ github.workspace }}
+      # 👇 Key fix: move one directory up before running Maven
+      - name: Build project with Maven (from repo root)
         run: |
-          echo "Building from root directory: $(pwd)"
+          cd ..
+          echo "Current directory: $(pwd)"
           mvn -B clean package
 
       - name: Upload ControlBans (Paper)
