@@ -9,6 +9,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         module: [ControlBans, ControlBans-Bungee, ControlBans-Velocity]
     steps:
@@ -18,11 +19,12 @@ jobs:
       - name: Set up JDK
         uses: actions/setup-java@v2
         with:
-          java-version: '11'
+          java-version: '17'
           distribution: temurin
+          cache: maven
 
       - name: Build with Maven
-        run: mvn clean install -pl ${{ matrix.module }}
+        run: mvn -B -e -X clean package -pl ${{ matrix.module }}
 
   release:
     runs-on: ubuntu-latest
