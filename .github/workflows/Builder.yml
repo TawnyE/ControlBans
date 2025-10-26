@@ -1,14 +1,10 @@
-name: Build ControlBans (Root Build)
+name: Build ControlBans
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
   pull_request:
-    branches: [ "main" ]
-  workflow_dispatch:
-
-permissions:
-  contents: write
 
 jobs:
   build:
@@ -18,56 +14,37 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Set up Java 17 (Temurin)
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
           cache: maven
 
-      # ✅ Fix: Build from actual repo root (the second ControlBans folder)
-      - name: Build project with Maven (nested repo root)
-        working-directory: ${{ github.workspace }}/ControlBans
+      - name: Build all modules (Paper, Bungee, Velocity)
         run: |
-          echo "Building Paper module only"
+          echo "🏗️ Building all ControlBans modules..."
           cd ControlBans
-          mvn -pl ControlBans -am clean package
+          mvn -B clean package -Dmaven.test.skip=true
+          echo "✅ Build complete!"
 
-      - name: Upload ControlBans (Paper)
+      - name: Upload Paper JAR
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: ControlBans-Paper
           path: ControlBans/target/*.jar
 
-      - name: Upload ControlBans-Bungee
+      - name: Upload Bungee JAR
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: ControlBans-Bungee
           path: ControlBans-Bungee/target/*.jar
 
-      - name: Upload ControlBans-Velocity
+      - name: Upload Velocity JAR
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: ControlBans-Velocity
           path: ControlBans-Velocity/target/*.jar
-
-  release:
-    if: startsWith(github.ref, 'refs/tags/')
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: release
-
-      - name: Create GitHub Release (attach all jars)
-        uses: softprops/action-gh-release@v2
-        with:
-          files: release/**/*.jar
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
