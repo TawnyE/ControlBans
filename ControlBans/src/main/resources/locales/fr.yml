@@ -1,4 +1,5 @@
 # Localisation française de ControlBans
+# translated by Tawny
 prefix: "<gray>[<red>ControlBans<gray>]<white>"
 errors:
   no-permission: "<red>Vous n'avez pas la permission d'utiliser cette commande."
