@@ -29,8 +29,9 @@ jobs:
       - name: Build project with Maven (nested repo root)
         working-directory: ${{ github.workspace }}/ControlBans
         run: |
-          echo "Current directory: $(pwd)"
-          mvn -B clean package
+          echo "Building Paper module only"
+          cd ControlBans
+          mvn -pl ControlBans -am clean package
 
       - name: Upload ControlBans (Paper)
         if: success()
