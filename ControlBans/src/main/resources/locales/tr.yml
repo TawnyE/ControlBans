@@ -1,5 +1,5 @@
 # ControlBans Türkçe Yerelleştirme
-# translated by: Tawny
+# translated by Tawny
 prefix: "<gray>[<red>ControlBans<gray>]<white>"
 errors:
   no-permission: "<red>Bu komutu kullanma izniniz yok."
