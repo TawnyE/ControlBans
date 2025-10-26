@@ -1,50 +1,77 @@
-name: Build ControlBans
+name: Build & Release (per-module)
 
 on:
   push:
-    branches:
-      - main
+    branches: ["main"]
+    tags:
+      - "v*"
   pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: write  # needed for gh-release to upload assets
 
 jobs:
   build:
+    name: Build ${{ matrix.module }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module:
+          - ControlBans
+          - ControlBans-Bungee
+          - ControlBans-Velocity
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Java 17
+      - name: Set up Temurin JDK 17 (with Maven cache)
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
+          java-version: "17"
           cache: maven
 
-      - name: Build all modules (Paper, Bungee, Velocity)
+      # Build the module by pointing Maven at that module's pom.xml
+      - name: Build ${{ matrix.module }}
+        working-directory: ./${{ matrix.module }}
         run: |
-          echo "🏗️ Starting full Maven build with verbose logging..."
-          cd ControlBans
-          mvn clean package -e -X -Dmaven.test.skip=true
-          echo "✅ Maven build completed."
+          echo "Building ${{ matrix.module }} from $(pwd)"
+          mvn -B -e -DskipTests clean package
 
-      - name: Upload Paper JAR
-        if: success()
+      # Upload all built jars for this module (adjust glob if you only want shaded jars)
+      - name: Upload artifacts (${{ matrix.module }})
         uses: actions/upload-artifact@v4
         with:
-          name: ControlBans-Paper
-          path: ControlBans/target/*.jar
+          name: ${{ matrix.module }}-artifacts
+          path: |
+            ${{ matrix.module }}/target/*.jar
+          if-no-files-found: error
 
-      - name: Upload Bungee JAR
-        if: success()
-        uses: actions/upload-artifact@v4
+  release:
+    name: Publish GitHub Release (on tag)
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
         with:
-          name: ControlBans-Bungee
-          path: ControlBans-Bungee/target/*.jar
+          path: dist
 
-      - name: Upload Velocity JAR
-        if: success()
-        uses: actions/upload-artifact@v4
+      # Optional: show what's going to be released
+      - name: List files
+        run: |
+          echo "Contents of dist/"
+          find dist -type f -name "*.jar" -maxdepth 3 -print
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: ControlBans-Velocity
-          path: ControlBans-Velocity/target/*.jar
+          files: |
+            dist/**/*.jar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
