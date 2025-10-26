@@ -1,4 +1,5 @@
 # Русская локализация ControlBans
+# translated by Tawny
 prefix: "<gray>[<red>ControlBans<gray>]<white>"
 errors:
   no-permission: "<red>У вас нет прав для использования этой команды."
