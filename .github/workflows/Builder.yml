@@ -1,9 +1,11 @@
-name: Build
+name: Build (matrix per-module)
 
 on:
   push:
-    branches:
-      - main
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -11,27 +13,40 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        module: [ControlBans, ControlBans-Bungee, ControlBans-Velocity]
+        module: ["ControlBans", "ControlBans-Bungee", "ControlBans-Velocity"]
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Set up JDK
-        uses: actions/setup-java@v2
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
         with:
-          java-version: '17'
           distribution: temurin
+          java-version: '17'
           cache: maven
 
-      - name: Build with Maven
-        run: mvn -B -e -X clean package -pl ${{ matrix.module }}
+      - name: Build module with Maven (verbose)
+        run: mvn -B -e -X -f "${{ matrix.module }}"/pom.xml clean package
+
+      - name: Upload built jar as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.module }}-jar
+          path: ${{ matrix.module }}/target/*.jar
 
   release:
-    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
     needs: build
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release
 
-      - name: Release
-        run: mvn release:prepare release:perform
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/**/*.jar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
