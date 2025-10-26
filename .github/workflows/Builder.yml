@@ -1,4 +1,4 @@
-name: Build & Release (per-module)
+name: Build & Release
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write  # needed for gh-release to upload assets
+  contents: write
 
 jobs:
   build:
@@ -25,28 +25,26 @@ jobs:
           - ControlBans-Velocity
 
     steps:
-      - name: Checkout
+      - name: 🧾 Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Temurin JDK 17 (with Maven cache)
+      - name: ☕ Setup Temurin JDK 17 with Maven cache
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
           cache: maven
 
-      # Build the module by pointing Maven at that module's pom.xml
-      - name: Build ${{ matrix.module }}
+      - name: 🏗️ Build ${{ matrix.module }}
         working-directory: ./${{ matrix.module }}
         run: |
           echo "Building ${{ matrix.module }} from $(pwd)"
           mvn -B -e -DskipTests clean package
 
-      # Upload all built jars for this module (adjust glob if you only want shaded jars)
-      - name: Upload artifacts (${{ matrix.module }})
+      - name: 📦 Upload Artifact (${{ matrix.module }})
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.module }}-artifacts
+          name: ${{ matrix.module }}
           path: |
             ${{ matrix.module }}/target/*.jar
           if-no-files-found: error
@@ -57,21 +55,19 @@ jobs:
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     steps:
-      - name: Download all build artifacts
+      - name: 📥 Download All Build Artifacts
         uses: actions/download-artifact@v4
         with:
           path: dist
 
-      # Optional: show what's going to be released
-      - name: List files
+      - name: 🧩 List Downloaded Files
         run: |
-          echo "Contents of dist/"
-          find dist -type f -name "*.jar" -maxdepth 3 -print
+          echo "Downloaded artifacts:"
+          find dist -type f -name "*.jar" -print
 
-      - name: Create GitHub Release
+      - name: 🚀 Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            dist/**/*.jar
+          files: dist/**/*.jar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
