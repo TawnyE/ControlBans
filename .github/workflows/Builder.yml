@@ -25,10 +25,10 @@ jobs:
           java-version: 17
           cache: maven
 
-      # 👇 Key fix: move one directory up before running Maven
-      - name: Build project with Maven (from repo root)
+      # ✅ Fix: Build from actual repo root (the second ControlBans folder)
+      - name: Build project with Maven (nested repo root)
+        working-directory: ${{ github.workspace }}/ControlBans
         run: |
-          cd ..
           echo "Current directory: $(pwd)"
           mvn -B clean package
 
