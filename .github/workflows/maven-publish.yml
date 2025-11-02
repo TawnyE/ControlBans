@@ -9,13 +9,13 @@ on:
       - 'ControlBans-Bungee/**'
       - 'ControlBans-Velocity/**'
       - '.github/workflows/**'
+    paths-ignore:
+      - 'ControlBans/pom.xml'
   workflow_dispatch:
 
 jobs:
   build-and-release:
     name: Build and Release
-    # THIS IS THE NEW LINE THAT PREVENTS IT FROM RUNNING ON RELEASES
-    if: "!contains(github.event.head_commit.message, '[release]')"
     runs-on: ubuntu-latest
 
     permissions:
