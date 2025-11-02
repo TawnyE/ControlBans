@@ -1,18 +1,16 @@
 # .github/workflows/release.yml
 
-name: Create Live Release
+name: Create Release on Push to Main
 
-# This workflow is triggered ONLY when a new tag starting with 'v' is pushed.
-# Examples: v1.0, v1.0.1, v1.2.3-beta
+# This workflow is triggered on every push to the "main" branch.
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - 'main'
 
 jobs:
   build-and-release:
     name: Build and Release
-    # Use the latest version of Ubuntu for the build environment
     runs-on: ubuntu-latest
 
     steps:
@@ -26,23 +24,31 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: maven # Caches dependencies for faster builds
+          cache: maven
 
       # Step 3: Build the project with Maven
-      # This compiles the code and packages it into JAR files
       - name: Build with Maven
         run: mvn -B package --file pom.xml
 
-      # Step 4: Create the GitHub Release and upload the built JARs
+      # Step 4: Create a unique tag name based on the date, time, and commit hash
+      # This prevents release tag conflicts. Example: release-20231120-153025-a1b2c3d
+      - name: Create Release Tag
+        run: echo "RELEASE_TAG=release-$(date +%Y%m%d-%H%M%S)-${GITHUB_SHA::7}" >> $GITHUB_ENV
+
+      # Step 5: Create the GitHub Release and upload the built JARs
       - name: Create Release and Upload Build Artifacts
         uses: softprops/action-gh-release@v1
         with:
-          # This defines which files to upload as release assets.
-          # It finds the .jar files in the 'target' directory of each module.
+          # This uses the unique tag we generated in the previous step
+          tag_name: ${{ env.RELEASE_TAG }}
+          # Marks the release as a "pre-release" so you know it's an automated build
+          prerelease: true
+          # The body of the release message
+          body: "Automated build from commit ${{ github.sha }}"
+          # This defines which files to upload as release assets
           files: |
             ControlBans/target/*.jar
             ControlBans-Bungee/target/*.jar
             ControlBans-Velocity/target/*.jar
         env:
-          # The GITHUB_TOKEN is automatically created by Actions to authenticate.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
