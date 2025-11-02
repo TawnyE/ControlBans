@@ -1,4 +1,4 @@
-name: Create Auto Build Release
+name: Update Latest Auto Build
 
 on:
   push:
@@ -22,8 +22,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -35,26 +33,21 @@ jobs:
       - name: Build with Maven
         run: mvn -B clean install
 
-      - name: Generate Build Description
-        id: build_description
+      - name: Delete Old Release and Tag
         run: |
-          if [ "${{ github.event_name }}" == "push" ]; then
-            COMMIT_COUNT=$(git rev-list --count ${{ github.event.before }}..${{ github.event.after }})
-            echo "RELEASE_BODY=This is an automatic build from the \`main\` branch and includes **${COMMIT_COUNT}** new commit(s)." >> $GITHUB_OUTPUT
-          else
-            echo "RELEASE_BODY=This is a manually triggered build from the \`main\` branch." >> $GITHUB_OUTPUT
-          fi
+          gh release delete autobuild-latest --cleanup-tag --yes || true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create Release and Upload Build Artifacts
+      - name: Create New Release and Upload Build Artifacts
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: autobuild-${{ github.run_number }}
-          name: Auto Build #${{ github.run_number }}
+          tag_name: autobuild-latest
+          name: Latest Auto Build
           prerelease: true
           body: |
             ### ⚠️ Disclaimer
-            ${{ steps.build_description.outputs.RELEASE_BODY }}
-            It may contain experimental changes or issues.
+            This is the latest automatic build from the `main` branch. It may contain experimental changes or issues.
             **Use at your own risk.**
 
             For stable versions, please download from [BuiltByBit](https://builtbybit.com/resources/controlbans.78397/) or [Modrinth](https://modrinth.com/plugin/controlbans).
