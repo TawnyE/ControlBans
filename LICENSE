@@ -1,21 +1,102 @@
-MIT License
+# ControlFamily License v1.1
+Developer-Friendly License for Open Control Projects
 
-Copyright (c) 2025 Tawny
+Copyright (c) 2025 Tawny (ret.tawny)
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+This license applies only to repositories that include this file.  
+Some Control-related projects are closed-source and not covered by this license.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+---
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+## 1. Permission to Use, Modify, and Distribute
+
+You are allowed to:
+
+- Use the code and assets in this repository for personal or commercial projects
+- Modify, extend, or build your own plugins or software based on this project
+- Publish, distribute, or sell your modified versions
+
+As long as you follow the rules below.
+
+---
+
+## 2. Attribution Required
+
+If you use any code or assets from this project, you must:
+
+- Credit **"ControlFamily by Tawny (ret.tawny)"** in your README or documentation  
+**and**
+- Provide visible credit inside the software (e.g., `/help`, `/about`, or equivalent)
+
+Attribution must be easy to find and not hidden.
+
+---
+
+## 3. Scope of This License
+
+This license covers everything in this repository unless stated otherwise:
+
+✔ Source code  
+✔ Configurations  
+✔ Documentation  
+✔ Assets (textures, images, models, art)  
+
+Third-party assets that have their own licenses are excluded.
+
+---
+
+## 4. DMCA & Protection Against Abuse
+
+You may **not**:
+
+- Claim this project as your own original work
+- File false DMCA claims against others who are following this license
+- Remove or alter original copyright notices
+
+If you do, this license will be revoked.
+
+---
+
+## 5. Fair-Use, Contributions, and Pull Requests
+
+If you contribute to this project via PR or patch, you grant the project owner the right to use your contribution as part of the project.
+
+You keep ownership of your specific contributions.
+
+---
+
+## 6. Violations and Termination (Soft Warning Policy)
+
+If you break this license:
+
+1. You will be notified of the violation.
+2. You will have **7 days** to correct the issue.
+3. If not corrected, your rights under this license end.
+
+Once terminated, you must remove all ControlFamily licensed code and assets from your project.
+
+---
+
+## 7. No Warranty
+
+This project is provided “as-is” with no guarantee of performance, safety, or fitness for a particular purpose.
+
+---
+
+## 8. Compatibility With Other Licenses
+
+You may combine this code with other open-source projects if their licenses allow it.  
+If there is a conflict, you must resolve it or remove the conflicting code.
+
+---
+
+### Summary (Not a Legal Section)
+
+You can use, modify, and sell this open-source ControlFamily project, but:
+
+- You must give proper credit
+- You can’t claim ownership or abuse DMCA
+- You must keep the original copyright notice
+- You get 7 days to fix issues if you violate anything
+
+Be respectful and fair—that’s all.
