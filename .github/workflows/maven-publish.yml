@@ -1,8 +1,8 @@
-# .github/workflows/release.yml
+# This is the full content for your workflow file.
+# Path: .github/workflows/maven-publish.yml
 
 name: Create Release on Push to Main
 
-# This workflow is triggered on every push to the "main" branch.
 on:
   push:
     branches:
@@ -18,20 +18,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Step 2: Set up Java Development Kit (JDK) 17
-      - name: Set up JDK 17
+      # Step 2: Set up Java Development Kit (JDK) 21
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: '21' # Corrected Java version for MC 1.21.1
           distribution: 'temurin'
           cache: maven
 
-      # Step 3: Build the project with Maven
+      # Step 3: Build the project with Maven using the parent pom
       - name: Build with Maven
-        run: mvn -B clean install
+        run: mvn -B clean install # Correct command for multi-module projects
 
-      # Step 4: Create a unique tag name based on the date, time, and commit hash
-      # This prevents release tag conflicts. Example: release-20231120-153025-a1b2c3d
+      # Step 4: Create a unique tag name based on date, time, and commit
       - name: Create Release Tag
         run: echo "RELEASE_TAG=release-$(date +%Y%m%d-%H%M%S)-${GITHUB_SHA::7}" >> $GITHUB_ENV
 
@@ -39,13 +38,9 @@ jobs:
       - name: Create Release and Upload Build Artifacts
         uses: softprops/action-gh-release@v1
         with:
-          # This uses the unique tag we generated in the previous step
           tag_name: ${{ env.RELEASE_TAG }}
-          # Marks the release as a "pre-release" so you know it's an automated build
           prerelease: true
-          # The body of the release message
           body: "Automated build from commit ${{ github.sha }}"
-          # This defines which files to upload as release assets
           files: |
             ControlBans/target/*.jar
             ControlBans-Bungee/target/*.jar
