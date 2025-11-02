@@ -28,7 +28,7 @@ jobs:
 
       # Step 3: Build the project with Maven
       - name: Build with Maven
-        run: mvn -B package --file pom.xml
+        run: mvn -B clean install
 
       # Step 4: Create a unique tag name based on the date, time, and commit hash
       # This prevents release tag conflicts. Example: release-20231120-153025-a1b2c3d
