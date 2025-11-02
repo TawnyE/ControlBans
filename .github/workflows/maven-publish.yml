@@ -21,6 +21,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # This is required to count commits
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -32,15 +34,21 @@ jobs:
       - name: Build with Maven
         run: mvn -B clean install
 
+      # THIS IS THE NEW STEP TO COUNT COMMITS
+      - name: Get Commit Count
+        id: commit_count
+        run: echo "COUNT=$(git rev-list --count ${{ github.event.before }}..${{ github.event.after }})" >> $GITHUB_OUTPUT
+
       - name: Create Release and Upload Build Artifacts
         uses: softprops/action-gh-release@v1
         with:
           tag_name: autobuild-${{ github.run_number }}
           name: Auto Build #${{ github.run_number }}
           prerelease: true
+          # THE BODY IS UPDATED HERE
           body: |
             ### ⚠️ Disclaimer
-            This is an automatic build from the `main` branch. It may contain experimental changes or issues.
+            This is an automatic build from the `main` branch and includes **${{ steps.commit_count.outputs.COUNT }}** new commit(s). It may contain experimental changes or issues.
             **Use at your own risk.**
 
             For stable versions, please download from [BuiltByBit](https://builtbybit.com/resources/controlbans.78397/) or [Modrinth](https://modrinth.com/plugin/controlbans).
