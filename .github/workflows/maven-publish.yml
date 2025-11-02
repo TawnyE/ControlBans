@@ -10,7 +10,6 @@ jobs:
     name: Build and Release
     runs-on: ubuntu-latest
 
-    # THIS IS THE NEW SECTION THAT FIXES THE ERROR
     permissions:
       contents: write
 
@@ -36,10 +35,16 @@ jobs:
         with:
           tag_name: ${{ env.RELEASE_TAG }}
           prerelease: true
-          body: "Automated build from commit ${{ github.sha }}"
+          body: |
+            ### ⚠️ Disclaimer
+            This is an automatic build from the `main` branch. It may contain experimental changes or issues.
+            **Use at your own risk.**
+
+            For stable versions, please download from [BuiltByBit](https://builtbybit.com/resources/controlbans.78397/) or [Modrinth](https://modrinth.com/plugin/controlbans).
           files: |
             ControlBans/target/*.jar
             ControlBans-Bungee/target/*.jar
             ControlBans-Velocity/target/*.jar
+            !**/original-*.jar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
