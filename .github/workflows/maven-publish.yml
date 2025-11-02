@@ -1,9 +1,14 @@
-name: Create Release on Push to Main
+name: Create Auto Build Release
 
 on:
   push:
     branches:
       - 'main'
+    paths:
+      - 'ControlBans/**'
+      - 'ControlBans-Bungee/**'
+      - 'ControlBans-Velocity/**'
+  workflow_dispatch:
 
 jobs:
   build-and-release:
@@ -27,13 +32,11 @@ jobs:
       - name: Build with Maven
         run: mvn -B clean install
 
-      - name: Create Release Tag
-        run: echo "RELEASE_TAG=release-$(date +%Y%m%d-%H%M%S)-${GITHUB_SHA::7}" >> $GITHUB_ENV
-
       - name: Create Release and Upload Build Artifacts
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ env.RELEASE_TAG }}
+          tag_name: autobuild-${{ github.run_number }}
+          name: Auto Build #${{ github.run_number }}
           prerelease: true
           body: |
             ### ⚠️ Disclaimer
