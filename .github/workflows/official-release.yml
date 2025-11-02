@@ -4,12 +4,12 @@ on:
   push:
     branches:
       - 'main'
-    paths:
-      - 'ControlBans/pom.xml'
 
 jobs:
   build-and-release:
     name: Build and Create Official Release
+    # THIS IS THE NEW LINE THAT MAKES IT RUN ONLY ON RELEASES
+    if: "contains(github.event.head_commit.message, '[release]')"
     runs-on: ubuntu-latest
 
     permissions:
@@ -37,12 +37,8 @@ jobs:
           VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
           echo "VERSION_TAG=v${VERSION}" >> $GITHUB_OUTPUT
           
-          if [ "${{ github.event_name }}" == "push" ]; then
-            COMMIT_COUNT=$(git rev-list --count ${{ github.event.before }}..${{ github.event.after }})
-            echo "COMMIT_COUNT=${COMMIT_COUNT}" >> $GITHUB_OUTPUT
-          else
-            echo "COMMIT_COUNT=N/A" >> $GITHUB_OUTPUT
-          fi
+          COMMIT_COUNT=$(git rev-list --count HEAD~1..HEAD)
+          echo "COMMIT_COUNT=${COMMIT_COUNT}" >> $GITHUB_OUTPUT
 
       - name: Create New Release and Upload Build Artifacts
         uses: softprops/action-gh-release@v1
