@@ -6,9 +6,7 @@
 
     <groupId>ret.tawny</groupId>
     <artifactId>controlbans-bungee</artifactId>
-    <version>v2</version>
-
-    <properties>
+    <version>2</propertiestIdoperties>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
