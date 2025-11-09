@@ -1,40 +1,72 @@
-name: Update Latest Auto Build
+# .github/workflows/maven-publish.yml
+name: Publish Latest Auto Build
 
 on:
-  push:
+  workflow_run:
+    workflows: ["Build and Test"]
+    types:
+      - completed
     branches:
       - 'main'
-    paths:
-      - 'ControlBans/**'
-      - 'ControlBans-Bungee/**'
-      - 'ControlBans-Velocity/**'
-      - '.github/workflows/**'
-  workflow_dispatch:
 
 jobs:
-  build-and-release:
-    name: Build and Release
+  publish-autobuild:
+    name: Publish Latest Pre-release
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     permissions:
       contents: write
-
+      
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Check for code changes (ignore pom.xml update)
-        id: check_files
+      - name: Download artifacts from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+          path: artifacts/
+      
+      - name: Generate Commit Info
+        id: commit_info
         run: |
-          # Get a list of all changed files in the push
-          CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }})
-          
-          # Count how many files were changed
-          FILE_COUNT=$(echo "$CHANGED_FILES" | wc -l)
-          
-          # Check if the only changed file is ControlBans/pom.xml
+          COMMIT_MESSAGE=$(git log -1 --pretty=%B)
+          echo "COMMIT_MESSAGE<<EOF" >> $GITHUB_OUTPUT
+          **Last Commit:**
+          \`\`\`
+          ${COMMIT_MESSAGE}
+          \`\`\`
+          EOF
+
+      - name: Delete Old Release and Tag
+        run: |
+          gh release delete autobuild-latest --cleanup-tag --yes || true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create New Pre-release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: autobuild-latest
+          name: Latest Auto Build
+          prerelease: true
+          body: |
+            ### ⚠️ Disclaimer
+            This is the latest automatic build from the `main` branch. It may contain experimental changes or issues.
+            **Use at your own risk.**
+            
+            ${{ steps.commit_info.outputs.COMMIT_MESSAGE }}
+            
+            For stable versions, please download from the **Releases** page.
+          files: |
+            artifacts/*.jar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}```
+
+next          # Check if the only changed file is ControlBans/pom.xml
           if [ "$FILE_COUNT" -eq 1 ] && [ "$CHANGED_FILES" == "ControlBans/pom.xml" ]; then
             echo "Only the main pom.xml was updated. Skipping auto-build for official release."
             echo "should_run=false" >> $GITHUB_OUTPUT
