@@ -308,7 +308,10 @@ public class PunishmentService {
     }
 
     private void onPunishmentSuccess(Punishment punishment) {
+        // Invalidate local cache
         cacheService.invalidatePlayerPunishments(punishment.getTargetUuid());
+        // Send message to proxy to invalidate cache on other servers
+        proxyService.sendInvalidateCacheMessage(punishment.getTargetUuid());
 
         scheduler.runTask(() -> {
             if (punishment.getType().isBan() || punishment.getType() == PunishmentType.KICK) {
@@ -354,6 +357,7 @@ public class PunishmentService {
             }).thenApply(success -> {
                 if (success) {
                     cacheService.invalidatePlayerPunishments(targetUuid);
+                    proxyService.sendInvalidateCacheMessage(targetUuid);
                     scheduler.runTask(() -> broadcastUnban(targetName, staffName));
                     plugin.getIntegrationService().onUnban(targetName, staffName);
                 }
@@ -378,6 +382,7 @@ public class PunishmentService {
             }).thenApply(success -> {
                 if (success) {
                     cacheService.invalidatePlayerPunishments(targetUuid);
+                    proxyService.sendInvalidateCacheMessage(targetUuid);
                     scheduler.runTask(() -> broadcastUnmute(targetName, staffName));
                 }
                 return success;

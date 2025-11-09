@@ -125,4 +125,10 @@ public class ConfigManager {
         return Duration.ofDays(days);
     }
 
+    // Void Jail Configuration
+    public String getJailWorld() { return getCachedOrLoad("void-jail.location.world", String.class, "world"); }
+    public double getJailX() { return getCachedOrLoad("void-jail.location.x", Double.class, 0.5); }
+    public double getJailY() { return getCachedOrLoad("void-jail.location.y", Double.class, -1000.0); }
+    public double getJailZ() { return getCachedOrLoad("void-jail.location.z", Double.class, 0.5); }
+    public List<String> getJailAllowedCommands() { return config.getStringList("void-jail.allowed-commands"); }
 }

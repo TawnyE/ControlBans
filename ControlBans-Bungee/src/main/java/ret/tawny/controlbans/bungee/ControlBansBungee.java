@@ -5,17 +5,21 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import net.md_5.bungee.api.ProxyServer;
 import net.md_5.bungee.api.chat.TextComponent;
+import net.md_5.bungee.api.config.ServerInfo;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
+import net.md_5.bungee.api.connection.Server;
 import net.md_5.bungee.api.event.PluginMessageEvent;
 import net.md_5.bungee.api.plugin.Listener;
 import net.md_5.bungee.api.plugin.Plugin;
 import net.md_5.bungee.event.EventHandler;
 
-import java.util.Locale;
-
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Locale;
+import java.util.Map;
 
 public class ControlBansBungee extends Plugin implements Listener {
 
@@ -34,11 +38,12 @@ public class ControlBansBungee extends Plugin implements Listener {
             return;
         }
 
-        event.setCancelled(true);
-
-        if (!(event.getSender() instanceof net.md_5.bungee.api.connection.Server)) {
+        // We handle messages from backend servers
+        if (!(event.getSender() instanceof Server)) {
             return;
         }
+
+        final Server sourceServer = (Server) event.getSender();
 
         try (DataInputStream in = new DataInputStream(new ByteArrayInputStream(event.getData()))) {
             String message = in.readUTF();
@@ -53,6 +58,7 @@ public class ControlBansBungee extends Plugin implements Listener {
             switch (action) {
                 case "KICK_PLAYER" -> handleKick(json);
                 case "BROADCAST" -> handleBroadcast(json);
+                case "INVALIDATE_CACHE" -> handleCacheInvalidation(json, sourceServer, event.getData());
                 default -> getLogger().warning("Unknown proxy message action: " + action);
             }
         } catch (IOException | JsonParseException e) {
@@ -82,5 +88,22 @@ public class ControlBansBungee extends Plugin implements Listener {
         }
 
         ProxyServer.getInstance().broadcast(new TextComponent(broadcastMessage));
+    }
+
+    private void handleCacheInvalidation(JsonObject json, Server sourceServer, byte[] originalData) {
+        if (!json.has("playerUuid")) {
+            getLogger().warning("Received malformed cache invalidation message.");
+            return;
+        }
+        // Forward this message to all OTHER servers.
+        for (Map.Entry<String, ServerInfo> entry : getProxy().getServers().entrySet()) {
+            ServerInfo serverInfo = entry.getValue();
+            // Don't send it back to the server it came from
+            if (serverInfo.equals(sourceServer.getInfo())) {
+                continue;
+            }
+            // Send the original byte[] data to the server
+            serverInfo.sendData(CHANNEL, originalData);
+        }
     }
 }

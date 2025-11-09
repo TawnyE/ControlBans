@@ -8,10 +8,7 @@ import ret.tawny.controlbans.commands.*;
 import ret.tawny.controlbans.commands.gui.AltsGuiManager;
 import ret.tawny.controlbans.commands.gui.HistoryGuiManager;
 import ret.tawny.controlbans.config.ConfigManager;
-import ret.tawny.controlbans.listeners.GuiListener;
-import ret.tawny.controlbans.listeners.PlayerChatListener;
-import ret.tawny.controlbans.listeners.PlayerJoinListener;
-import ret.tawny.controlbans.listeners.ProxyMessengerListener;
+import ret.tawny.controlbans.listeners.*;
 import ret.tawny.controlbans.locale.LocaleManager;
 import ret.tawny.controlbans.services.*;
 import ret.tawny.controlbans.storage.DatabaseManager;
@@ -38,13 +35,14 @@ public class ControlBansPlugin extends JavaPlugin {
     private HistoryGuiManager historyGuiManager;
     private AltsGuiManager altsGuiManager;
     private AppealService appealService;
+    private CacheService cacheService;
+    private VoidJailService voidJailService;
+
 
     @Override
     public void onEnable() {
         instance = this;
         getLogger().info("Enabling ControlBans v" + getPluginMeta().getVersion());
-
-        getServer().getMessenger().registerOutgoingPluginChannel(this, "controlbans:main");
 
         try {
             initializePlugin();
@@ -68,6 +66,7 @@ public class ControlBansPlugin extends JavaPlugin {
         getLogger().info("Disabling ControlBans...");
         try {
             getServer().getMessenger().unregisterOutgoingPluginChannel(this);
+            getServer().getMessenger().unregisterIncomingPluginChannel(this);
             if (webService != null) webService.shutdown();
             if (integrationService != null) integrationService.shutdown();
             if (databaseManager != null) databaseManager.shutdown();
@@ -90,10 +89,12 @@ public class ControlBansPlugin extends JavaPlugin {
         databaseManager = new DatabaseManager(this, configManager);
         databaseManager.initialize();
 
-        CacheService cacheService = new CacheService(configManager);
+        cacheService = new CacheService(configManager);
         punishmentService = new PunishmentService(this, databaseManager, cacheService);
         altService = new AltService(this, databaseManager, cacheService);
         appealService = new AppealService(databaseManager, configManager);
+        voidJailService = new VoidJailService(this);
+
 
         historyGuiManager = new HistoryGuiManager(this);
         altsGuiManager = new AltsGuiManager(this);
@@ -137,14 +138,17 @@ public class ControlBansPlugin extends JavaPlugin {
         new AltsCommand(this, altsGuiManager).register();
         new AppealCommand(this).register();
         new ControlBansCommand(this).register();
+        new VoidJailCommand(this).register();
+        new UnvoidJailCommand(this).register();
         getLogger().info("Commands registered");
     }
 
     private void registerListeners() {
         getServer().getPluginManager().registerEvents(new PlayerJoinListener(this), this);
-        getServer().getPluginManager().registerEvents(new ProxyMessengerListener(this), this);
+        new ProxyMessengerListener(this);
         getServer().getPluginManager().registerEvents(new PlayerChatListener(this), this);
         getServer().getPluginManager().registerEvents(new GuiListener(historyGuiManager, altsGuiManager), this);
+        getServer().getPluginManager().registerEvents(new VoidJailListener(this), this);
         getLogger().info("Listeners registered");
     }
 
@@ -176,6 +180,9 @@ public class ControlBansPlugin extends JavaPlugin {
         try {
             configManager.loadConfig();
             localeManager.reload();
+            if (voidJailService != null) {
+                voidJailService.loadJailLocation();
+            }
 
             if (webService != null) {
                 if (configManager.isWebEnabled()) {
@@ -212,4 +219,6 @@ public class ControlBansPlugin extends JavaPlugin {
     public SchedulerAdapter getSchedulerAdapter() { return schedulerAdapter; }
     public ProxyService getProxyService() { return proxyService; }
     public AppealService getAppealService() { return appealService; }
+    public CacheService getCacheService() { return cacheService; }
+    public VoidJailService getVoidJailService() { return voidJailService; }
 }

@@ -10,6 +10,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Queue;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 
@@ -40,6 +41,15 @@ public class ProxyService {
         JsonObject json = new JsonObject();
         json.addProperty("action", "BROADCAST");
         json.addProperty("message", message);
+        sendPluginMessage(json.toString());
+    }
+
+    public void sendInvalidateCacheMessage(UUID playerUuid) {
+        if (playerUuid == null) return;
+
+        JsonObject json = new JsonObject();
+        json.addProperty("action", "INVALIDATE_CACHE");
+        json.addProperty("playerUuid", playerUuid.toString());
         sendPluginMessage(json.toString());
     }
 

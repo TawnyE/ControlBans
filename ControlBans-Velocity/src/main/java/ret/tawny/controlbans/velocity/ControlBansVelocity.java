@@ -7,9 +7,11 @@ import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.PluginMessageEvent;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.plugin.Plugin;
+import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.ServerConnection;
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
+import com.velocitypowered.api.proxy.server.RegisteredServer;
 import net.kyori.adventure.text.Component;
 import org.slf4j.Logger;
 
@@ -18,6 +20,7 @@ import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.util.Locale;
+import java.util.Optional;
 
 @Plugin(
         id = "controlbans-velocity",
@@ -53,7 +56,7 @@ public class ControlBansVelocity {
             return;
         }
 
-        event.setResult(PluginMessageEvent.ForwardResult.handled());
+        ServerConnection sourceConnection = (ServerConnection) event.getSource();
 
         try (DataInputStream in = new DataInputStream(new ByteArrayInputStream(event.getData()))) {
             String message = in.readUTF();
@@ -68,6 +71,7 @@ public class ControlBansVelocity {
             switch (action) {
                 case "KICK_PLAYER" -> handleKick(json);
                 case "BROADCAST" -> handleBroadcast(json);
+                case "INVALIDATE_CACHE" -> handleCacheInvalidation(json, sourceConnection, event.getData());
                 default -> logger.warn("Unknown proxy message action: {}", action);
             }
         } catch (IOException | JsonParseException e) {
@@ -94,5 +98,22 @@ public class ControlBansVelocity {
         }
 
         server.sendMessage(Component.text(broadcastMessage));
+    }
+
+    private void handleCacheInvalidation(JsonObject json, ServerConnection sourceConnection, byte[] originalData) {
+        if (!json.has("playerUuid")) {
+            logger.warn("Received malformed cache invalidation message.");
+            return;
+        }
+
+        // Forward this message to all OTHER servers.
+        for (RegisteredServer registeredServer : server.getAllServers()) {
+            // Don't send it back to the server it came from
+            if (registeredServer.getServerInfo().equals(sourceConnection.getServerInfo())) {
+                continue;
+            }
+            // Send the original byte[] data to the server
+            registeredServer.sendPluginMessage(CHANNEL, originalData);
+        }
     }
 }
