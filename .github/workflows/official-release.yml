@@ -1,61 +1,45 @@
+# .github/workflows/official-release.yml
 name: Create Official Release
 
 on:
   push:
-    branches:
-      - 'main'
-    paths:
-      - 'ControlBans/pom.xml'
+    tags:
+      - 'v*' # Trigger this workflow when a tag like v2.8 or v2.8.1 is pushed
 
 jobs:
-  build-and-release:
-    name: Build and Create Official Release
+  publish-release:
+    name: Publish Official Release
     runs-on: ubuntu-latest
-
     permissions:
       contents: write
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Download artifacts from the build associated with this tag
+        uses: dawidd6/action-download-artifact@v6
         with:
-          fetch-depth: 0
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-          cache: maven
-
-      - name: Build with Maven
-        run: mvn -B clean install
-
-      - name: Extract Project Version and Commit Count
-        id: project_info
-        run: |
-          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
-          echo "VERSION_TAG=v${VERSION}" >> $GITHUB_OUTPUT
-          
-          COMMIT_COUNT=$(git rev-list --count HEAD~1..HEAD)
-          echo "COMMIT_COUNT=${COMMIT_COUNT}" >> $GITHUB_OUTPUT
+          # The name of the workflow that produced the artifacts
+          workflow: build.yml
+          # Get artifacts from the build run for the specific commit this tag points to
+          commit: ${{ github.sha }}
+          # The name of the artifact to download
+          name: build-artifacts
+          # The directory to download the artifacts into
+          path: artifacts/
 
       - name: Create New Release and Upload Build Artifacts
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ steps.project_info.outputs.VERSION_TAG }}
-          name: Release ${{ steps.project_info.outputs.VERSION_TAG }}
-          prerelease: false
-          body: |
-            ### Auto Release 🎉
-            **Release number:** ${{ steps.project_info.outputs.VERSION_TAG }}
-            **How many commits and changes:** ${{ steps.project_info.outputs.COMMIT_COUNT }}
-
-            I hope you enjoy the updated version of controlbans.
+          # Use the tag name for the release name and tag
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          # This automatically generates release notes based on commit messages since the last release.
+          # For best results, use Conventional Commits (e.g., "feat:", "fix:", "docs:").
+          generate_release_notes: true
+          # Attach the downloaded JAR files to the release
           files: |
-            ControlBans/target/*.jar
-            ControlBans-Bungee/target/*.jar
-            ControlBans-Velocity/target/*.jar
-            !**/original-*.jar
+            artifacts/*.jar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
