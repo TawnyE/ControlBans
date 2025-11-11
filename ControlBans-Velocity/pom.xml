@@ -6,7 +6,7 @@
 
     <groupId>ret.tawny</groupId>
     <artifactId>controlbans-velocity</artifactId>
-    <version>5</version>
+    <version>v17</version>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
