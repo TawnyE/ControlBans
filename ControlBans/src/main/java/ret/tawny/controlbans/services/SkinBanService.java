@@ -10,7 +10,6 @@ import ret.tawny.controlbans.ControlBansPlugin;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -34,7 +33,6 @@ public class SkinBanService {
 
     private void loadBannedSkins() {
         if (!skinBansFile.exists()) {
-            // Ensure the config is not null
             skinBansConfig = new YamlConfiguration();
             return;
         }
@@ -101,15 +99,11 @@ public class SkinBanService {
         }
     }
 
-    /**
-     * The correct way to apply a default skin.
-     * It clones the player's current profile and strips the skin properties.
-     * @param player The player to apply the blank skin to.
-     */
     private void applyBlankSkin(Player player) {
-        PlayerProfile profile = player.getPlayerProfile();
-        PlayerProfile newProfile = profile.clone(); // Clone to create a mutable copy
-        newProfile.setProperties(Collections.emptySet()); // Strip all properties (including skin)
-        player.setPlayerProfile(newProfile); // Apply the new, skinless profile
+
+        PlayerProfile newProfile = Bukkit.createProfile(player.getUniqueId(), player.getName());
+
+
+        player.setPlayerProfile(newProfile);
     }
 }
