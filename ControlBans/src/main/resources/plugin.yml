@@ -1,5 +1,5 @@
 name: ControlBans
-version: 2.8
+version: 2.9
 main: ret.tawny.controlbans.ControlBansPlugin
 description: Advanced punishment system with LiteBans compatibility
 api-version: "1.20"
@@ -94,6 +94,14 @@ commands:
     usage: /unvoidjail <player>
     permission: controlbans.voidjail
     aliases: [unvjail]
+  banskin:
+    description: Removes a player's skin, forcing the default skin.
+    usage: /banskin <player> [reason]
+    permission: controlbans.banskin
+  unbanskin:
+    description: Restores a player's ability to use their custom skin.
+    usage: /unbanskin <player>
+    permission: controlbans.banskin
 
 permissions:
   controlbans.*:
@@ -118,6 +126,7 @@ permissions:
       controlbans.mute.ip: true
       controlbans.notify.silent: true
       controlbans.voidjail: true
+      controlbans.banskin: true
   controlbans.ban:
     description: Permission to ban players
     default: op
@@ -174,4 +183,7 @@ permissions:
     default: op
   controlbans.voidjail:
     description: Permission to use the void jail commands.
+    default: op
+  controlbans.banskin:
+    description: Permission to use the skin banning commands.
     default: op

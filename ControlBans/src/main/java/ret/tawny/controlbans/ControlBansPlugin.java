@@ -37,6 +37,7 @@ public class ControlBansPlugin extends JavaPlugin {
     private AppealService appealService;
     private CacheService cacheService;
     private VoidJailService voidJailService;
+    private SkinBanService skinBanService;
 
 
     @Override
@@ -94,6 +95,7 @@ public class ControlBansPlugin extends JavaPlugin {
         altService = new AltService(this, databaseManager, cacheService);
         appealService = new AppealService(databaseManager, configManager);
         voidJailService = new VoidJailService(this);
+        skinBanService = new SkinBanService(this);
 
 
         historyGuiManager = new HistoryGuiManager(this);
@@ -140,6 +142,8 @@ public class ControlBansPlugin extends JavaPlugin {
         new ControlBansCommand(this).register();
         new VoidJailCommand(this).register();
         new UnvoidJailCommand(this).register();
+        new BanSkinCommand(this).register();
+        new UnbanSkinCommand(this).register();
         getLogger().info("Commands registered");
     }
 
@@ -149,6 +153,7 @@ public class ControlBansPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new PlayerChatListener(this), this);
         getServer().getPluginManager().registerEvents(new GuiListener(historyGuiManager, altsGuiManager), this);
         getServer().getPluginManager().registerEvents(new VoidJailListener(this), this);
+        getServer().getPluginManager().registerEvents(new SkinBanListener(this), this);
         getLogger().info("Listeners registered");
     }
 
@@ -221,4 +226,5 @@ public class ControlBansPlugin extends JavaPlugin {
     public AppealService getAppealService() { return appealService; }
     public CacheService getCacheService() { return cacheService; }
     public VoidJailService getVoidJailService() { return voidJailService; }
+    public SkinBanService getSkinBanService() { return skinBanService; }
 }

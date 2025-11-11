@@ -5,6 +5,7 @@ import ret.tawny.controlbans.ControlBansPlugin;
 
 import java.util.List;
 import java.util.StringJoiner;
+import java.util.concurrent.CompletionException;
 
 public class BanCommand extends CommandBase {
 
@@ -40,10 +41,18 @@ public class BanCommand extends CommandBase {
         String reason = reasonJoiner.toString().isEmpty() ? null : reasonJoiner.toString();
 
         sender.sendMessage(locale.getMessage("actions.banning", playerPlaceholder(targetName)));
+
         punishmentService.banPlayer(targetName, reason, getSenderUuid(sender), sender.getName(), silent, false)
                 .whenComplete((unused, throwable) -> {
                     if (throwable != null) {
-                        sender.sendMessage(locale.getMessage("errors.database-error"));
+                        // Check for the specific "Player not found" exception
+                        if (throwable instanceof CompletionException && throwable.getCause() instanceof IllegalArgumentException && "Player not found".equals(throwable.getCause().getMessage())) {
+                            sender.sendMessage(locale.getMessage("errors.player-not-found-typo", playerPlaceholder(targetName)));
+                        } else {
+                            // For all other errors, show the generic database error
+                            sender.sendMessage(locale.getMessage("errors.database-error"));
+                            throwable.printStackTrace();
+                        }
                     } else {
                         sender.sendMessage(locale.getMessage("success.ban", playerPlaceholder(targetName)));
                     }

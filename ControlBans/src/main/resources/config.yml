@@ -1,6 +1,6 @@
 # ControlBans Configuration
 # Advanced punishment system with LiteBans compatibility
-# Version: 2.8
+# Version: 2.9
 
 # Language for all plugin messages.
 # Default language files (en, de, es, fr, ru, tr) are included.
@@ -210,14 +210,12 @@ integrations:
 
   # Geyser/Floodgate Integration
   geyser:
+    # Set to true if you have Geyser and Floodgate installed.
     enabled: false
-
-    # Handle Bedrock player UUIDs properly
-    bedrock-uuid-handling: true
-
-    # Bedrock-specific punishment messages
-    bedrock-messages:
-      use-custom: false
+    # The prefix that Floodgate adds to Bedrock player usernames.
+    # Common prefixes are "." (default), "*", or "-".
+    # This allows commands like /ban .Tawny to correctly find the Bedrock player.
+    bedrock-prefix: "."
 
   # MCBlacklist Integration
   mcblacklist:
@@ -357,22 +355,22 @@ time-format:
     mo: months
     y: years
 
-    # Void Jail Settings
-    # A psychological punishment that traps players in an inescapable void box.
+# Void Jail Settings
+# A psychological punishment that traps players in an inescapable void box.
 void-jail:
-      # The location where the void jail box will be.
-      # It's highly recommended to set this far away from your main world, e.g., at Y=-1000.
+  # The location where the void jail box will be.
+  # It's highly recommended to set this far away from your main world, e.g., at Y=-1000.
   location:
     world: "world"
     x: 0.5
     y: -1000.0
     z: 0.5
 
-    # Commands that a jailed player is allowed to use.
-    # All other commands will be blocked.
-    allowed-commands:
-      - "msg"
-      - "r"
-      - "tell"
-      - "helpop"
-      - "appeal"
+  # Commands that a jailed player is allowed to use.
+  # All other commands will be blocked.
+  allowed-commands:
+    - "msg"
+    - "r"
+    - "tell"
+    - "helpop"
+    - "appeal"

@@ -7,6 +7,7 @@ import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.geysermc.floodgate.api.FloodgateApi;
 import ret.tawny.controlbans.ControlBansPlugin;
 import ret.tawny.controlbans.model.Punishment;
 import ret.tawny.controlbans.model.PunishmentType;
@@ -42,8 +43,8 @@ public class PunishmentService {
             return new PunishmentCheckResult(true, false, staffIsAdmin, null);
         }
 
-        static PunishmentCheckResult allowAndForceSilent(boolean staffIsAdmin) {
-            return new PunishmentCheckResult(true, true, staffIsAdmin, null);
+        static PunishmentCheckResult allowAndForceSilent() {
+            return new PunishmentCheckResult(true, true, true, null);
         }
 
         static PunishmentCheckResult deny(String message) {
@@ -74,7 +75,8 @@ public class PunishmentService {
             if (targetPlayer != null && targetPlayer.isOnline()) {
                 if (targetPlayer.hasPermission("controlbans.exempt") || targetPlayer.isOp()) {
                     if (staffUuid == null) {
-                        return PunishmentCheckResult.allowAndForceSilent(true);
+                        // If punishing from console, exempt status is ignored but punishment is silent
+                        return PunishmentCheckResult.allowAndForceSilent();
                     }
                     String message = plugin.getLocaleManager().getRawMessage("errors.cannot-punish-exempt");
                     return PunishmentCheckResult.deny(message);
@@ -88,8 +90,7 @@ public class PunishmentService {
     public CompletableFuture<Void> banPlayer(String targetName, String reason, UUID staffUuid, String staffName, boolean silent, boolean ipBan) {
         return getPlayerUuid(targetName).thenCompose(targetUuid -> {
             if (targetUuid == null) {
-                String errorMessage = plugin.getLocaleManager().getRawMessage("errors.player-not-found").replace("<player>", targetName);
-                return CompletableFuture.failedFuture(new IllegalArgumentException(errorMessage));
+                return CompletableFuture.failedFuture(new IllegalArgumentException("Player not found"));
             }
             return prePunishmentCheck(staffUuid, targetUuid).thenCompose(checkResult -> {
                 if (!checkResult.canPunish()) {
@@ -120,8 +121,7 @@ public class PunishmentService {
     public CompletableFuture<Void> tempBanPlayer(String targetName, long duration, String reason, UUID staffUuid, String staffName, boolean silent, boolean ipBan) {
         return getPlayerUuid(targetName).thenCompose(targetUuid -> {
             if (targetUuid == null) {
-                String errorMessage = plugin.getLocaleManager().getRawMessage("errors.player-not-found").replace("<player>", targetName);
-                return CompletableFuture.failedFuture(new IllegalArgumentException(errorMessage));
+                return CompletableFuture.failedFuture(new IllegalArgumentException("Player not found"));
             }
             return prePunishmentCheck(staffUuid, targetUuid).thenCompose(checkResult -> {
                 if (!checkResult.canPunish()) {
@@ -158,8 +158,7 @@ public class PunishmentService {
     public CompletableFuture<Void> mutePlayer(String targetName, String reason, UUID staffUuid, String staffName, boolean silent) {
         return getPlayerUuid(targetName).thenCompose(targetUuid -> {
             if (targetUuid == null) {
-                String errorMessage = plugin.getLocaleManager().getRawMessage("errors.player-not-found").replace("<player>", targetName);
-                return CompletableFuture.failedFuture(new IllegalArgumentException(errorMessage));
+                return CompletableFuture.failedFuture(new IllegalArgumentException("Player not found"));
             }
             return prePunishmentCheck(staffUuid, targetUuid).thenCompose(checkResult -> {
                 if (!checkResult.canPunish()) {
@@ -192,8 +191,7 @@ public class PunishmentService {
     public CompletableFuture<Void> tempMutePlayer(String targetName, long duration, String reason, UUID staffUuid, String staffName, boolean silent) {
         return getPlayerUuid(targetName).thenCompose(targetUuid -> {
             if (targetUuid == null) {
-                String errorMessage = plugin.getLocaleManager().getRawMessage("errors.player-not-found").replace("<player>", targetName);
-                return CompletableFuture.failedFuture(new IllegalArgumentException(errorMessage));
+                return CompletableFuture.failedFuture(new IllegalArgumentException("Player not found"));
             }
             return prePunishmentCheck(staffUuid, targetUuid).thenCompose(checkResult -> {
                 if (!checkResult.canPunish()) {
@@ -233,8 +231,7 @@ public class PunishmentService {
     public CompletableFuture<Void> kickPlayer(String targetName, String reason, UUID staffUuid, String staffName, boolean silent) {
         return getPlayerUuid(targetName).thenCompose(targetUuid -> {
             if (targetUuid == null) {
-                String errorMessage = plugin.getLocaleManager().getRawMessage("errors.player-not-found").replace("<player>", targetName);
-                return CompletableFuture.failedFuture(new IllegalArgumentException(errorMessage));
+                return CompletableFuture.failedFuture(new IllegalArgumentException("Player not found"));
             }
             return prePunishmentCheck(staffUuid, targetUuid).thenCompose(checkResult -> {
                 if (!checkResult.canPunish()) {
@@ -267,8 +264,7 @@ public class PunishmentService {
     public CompletableFuture<Void> warnPlayer(String targetName, String reason, UUID staffUuid, String staffName, boolean silent) {
         return getPlayerUuid(targetName).thenCompose(targetUuid -> {
             if (targetUuid == null) {
-                String errorMessage = plugin.getLocaleManager().getRawMessage("errors.player-not-found").replace("<player>", targetName);
-                return CompletableFuture.failedFuture(new IllegalArgumentException(errorMessage));
+                return CompletableFuture.failedFuture(new IllegalArgumentException("Player not found"));
             }
             return prePunishmentCheck(staffUuid, targetUuid).thenCompose(checkResult -> {
                 if (!checkResult.canPunish()) {
@@ -343,8 +339,7 @@ public class PunishmentService {
     public CompletableFuture<Boolean> unbanPlayer(String targetName, UUID staffUuid, String staffName) {
         return getPlayerUuid(targetName).thenCompose(targetUuid -> {
             if (targetUuid == null) {
-                String errorMessage = plugin.getLocaleManager().getRawMessage("errors.player-not-found").replace("<player>", targetName);
-                return CompletableFuture.failedFuture(new IllegalArgumentException(errorMessage));
+                return CompletableFuture.failedFuture(new IllegalArgumentException("Player not found"));
             }
 
             return databaseManager.executeQueryAsync(connection -> {
@@ -369,8 +364,7 @@ public class PunishmentService {
     public CompletableFuture<Boolean> unmutePlayer(String targetName, UUID staffUuid, String staffName) {
         return getPlayerUuid(targetName).thenCompose(targetUuid -> {
             if (targetUuid == null) {
-                String errorMessage = plugin.getLocaleManager().getRawMessage("errors.player-not-found").replace("<player>", targetName);
-                return CompletableFuture.failedFuture(new IllegalArgumentException(errorMessage));
+                return CompletableFuture.failedFuture(new IllegalArgumentException("Player not found"));
             }
             return databaseManager.executeQueryAsync(connection -> {
                 Optional<Punishment> activeMute = punishmentDao.getActiveMute(connection, targetUuid);
@@ -607,11 +601,22 @@ public class PunishmentService {
     }
 
     private CompletableFuture<UUID> getPlayerUuid(String playerName) {
-        return cacheService.getOrCache("uuid_" + playerName.toLowerCase(),
-                () -> scheduler.callSync(() -> UuidUtil.lookupUuid(playerName)),
-                plugin.getConfigManager().getPlayerLookupTTL()
-        );
+        // This method is already cached by the CacheService
+        if (plugin.getConfigManager().isGeyserEnabled() && playerName.startsWith(plugin.getConfigManager().getBedrockPrefix())) {
+            // Use Floodgate API for Bedrock players. This is an async call.
+            try {
+                // **THE FIX:** Use the correct method name `getUuid`
+                return FloodgateApi.getInstance().getUuidFor(playerName);
+            } catch (Exception e) {
+                // Floodgate might not be available
+                return CompletableFuture.completedFuture(null);
+            }
+        } else {
+            // Use standard lookup for Java players, wrapped in a sync call to the scheduler
+            return scheduler.callSync(() -> UuidUtil.lookupUuid(playerName));
+        }
     }
+
 
     private void recordPlayerHistory(Connection connection, UUID uuid, String name, String ip) {
         if (ip == null || ip.isBlank()) return;

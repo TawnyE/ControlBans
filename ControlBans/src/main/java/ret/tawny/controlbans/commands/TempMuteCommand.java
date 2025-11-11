@@ -6,6 +6,7 @@ import ret.tawny.controlbans.util.TimeUtil;
 
 import java.util.List;
 import java.util.StringJoiner;
+import java.util.concurrent.CompletionException;
 
 public class TempMuteCommand extends CommandBase {
 
@@ -53,7 +54,12 @@ public class TempMuteCommand extends CommandBase {
         punishmentService.tempMutePlayer(targetName, duration, reason, getSenderUuid(sender), sender.getName(), silent)
                 .whenComplete((unused, throwable) -> {
                     if (throwable != null) {
-                        sender.sendMessage(locale.getMessage("errors.database-error"));
+                        if (throwable instanceof CompletionException && throwable.getCause() instanceof IllegalArgumentException && "Player not found".equals(throwable.getCause().getMessage())) {
+                            sender.sendMessage(locale.getMessage("errors.player-not-found-typo", playerPlaceholder(targetName)));
+                        } else {
+                            sender.sendMessage(locale.getMessage("errors.database-error"));
+                            throwable.printStackTrace();
+                        }
                     } else {
                         sender.sendMessage(locale.getMessage("success.tempmute",
                                 playerPlaceholder(targetName),

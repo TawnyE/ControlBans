@@ -5,6 +5,7 @@ import ret.tawny.controlbans.ControlBansPlugin;
 
 import java.util.List;
 import java.util.StringJoiner;
+import java.util.concurrent.CompletionException;
 
 public class WarnCommand extends CommandBase {
 
@@ -43,7 +44,12 @@ public class WarnCommand extends CommandBase {
         punishmentService.warnPlayer(targetName, reason, getSenderUuid(sender), sender.getName(), silent)
                 .whenComplete((unused, throwable) -> {
                     if (throwable != null) {
-                        sender.sendMessage(locale.getMessage("errors.database-error"));
+                        if (throwable instanceof CompletionException && throwable.getCause() instanceof IllegalArgumentException && "Player not found".equals(throwable.getCause().getMessage())) {
+                            sender.sendMessage(locale.getMessage("errors.player-not-found-typo", playerPlaceholder(targetName)));
+                        } else {
+                            sender.sendMessage(locale.getMessage("errors.database-error"));
+                            throwable.printStackTrace();
+                        }
                     } else {
                         sender.sendMessage(locale.getMessage("success.warn", playerPlaceholder(targetName)));
                     }

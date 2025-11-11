@@ -84,6 +84,8 @@ public class ConfigManager {
     public ConfigurationSection getDiscordMessageConfig(String type) {
         return config.getConfigurationSection("integrations.discord.messages." + type);
     }
+    public boolean isGeyserEnabled() { return getCachedOrLoad("integrations.geyser.enabled", Boolean.class, false); }
+    public String getBedrockPrefix() { return getCachedOrLoad("integrations.geyser.bedrock-prefix", String.class, "."); }
     public boolean isMCBlacklistEnabled() { return getCachedOrLoad("integrations.mcblacklist.enabled", Boolean.class, false); }
     public String getMCBlacklistUrl() { return getCachedOrLoad("integrations.mcblacklist.firebase-url", String.class, "https://mcblacklistdb-default-rtdb.firebaseio.com/players.json"); }
     public int getMCBlacklistCheckInterval() { return getCachedOrLoad("integrations.mcblacklist.check-interval", Integer.class, 60); }

@@ -6,7 +6,7 @@
 
     <groupId>ret.tawny</groupId>
     <artifactId>controlbans-parent</artifactId>
-    <version>2.7</version>
+    <version>v17</version>
     <packaging>pom</packaging>
 
     <name>ControlBans Parent</name>
