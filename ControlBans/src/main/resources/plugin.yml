@@ -1,5 +1,5 @@
 name: ControlBans
-version: 2.9
+version: 3.1
 main: ret.tawny.controlbans.ControlBansPlugin
 description: Advanced punishment system with LiteBans compatibility
 api-version: "1.20"

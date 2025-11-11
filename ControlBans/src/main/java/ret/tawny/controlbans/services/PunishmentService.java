@@ -601,20 +601,25 @@ public class PunishmentService {
     }
 
     private CompletableFuture<UUID> getPlayerUuid(String playerName) {
-        // This method is already cached by the CacheService
-        if (plugin.getConfigManager().isGeyserEnabled() && playerName.startsWith(plugin.getConfigManager().getBedrockPrefix())) {
-            // Use Floodgate API for Bedrock players. This is an async call.
-            try {
-                // **THE FIX:** Use the correct method name `getUuid`
-                return FloodgateApi.getInstance().getUuidFor(playerName);
-            } catch (Exception e) {
-                // Floodgate might not be available
-                return CompletableFuture.completedFuture(null);
+        return cacheService.getOrCache("uuid_" + playerName.toLowerCase(), () -> {
+            if (plugin.getConfigManager().isGeyserEnabled() && playerName.startsWith(plugin.getConfigManager().getBedrockPrefix())) {
+                try {
+                    // **THE FIX:** Use the correct method `getUuidFor` and handle all outcomes with `.handle()`
+                    return FloodgateApi.getInstance().getUuidFor(playerName)
+                            .handle((uuid, throwable) -> {
+                                if (throwable != null || uuid == null) {
+                                    return null; // Return null on any error or if not found
+                                }
+                                return uuid;
+                            });
+                } catch (Exception e) {
+                    return CompletableFuture.completedFuture(null); // Floodgate might not be available
+                }
+            } else {
+                // Use standard lookup for Java players, wrapped in a sync call to the scheduler
+                return scheduler.callSync(() -> UuidUtil.lookupUuid(playerName));
             }
-        } else {
-            // Use standard lookup for Java players, wrapped in a sync call to the scheduler
-            return scheduler.callSync(() -> UuidUtil.lookupUuid(playerName));
-        }
+        }, plugin.getConfigManager().getPlayerLookupTTL());
     }
 
 

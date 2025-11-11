@@ -43,13 +43,14 @@ public class ControlBansCommand extends CommandBase {
             return;
         }
         if (args.length < 2) {
-            sender.sendMessage(locale.getMessage("errors.invalid-arguments", usagePlaceholder("/" + label + " import <essentials|litebans>")));
+            sender.sendMessage(locale.getMessage("errors.invalid-arguments", usagePlaceholder("/" + label + " import <essentials|litebans|advancedban>")));
             return;
         }
         switch(args[1].toLowerCase()) {
             case "essentials" -> plugin.getImportService().importFromEssentials(sender);
             case "litebans" -> plugin.getImportService().importFromLiteBans(sender);
-            default -> sender.sendMessage(locale.getMessage("errors.invalid-arguments", usagePlaceholder("/" + label + " import <essentials|litebans>")));
+            case "advancedban" -> plugin.getImportService().importFromAdvancedBan(sender);
+            default -> sender.sendMessage(locale.getMessage("errors.invalid-arguments", usagePlaceholder("/" + label + " import <essentials|litebans|advancedban>")));
         }
     }
 
@@ -61,7 +62,7 @@ public class ControlBansCommand extends CommandBase {
                     .collect(Collectors.toList());
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("import")) {
-            return Stream.of("essentials", "litebans")
+            return Stream.of("essentials", "litebans", "advancedban")
                     .filter(s -> s.startsWith(args[1].toLowerCase()))
                     .collect(Collectors.toList());
         }

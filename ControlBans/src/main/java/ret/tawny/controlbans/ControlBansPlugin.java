@@ -8,12 +8,14 @@ import ret.tawny.controlbans.commands.*;
 import ret.tawny.controlbans.commands.gui.AltsGuiManager;
 import ret.tawny.controlbans.commands.gui.HistoryGuiManager;
 import ret.tawny.controlbans.config.ConfigManager;
+import ret.tawny.controlbans.config.ConfigUpdater;
 import ret.tawny.controlbans.listeners.*;
 import ret.tawny.controlbans.locale.LocaleManager;
 import ret.tawny.controlbans.services.*;
 import ret.tawny.controlbans.storage.DatabaseManager;
 import ret.tawny.controlbans.util.SchedulerAdapter;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -44,6 +46,16 @@ public class ControlBansPlugin extends JavaPlugin {
     public void onEnable() {
         instance = this;
         getLogger().info("Enabling ControlBans v" + getPluginMeta().getVersion());
+
+        // Save the default config if it doesn't exist
+        saveDefaultConfig();
+
+        // Update the configuration with new values
+        try {
+            ConfigUpdater.update(this);
+        } catch (IOException e) {
+            getLogger().log(Level.SEVERE, "Failed to update config.yml!", e);
+        }
 
         try {
             initializePlugin();
@@ -183,6 +195,8 @@ public class ControlBansPlugin extends JavaPlugin {
     public void reload() {
         getLogger().info("Reloading ControlBans configuration...");
         try {
+            // Update the config file before reloading it
+            ConfigUpdater.update(this);
             configManager.loadConfig();
             localeManager.reload();
             if (voidJailService != null) {

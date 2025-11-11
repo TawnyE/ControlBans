@@ -1,6 +1,6 @@
 # ControlBans Configuration
 # Advanced punishment system with LiteBans compatibility
-# Version: 2.9
+# Version: 3.1
 
 # Language for all plugin messages.
 # Default language files (en, de, es, fr, ru, tr) are included.
@@ -261,6 +261,15 @@ import:
       host: localhost
       port: 3306
       database: litebans
+      username: root
+      password: "password"
+    advancedban:
+   # Database type: mysql, mariadb, postgresql
+   # NOTE: AdvancedBan's local storage (HSQLDB) is not supported for import. Please use MySQL.
+      type: mysql
+      host: localhost
+      port: 3306
+      database: advancedban
       username: root
       password: "password"
 

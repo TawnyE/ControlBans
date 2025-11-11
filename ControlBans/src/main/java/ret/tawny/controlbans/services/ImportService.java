@@ -16,6 +16,7 @@ import java.io.File;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -160,6 +161,121 @@ public class ImportService {
         });
     }
 
+    public void importFromAdvancedBan(CommandSender sender) {
+        CompletableFuture.runAsync(() -> {
+            sender.sendMessage("§eConnecting to AdvancedBan source database...");
+            HikariConfig sourceConfig = new HikariConfig();
+            String dbType = plugin.getConfig().getString("import.sources.advancedban.type", "mysql");
+
+            try {
+                if ("mysql".equalsIgnoreCase(dbType) || "mariadb".equalsIgnoreCase(dbType)) {
+                    sourceConfig.setDriverClassName("com.mysql.cj.jdbc.Driver");
+                    sourceConfig.setJdbcUrl(String.format("jdbc:mysql://%s:%d/%s",
+                            plugin.getConfig().getString("import.sources.advancedban.host"),
+                            plugin.getConfig().getInt("import.sources.advancedban.port"),
+                            plugin.getConfig().getString("import.sources.advancedban.database")));
+                    sourceConfig.setUsername(plugin.getConfig().getString("import.sources.advancedban.username"));
+                    sourceConfig.setPassword(plugin.getConfig().getString("import.sources.advancedban.password"));
+                } else {
+                    sender.sendMessage("§cUnsupported database type for AdvancedBan import: " + dbType + ". Only MySQL/MariaDB is supported.");
+                    return;
+                }
+            } catch (Exception e) {
+                sender.sendMessage("§cFailed to configure AdvancedBan database connection. Please check your config and server logs.");
+                plugin.getLogger().log(Level.SEVERE, "AdvancedBan import connection failed", e);
+                return;
+            }
+
+            sourceConfig.setPoolName("ControlBans-AdvancedBan-Importer");
+            sourceConfig.setMaximumPoolSize(3);
+
+            try (HikariDataSource sourceDataSource = new HikariDataSource(sourceConfig);
+                 Connection sourceConn = sourceDataSource.getConnection()) {
+
+                sender.sendMessage("§eConnection successful. Starting import from AdvancedBan...");
+                int totalImported = 0;
+                totalImported += importAdvancedBanTable(sourceConn, "Punishments", sender);
+                totalImported += importAdvancedBanTable(sourceConn, "PunishmentHistory", sender);
+                sender.sendMessage("§aAdvancedBan import complete. Imported a total of " + totalImported + " records.");
+
+            } catch (Exception e) {
+                sender.sendMessage("§cAn error occurred during the AdvancedBan import: " + e.getMessage());
+                plugin.getLogger().log(Level.SEVERE, "AdvancedBan import failed", e);
+            }
+        });
+    }
+
+    private int importAdvancedBanTable(Connection sourceConn, String tableName, CommandSender sender) {
+        int count = 0;
+        String sql = "SELECT * FROM " + tableName;
+        try (Statement stmt = sourceConn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+
+            while (rs.next()) {
+                try {
+                    String uuidStr = rs.getString("uuid");
+                    if (uuidStr == null || "CONSOLE".equalsIgnoreCase(uuidStr)) continue;
+
+                    PunishmentType type = mapAdvancedBanType(rs.getString("punishmentType"));
+                    if (type == null) continue;
+
+                    long endTime = rs.getLong("end");
+                    boolean active = endTime == -1 || endTime > System.currentTimeMillis();
+
+                    Punishment punishment = Punishment.builder()
+                            .punishmentId(IdUtil.generatePunishmentId())
+                            .targetUuid(UUID.fromString(uuidStr))
+                            .targetName(rs.getString("name"))
+                            .reason(rs.getString("reason"))
+                            .staffName(rs.getString("operator"))
+                            .createdTime(rs.getLong("start"))
+                            .expiryTime(endTime)
+                            .active(active)
+                            .ipBan(rs.getString("punishmentType").contains("IP_BAN"))
+                            .silent(false) // AdvancedBan doesn't have a silent concept
+                            .serverOrigin("imported")
+                            .type(type)
+                            .build();
+
+                    saveImportedPunishment(punishment);
+                    count++;
+                } catch (Exception e) {
+                    // Ignore single record import failure
+                }
+            }
+        } catch (SQLException e) {
+            sender.sendMessage("§cFailed to import from table: " + tableName + ". It may not exist. Error: " + e.getMessage());
+        }
+        if (count > 0) {
+            sender.sendMessage("§aImported " + count + " record(s) from " + tableName);
+        }
+        return count;
+    }
+
+    private PunishmentType mapAdvancedBanType(String abType) {
+        return switch (abType) {
+            case "BAN", "IP_BAN" -> PunishmentType.BAN;
+            case "TEMP_BAN", "TEMP_IP_BAN" -> PunishmentType.TEMPBAN;
+            case "MUTE" -> PunishmentType.MUTE;
+            case "TEMP_MUTE" -> PunishmentType.TEMPMUTE;
+            case "KICK" -> PunishmentType.KICK;
+            case "WARN" -> PunishmentType.WARN;
+            default -> null;
+        };
+    }
+
+    private void saveImportedPunishment(Punishment punishment) {
+        databaseManager.executeAsync(conn -> {
+            switch (punishment.getType()) {
+                case BAN, TEMPBAN, IPBAN -> punishmentDao.insertBan(conn, punishment);
+                case MUTE, TEMPMUTE -> punishmentDao.insertMute(conn, punishment);
+                case WARN -> punishmentDao.insertWarning(conn, punishment);
+                case KICK -> punishmentDao.insertKick(conn, punishment);
+            }
+        }).join(); // We join to ensure imports happen sequentially
+    }
+
+
     private int importTable(Connection sourceConn, String type, CommandSender sender) {
         String tableName = "litebans_" + type;
         int count = 0;
@@ -194,15 +310,7 @@ public class ImportService {
                     };
 
                     if (p != null) {
-                        Punishment finalP = p;
-                        databaseManager.executeAsync(conn -> {
-                            switch (finalP.getType()) {
-                                case BAN, TEMPBAN, IPBAN -> punishmentDao.insertBan(conn, finalP);
-                                case MUTE, TEMPMUTE -> punishmentDao.insertMute(conn, finalP);
-                                case WARN -> punishmentDao.insertWarning(conn, finalP);
-                                case KICK -> punishmentDao.insertKick(conn, finalP);
-                            }
-                        }).join();
+                        saveImportedPunishment(p);
                         count++;
                     }
                 } catch (Exception e) {
