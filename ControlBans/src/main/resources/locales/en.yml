@@ -8,7 +8,7 @@ errors:
   no-permission: "<red>You don't have permission to use this command."
   player-not-found: "<red>Player '<player>' not found."
   player-not-found-typo: "<red>Could not find player '<player>'. This might be a typo, please check the name and try again."
-  floodgate-cache-error: "<red>Could not find Bedrock player <gray>{player}</gray>. They may need to join the server at least once before they can be banned by name."
+  floodgate-cache-error: "<red>Could not find Bedrock player '<player>'. They may need to join the server at least once before they can be banned by name."
   player-not-banned: "<red>Player '<player>' is not banned."
   player-not-muted: "<red>Player '<player>' is not muted."
   player-offline: "<red>Player '<player>' is not online."

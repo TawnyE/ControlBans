@@ -4,6 +4,7 @@ prefix: "<gray>[<red>ControlBans<gray>]<white>"
 errors:
   no-permission: "<red>Bu komutu kullanma izniniz yok."
   player-not-found: "<red>Oyuncu '<player>' bulunamadı."
+  floodgate-cache-error: "<red>Bedrock oyuncusu '<player>' bulunamadı. İsmiyle yasaklanabilmesi için sunucuya en az bir kez katılması gerekebilir."
   player-not-banned: "<red>Oyuncu '<player>' yasaklı değil."
   player-not-muted: "<red>Oyuncu '<player>' susturulmamış."
   player-offline: "<red>Oyuncu '<player>' çevrimiçi değil."

@@ -3,6 +3,7 @@ prefix: "<gray>[<red>ControlBans<gray>]<white>"
 errors:
   no-permission: "<red>No tienes permiso para usar este comando."
   player-not-found: "<red>Jugador '<player>' no encontrado."
+  floodgate-cache-error: "<red>No se pudo encontrar al jugador de Bedrock '<player>'. Es posible que deba unirse al servidor al menos una vez antes de que pueda ser baneado por su nombre."
   player-not-banned: "<red>El jugador '<player>' no está baneado."
   player-not-muted: "<red>El jugador '<player>' no está silenciado."
   player-offline: "<red>El jugador '<player>' no está en línea."
