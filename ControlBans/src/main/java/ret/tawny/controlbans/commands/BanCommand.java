@@ -45,11 +45,11 @@ public class BanCommand extends CommandBase {
         punishmentService.banPlayer(targetName, reason, getSenderUuid(sender), sender.getName(), silent, false)
                 .whenComplete((unused, throwable) -> {
                     if (throwable != null) {
-                        // Check for the specific "Player not found" exception
                         if (throwable instanceof CompletionException && throwable.getCause() instanceof IllegalArgumentException && "Player not found".equals(throwable.getCause().getMessage())) {
                             sender.sendMessage(locale.getMessage("errors.player-not-found-typo", playerPlaceholder(targetName)));
+                        } else if (throwable instanceof CompletionException && throwable.getCause() != null && throwable.getCause().getMessage().contains("Unable to find user in our cache")) {
+                            sender.sendMessage(locale.getMessage("errors.floodgate-cache-error", playerPlaceholder(targetName)));
                         } else {
-                            // For all other errors, show the generic database error
                             sender.sendMessage(locale.getMessage("errors.database-error"));
                             throwable.printStackTrace();
                         }

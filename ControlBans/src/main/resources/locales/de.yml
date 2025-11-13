@@ -3,6 +3,7 @@ prefix: "<gray>[<red>ControlBans<gray>]<white>"
 errors:
   no-permission: "<red>Du hast keine Berechtigung, diesen Befehl zu verwenden."
   player-not-found: "<red>Spieler '<player>' nicht gefunden."
+  floodgate-cache-error: "<red>Bedrock-Spieler '<player>' konnte nicht gefunden werden. Er muss dem Server möglicherweise mindestens einmal beitreten, bevor er mit seinem Namen gebannt werden kann."
   player-not-banned: "<red>Spieler '<player>' ist nicht gebannt."
   player-not-muted: "<red>Spieler '<player>' ist nicht stummgeschaltet."
   player-offline: "<red>Spieler '<player>' ist nicht online."

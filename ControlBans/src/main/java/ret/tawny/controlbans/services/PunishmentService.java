@@ -604,19 +604,11 @@ public class PunishmentService {
         return cacheService.getOrCache("uuid_" + playerName.toLowerCase(), () -> {
             if (plugin.getConfigManager().isGeyserEnabled() && playerName.startsWith(plugin.getConfigManager().getBedrockPrefix())) {
                 try {
-                    // **THE FIX:** Use the correct method `getUuidFor` and handle all outcomes with `.handle()`
-                    return FloodgateApi.getInstance().getUuidFor(playerName)
-                            .handle((uuid, throwable) -> {
-                                if (throwable != null || uuid == null) {
-                                    return null; // Return null on any error or if not found
-                                }
-                                return uuid;
-                            });
+                    return FloodgateApi.getInstance().getUuidFor(playerName);
                 } catch (Exception e) {
-                    return CompletableFuture.completedFuture(null); // Floodgate might not be available
+                    return CompletableFuture.completedFuture(null);
                 }
             } else {
-                // Use standard lookup for Java players, wrapped in a sync call to the scheduler
                 return scheduler.callSync(() -> UuidUtil.lookupUuid(playerName));
             }
         }, plugin.getConfigManager().getPlayerLookupTTL());

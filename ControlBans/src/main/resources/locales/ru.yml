@@ -4,6 +4,7 @@ prefix: "<gray>[<red>ControlBans<gray>]<white>"
 errors:
   no-permission: "<red>У вас нет прав для использования этой команды."
   player-not-found: "<red>Игрок '<player>' не найден."
+  floodgate-cache-error: "<red>Не удалось найти игрока Bedrock '<player>'. Возможно, ему нужно будет присоединиться к серверу хотя бы один раз, прежде чем его можно будет забанить по имени."
   player-not-banned: "<red>Игрок '<player>' не забанен."
   player-not-muted: "<red>У игрока '<player>' нет мута."
   player-offline: "<red>Игрок '<player>' не в сети."
