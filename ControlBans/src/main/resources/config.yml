@@ -211,7 +211,7 @@ integrations:
   # Geyser/Floodgate Integration
   geyser:
     # Set to true if you have Geyser and Floodgate installed.
-    enabled: false
+    enabled: true
     # The prefix that Floodgate adds to Bedrock player usernames.
     # Common prefixes are "." (default), "*", or "-".
     # This allows commands like /ban .Tawny to correctly find the Bedrock player.
