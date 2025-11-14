@@ -54,14 +54,7 @@ public class TempBanCommand extends CommandBase {
         punishmentService.tempBanPlayer(targetName, duration, reason, getSenderUuid(sender), sender.getName(), silent, false)
                 .whenComplete((unused, throwable) -> {
                     if (throwable != null) {
-                        if (throwable instanceof CompletionException && throwable.getCause() instanceof IllegalArgumentException && "Player not found".equals(throwable.getCause().getMessage())) {
-                            sender.sendMessage(locale.getMessage("errors.player-not-found-typo", playerPlaceholder(targetName)));
-                        } else if (throwable instanceof CompletionException && throwable.getCause() instanceof IllegalStateException) {
-                            sender.sendMessage(locale.getMessage("errors.bedrock-player-not-found", playerPlaceholder(targetName)));
-                        } else {
-                            sender.sendMessage(locale.getMessage("errors.database-error"));
-                            throwable.printStackTrace();
-                        }
+                        handlePunishmentError(throwable, sender, targetName);
                     } else {
                         sender.sendMessage(locale.getMessage("success.tempban",
                                 playerPlaceholder(targetName),

@@ -92,4 +92,20 @@ public abstract class CommandBase implements CommandExecutor, TabCompleter {
                 .filter(s -> s.toLowerCase().startsWith(arg.toLowerCase()))
                 .collect(Collectors.toList());
     }
+
+    protected void handlePunishmentError(Throwable throwable, CommandSender sender, String targetName) {
+        if (throwable instanceof CompletionException) {
+            Throwable cause = throwable.getCause();
+            if (cause instanceof IllegalArgumentException && "Player not found".equals(cause.getMessage())) {
+                sender.sendMessage(locale.getMessage("errors.player-not-found-typo", playerPlaceholder(targetName)));
+                return;
+            }
+            if (cause != null && cause.getMessage().contains("Unable to find user in our cache")) {
+                sender.sendMessage(locale.getMessage("errors.floodgate-cache-error", playerPlaceholder(targetName)));
+                return;
+            }
+        }
+        sender.sendMessage(locale.getMessage("errors.database-error"));
+        throwable.printStackTrace();
+    }
 }
