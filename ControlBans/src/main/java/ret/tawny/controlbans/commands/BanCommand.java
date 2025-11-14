@@ -47,8 +47,8 @@ public class BanCommand extends CommandBase {
                     if (throwable != null) {
                         if (throwable instanceof CompletionException && throwable.getCause() instanceof IllegalArgumentException && "Player not found".equals(throwable.getCause().getMessage())) {
                             sender.sendMessage(locale.getMessage("errors.player-not-found-typo", playerPlaceholder(targetName)));
-                        } else if (throwable instanceof CompletionException && throwable.getCause() != null && throwable.getCause().getMessage().contains("Unable to find user in our cache")) {
-                            sender.sendMessage(locale.getMessage("errors.floodgate-cache-error", playerPlaceholder(targetName)));
+                        } else if (throwable instanceof CompletionException && throwable.getCause() instanceof IllegalStateException) {
+                            sender.sendMessage(locale.getMessage("errors.bedrock-player-not-found", playerPlaceholder(targetName)));
                         } else {
                             sender.sendMessage(locale.getMessage("errors.database-error"));
                             throwable.printStackTrace();
