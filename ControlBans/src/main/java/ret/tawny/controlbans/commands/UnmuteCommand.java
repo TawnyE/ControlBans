@@ -28,9 +28,9 @@ public class UnmuteCommand extends CommandBase {
         punishmentService.unmutePlayer(targetName, getSenderUuid(sender), sender.getName())
                 .whenComplete((success, throwable) -> {
                     if (throwable != null) {
-                        if (throwable instanceof java.util.concurrent.CompletionException && throwable.getCause() instanceof IllegalArgumentException) {
+                        if (throwable.getCause() instanceof IllegalArgumentException) {
                             sender.sendMessage(locale.getMessage("errors.player-not-found-typo", playerPlaceholder(targetName)));
-                        } else if (throwable instanceof java.util.concurrent.CompletionException && throwable.getCause() instanceof IllegalStateException) {
+                        } else if (throwable.getCause() instanceof IllegalStateException) {
                             sender.sendMessage(locale.getMessage("errors.bedrock-player-not-found", playerPlaceholder(targetName)));
                         } else {
                             sender.sendMessage(locale.getMessage("errors.database-error"));
