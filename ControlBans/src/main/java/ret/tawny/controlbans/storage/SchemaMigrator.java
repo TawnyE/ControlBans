@@ -23,6 +23,7 @@ public class SchemaMigrator {
         createHistoryTable();
         createConfigTable();
         createAppealsTable();
+        createVoiceMutesTable();
 
         // Create indexes for performance
         createIndexes();
@@ -49,6 +50,31 @@ public class SchemaMigrator {
                 silent BOOLEAN NOT NULL DEFAULT FALSE,
                 ipban BOOLEAN NOT NULL DEFAULT FALSE,
                 ipban_wildcard BOOLEAN NOT NULL DEFAULT FALSE,
+                active BOOLEAN NOT NULL DEFAULT TRUE
+            )
+        """.formatted(getPrimaryKeyDefinition());
+
+        try (Statement stmt = connection.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+
+    private void createVoiceMutesTable() throws SQLException {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS controlbans_voicemutes (
+                id INTEGER %s,
+                punishment_id VARCHAR(8),
+                uuid VARCHAR(36) NOT NULL,
+                reason VARCHAR(2048),
+                banned_by_uuid VARCHAR(36),
+                banned_by_name VARCHAR(16),
+                removed_by_uuid VARCHAR(36),
+                removed_by_name VARCHAR(16),
+                removed_by_date BIGINT,
+                time BIGINT NOT NULL,
+                until BIGINT NOT NULL,
+                server_origin VARCHAR(32),
+                silent BOOLEAN NOT NULL DEFAULT FALSE,
                 active BOOLEAN NOT NULL DEFAULT TRUE
             )
         """.formatted(getPrimaryKeyDefinition());
@@ -221,7 +247,11 @@ public class SchemaMigrator {
                 "CREATE INDEX IF NOT EXISTS idx_history_ip ON litebans_history(ip)",
 
                 "CREATE INDEX IF NOT EXISTS idx_appeals_target ON controlbans_appeals(target_uuid)",
-                "CREATE INDEX IF NOT EXISTS idx_appeals_created ON controlbans_appeals(created_at)"
+                "CREATE INDEX IF NOT EXISTS idx_appeals_created ON controlbans_appeals(created_at)",
+
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_voicemutes_punishment_id ON controlbans_voicemutes(punishment_id)",
+                "CREATE INDEX IF NOT EXISTS idx_voicemutes_uuid ON controlbans_voicemutes(uuid)",
+                "CREATE INDEX IF NOT EXISTS idx_voicemutes_active ON controlbans_voicemutes(active)"
         };
 
         try (Statement stmt = connection.createStatement()) {

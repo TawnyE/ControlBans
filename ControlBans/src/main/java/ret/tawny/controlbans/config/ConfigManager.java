@@ -90,6 +90,7 @@ public class ConfigManager {
     public String getMCBlacklistUrl() { return getCachedOrLoad("integrations.mcblacklist.firebase-url", String.class, "https://mcblacklistdb-default-rtdb.firebaseio.com/players.json"); }
     public int getMCBlacklistCheckInterval() { return getCachedOrLoad("integrations.mcblacklist.check-interval", Integer.class, 60); }
     public String getMCBlacklistReason() { return getCachedOrLoad("integrations.mcblacklist.reason", String.class, "Player found on MCBlacklist database"); }
+    public boolean isVoiceChatIntegrationEnabled() { return getCachedOrLoad("integrations.voicechat.enabled", Boolean.class, false); }
 
     // Cache Configuration
     public boolean isCacheEnabled() { return getCachedOrLoad("cache.enabled", Boolean.class, true); }

@@ -40,6 +40,7 @@ public class ControlBansPlugin extends JavaPlugin {
     private CacheService cacheService;
     private VoidJailService voidJailService;
     private SkinBanService skinBanService;
+    private VoiceChatService voiceChatService;
 
 
     @Override
@@ -108,6 +109,7 @@ public class ControlBansPlugin extends JavaPlugin {
         appealService = new AppealService(databaseManager, configManager);
         voidJailService = new VoidJailService(this);
         skinBanService = new SkinBanService(this);
+        voiceChatService = new VoiceChatService(this);
 
 
         historyGuiManager = new HistoryGuiManager(this);
@@ -156,6 +158,8 @@ public class ControlBansPlugin extends JavaPlugin {
         new UnvoidJailCommand(this).register();
         new BanSkinCommand(this).register();
         new UnbanSkinCommand(this).register();
+        new VoiceMuteCommand(this).register();
+        new VoiceUnmuteCommand(this).register();
         getLogger().info("Commands registered");
     }
 
@@ -190,6 +194,10 @@ public class ControlBansPlugin extends JavaPlugin {
 
         importService = new ImportService(this, databaseManager);
         getLogger().info("Import service initialized");
+
+        if (configManager.isVoiceChatIntegrationEnabled()) {
+            voiceChatService.initialize();
+        }
     }
 
     public void reload() {
