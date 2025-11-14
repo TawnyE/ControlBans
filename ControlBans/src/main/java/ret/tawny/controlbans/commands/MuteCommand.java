@@ -43,14 +43,7 @@ public class MuteCommand extends CommandBase {
         punishmentService.mutePlayer(targetName, reason, getSenderUuid(sender), sender.getName(), silent)
                 .whenComplete((unused, throwable) -> {
                     if (throwable != null) {
-                        if (throwable instanceof CompletionException && throwable.getCause() instanceof IllegalArgumentException && "Player not found".equals(throwable.getCause().getMessage())) {
-                            sender.sendMessage(locale.getMessage("errors.player-not-found-typo", playerPlaceholder(targetName)));
-                        } else if (throwable instanceof CompletionException && throwable.getCause() instanceof IllegalStateException) {
-                            sender.sendMessage(locale.getMessage("errors.bedrock-player-not-found", playerPlaceholder(targetName)));
-                        } else {
-                            sender.sendMessage(locale.getMessage("errors.database-error"));
-                            throwable.printStackTrace();
-                        }
+                        handlePunishmentError(throwable, sender, targetName);
                     } else {
                         sender.sendMessage(locale.getMessage("success.mute", playerPlaceholder(targetName)));
                     }

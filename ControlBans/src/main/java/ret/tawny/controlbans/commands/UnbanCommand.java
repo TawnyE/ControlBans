@@ -29,13 +29,7 @@ public class UnbanCommand extends CommandBase {
         punishmentService.unbanPlayer(targetName, getSenderUuid(sender), sender.getName())
                 .whenComplete((success, throwable) -> {
                     if (throwable != null) {
-                        if (throwable.getCause() instanceof IllegalArgumentException) {
-                            sender.sendMessage(locale.getMessage("errors.player-not-found-typo", playerPlaceholder(targetName)));
-                        } else if (throwable.getCause() instanceof IllegalStateException) {
-                            sender.sendMessage(locale.getMessage("errors.bedrock-player-not-found", playerPlaceholder(targetName)));
-                        } else {
-                            sender.sendMessage(locale.getMessage("errors.database-error"));
-                        }
+                        sender.sendMessage(locale.getMessage("errors.database-error"));
                     } else if (success) {
                         sender.sendMessage(locale.getMessage("success.unban", playerPlaceholder(targetName)));
                     } else {
