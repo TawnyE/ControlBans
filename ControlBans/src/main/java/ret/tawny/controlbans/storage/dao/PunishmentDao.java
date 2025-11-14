@@ -107,6 +107,28 @@ public class PunishmentDao {
         }
     }
 
+    public void insertVoiceMute(Connection connection, Punishment punishment) throws SQLException {
+        String sql = """
+            INSERT INTO controlbans_voicemutes
+            (punishment_id, uuid, reason, banned_by_uuid, banned_by_name, time, until, server_origin, silent, active)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """;
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, punishment.getPunishmentId());
+            stmt.setString(2, punishment.getTargetUuid().toString());
+            stmt.setString(3, punishment.getReason());
+            stmt.setString(4, punishment.getStaffUuid() != null ? punishment.getStaffUuid().toString() : null);
+            stmt.setString(5, punishment.getStaffName());
+            stmt.setLong(6, punishment.getCreatedTime());
+            stmt.setLong(7, punishment.getExpiryTime());
+            stmt.setString(8, punishment.getServerOrigin());
+            stmt.setBoolean(9, punishment.isSilent());
+            stmt.setBoolean(10, punishment.isActive());
+            stmt.executeUpdate();
+        }
+    }
+
     public Optional<Punishment> getActiveBan(Connection connection, UUID uuid) throws SQLException {
         String sql = "SELECT * FROM litebans_bans WHERE uuid = ? AND active = TRUE AND (until = -1 OR until > ?) ORDER BY time DESC LIMIT 1";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
@@ -115,6 +137,20 @@ public class PunishmentDao {
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     return Optional.of(createPunishmentFromResultSet(rs, PunishmentType.BAN));
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
+    public Optional<Punishment> getActiveVoiceMute(Connection connection, UUID uuid) throws SQLException {
+        String sql = "SELECT * FROM controlbans_voicemutes WHERE uuid = ? AND active = TRUE AND (until = -1 OR until > ?) ORDER BY time DESC LIMIT 1";
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, uuid.toString());
+            stmt.setLong(2, System.currentTimeMillis());
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return Optional.of(createPunishmentFromResultSet(rs, PunishmentType.VOICEMUTE));
                 }
             }
         }
@@ -262,6 +298,17 @@ public class PunishmentDao {
 
     public void removeBan(Connection connection, UUID uuid, UUID removedBy, String removedByName) throws SQLException {
         String sql = "UPDATE litebans_bans SET active = FALSE, removed_by_uuid = ?, removed_by_name = ?, removed_by_date = ? WHERE uuid = ? AND active = TRUE";
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, removedBy != null ? removedBy.toString() : null);
+            stmt.setString(2, removedByName);
+            stmt.setLong(3, System.currentTimeMillis());
+            stmt.setString(4, uuid.toString());
+            stmt.executeUpdate();
+        }
+    }
+
+    public void removeVoiceMute(Connection connection, UUID uuid, UUID removedBy, String removedByName) throws SQLException {
+        String sql = "UPDATE controlbans_voicemutes SET active = FALSE, removed_by_uuid = ?, removed_by_name = ?, removed_by_date = ? WHERE uuid = ? AND active = TRUE";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, removedBy != null ? removedBy.toString() : null);
             stmt.setString(2, removedByName);

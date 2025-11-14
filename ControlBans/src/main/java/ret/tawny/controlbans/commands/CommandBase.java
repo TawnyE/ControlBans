@@ -13,6 +13,7 @@ import ret.tawny.controlbans.util.SchedulerAdapter;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 

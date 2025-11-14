@@ -75,6 +75,7 @@ public class HistoryGuiManager {
         Material material = switch (p.getType()) {
             case BAN, TEMPBAN, IPBAN -> Material.RED_WOOL;
             case MUTE, TEMPMUTE -> Material.BLUE_WOOL;
+            case VOICEMUTE -> Material.CYAN_WOOL;
             case WARN -> Material.YELLOW_WOOL;
             case KICK -> Material.ORANGE_WOOL;
         };

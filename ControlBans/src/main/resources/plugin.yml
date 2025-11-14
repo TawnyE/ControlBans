@@ -9,6 +9,7 @@ folia-supported: true
 softdepend:
   - DiscordSRV
   - Floodgate
+  - voicechat
 
 commands:
   ban:
@@ -102,6 +103,14 @@ commands:
     description: Restores a player's ability to use their custom skin.
     usage: /unbanskin <player>
     permission: controlbans.banskin
+  voicemute:
+    description: Mute a player in voice chat.
+    usage: /voicemute [-s] <player> [reason]
+    permission: controlbans.voicemute
+  voiceunmute:
+    description: Unmute a player in voice chat.
+    usage: /voiceunmute <player>
+    permission: controlbans.voiceunmute
 
 permissions:
   controlbans.*:
@@ -127,6 +136,8 @@ permissions:
       controlbans.notify.silent: true
       controlbans.voidjail: true
       controlbans.banskin: true
+      controlbans.voicemute: true
+      controlbans.voiceunmute: true
   controlbans.ban:
     description: Permission to ban players
     default: op
@@ -186,4 +197,10 @@ permissions:
     default: op
   controlbans.banskin:
     description: Permission to use the skin banning commands.
+    default: op
+  controlbans.voicemute:
+    description: Permission to mute players in voice chat.
+    default: op
+  controlbans.voiceunmute:
+    description: Permission to unmute players in voice chat.
     default: op

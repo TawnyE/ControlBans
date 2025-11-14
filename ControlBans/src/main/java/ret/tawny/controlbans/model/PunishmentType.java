@@ -7,7 +7,8 @@ public enum PunishmentType {
     TEMPMUTE("Temporary Mute", "temporarily muted", "litebans_mutes"),
     WARN("Warning", "warned", "litebans_warnings"),
     KICK("Kick", "kicked", "litebans_kicks"),
-    IPBAN("IP Ban", "IP banned", "litebans_bans");
+    IPBAN("IP Ban", "IP banned", "litebans_bans"),
+    VOICEMUTE("Voice Mute", "voice muted", "controlbans_voicemutes");
     
     private final String displayName;
     private final String verb;

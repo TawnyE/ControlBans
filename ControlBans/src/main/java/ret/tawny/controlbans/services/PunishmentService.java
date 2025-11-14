@@ -384,6 +384,59 @@ public class PunishmentService {
         });
     }
 
+    public CompletableFuture<Void> voiceMutePlayer(String targetName, String reason, UUID staffUuid, String staffName, boolean silent) {
+        return getPlayerUuid(targetName).thenCompose(targetUuid -> {
+            if (targetUuid == null) {
+                return CompletableFuture.failedFuture(new IllegalArgumentException("Player not found"));
+            }
+            return prePunishmentCheck(staffUuid, targetUuid).thenCompose(checkResult -> {
+                if (!checkResult.canPunish()) {
+                    return CompletableFuture.failedFuture(new IllegalStateException(checkResult.failureMessage()));
+                }
+
+                Punishment punishment = Punishment.builder()
+                        .punishmentId(IdUtil.generatePunishmentId())
+                        .type(PunishmentType.VOICEMUTE)
+                        .targetUuid(targetUuid)
+                        .targetName(targetName)
+                        .reason(reason != null ? reason : plugin.getConfigManager().getDefaultMuteReason())
+                        .staffUuid(staffUuid)
+                        .staffName(staffName)
+                        .createdTime(System.currentTimeMillis())
+                        .expiryTime(-1)
+                        .serverOrigin(getServerName())
+                        .silent(silent || checkResult.forceSilent())
+                        .build();
+
+                return databaseManager.executeAsync(connection -> punishmentDao.insertVoiceMute(connection, punishment))
+                        .thenRun(() -> onPunishmentSuccess(punishment));
+            });
+        });
+    }
+
+    public CompletableFuture<Boolean> unVoiceMutePlayer(String targetName, UUID staffUuid, String staffName) {
+        return getPlayerUuid(targetName).thenCompose(targetUuid -> {
+            if (targetUuid == null) {
+                return CompletableFuture.failedFuture(new IllegalArgumentException("Player not found"));
+            }
+            return databaseManager.executeQueryAsync(connection -> {
+                Optional<Punishment> activeVoiceMute = punishmentDao.getActiveVoiceMute(connection, targetUuid);
+                if (activeVoiceMute.isPresent()) {
+                    punishmentDao.removeVoiceMute(connection, targetUuid, staffUuid, staffName);
+                    return true;
+                }
+                return false;
+            }).thenApply(success -> {
+                if (success) {
+                    cacheService.invalidatePlayerPunishments(targetUuid);
+                    proxyService.sendInvalidateCacheMessage(targetUuid);
+                    // Optionally, broadcast un-voicemute
+                }
+                return success;
+            });
+        });
+    }
+
     public void recordPlayerLogin(Player player) {
         scheduler.runTaskForPlayer(player, () -> {
             String ip = getPlayerIp(player.getUniqueId());
@@ -450,6 +503,13 @@ public class PunishmentService {
     public CompletableFuture<Optional<Punishment>> getActiveBan(UUID uuid) {
         return cacheService.getOrCache("ban_" + uuid,
                 () -> databaseManager.executeQueryAsync(connection -> punishmentDao.getActiveBan(connection, uuid)),
+                plugin.getConfigManager().getPunishmentCheckTTL()
+        );
+    }
+
+    public CompletableFuture<Optional<Punishment>> getActiveVoiceMute(UUID uuid) {
+        return cacheService.getOrCache("voicemute_" + uuid,
+                () -> databaseManager.executeQueryAsync(connection -> punishmentDao.getActiveVoiceMute(connection, uuid)),
                 plugin.getConfigManager().getPunishmentCheckTTL()
         );
     }
