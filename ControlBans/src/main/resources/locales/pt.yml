@@ -38,7 +38,7 @@ success:
   unban: "<green>Jogador <red><player><green> desbanido com sucesso."
   mute: "<green>Jogador <red><player><green> silenciado com sucesso."
   tempmute: "<green>Jogador <red><player><green> silenciado temporariamente por <red><duration><green>."
-  unmute: "<green>Microfone de <red><player><green> reativado com sucesso."
+  unmute: "<green>Jogador <red><player><green> teve o som reativado com sucesso."
   voicemute: "<green>Microfone de <red><player><green> silenciado com sucesso."
   voiceunmute: "<green>Microfone de <red><player><green> reativado com sucesso."
   warn: "<green>Jogador <red><player><green> advertido com sucesso."

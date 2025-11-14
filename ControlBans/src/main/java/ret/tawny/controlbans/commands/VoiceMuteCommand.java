@@ -44,7 +44,7 @@ public class VoiceMuteCommand extends CommandBase {
                     if (throwable != null) {
                         handlePunishmentError(throwable, sender, targetName);
                     } else {
-                        sender.sendMessage(locale.getMessage("success.voice-mute", playerPlaceholder(targetName)));
+                        sender.sendMessage(locale.getMessage("success.voicemute", playerPlaceholder(targetName)));
                     }
                 });
         return true;

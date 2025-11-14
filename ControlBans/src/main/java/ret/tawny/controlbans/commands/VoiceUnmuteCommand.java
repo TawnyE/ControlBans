@@ -31,7 +31,7 @@ public class VoiceUnmuteCommand extends CommandBase {
                     if (throwable != null) {
                         handlePunishmentError(throwable, sender, targetName);
                     } else if (success) {
-                        sender.sendMessage(locale.getMessage("success.voice-unmute", playerPlaceholder(targetName)));
+                        sender.sendMessage(locale.getMessage("success.voiceunmute", playerPlaceholder(targetName)));
                     } else {
                         sender.sendMessage(locale.getMessage("errors.player-not-voice-muted", playerPlaceholder(targetName)));
                     }
