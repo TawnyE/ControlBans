@@ -603,10 +603,7 @@ public class PunishmentService {
     private CompletableFuture<UUID> getPlayerUuid(String playerName) {
         return cacheService.getOrCache("uuid_" + playerName.toLowerCase(), () -> {
             if (plugin.getConfigManager().isGeyserEnabled() && playerName.startsWith(plugin.getConfigManager().getBedrockPrefix())) {
-                return FloodgateApi.getInstance().getUuidFor(playerName).exceptionally(ex -> {
-                    plugin.getLogger().log(Level.WARNING, "Floodgate API failed to get UUID for " + playerName, ex);
-                    return null;
-                });
+                return FloodgateApi.getInstance().getUuidFor(playerName);
             } else {
                 return scheduler.callSync(() -> UuidUtil.lookupUuid(playerName));
             }
