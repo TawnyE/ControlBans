@@ -35,6 +35,8 @@ public class VoidJailCommand extends CommandBase {
         plugin.getVoidJailService().jailPlayer(target);
         sender.sendMessage(locale.getMessage("voidjail.success-jail", playerPlaceholder(target.getName())));
 
+        plugin.getNotificationService().sendStaffAlertForAction("voidjail", target.getName(), sender.getName());
+
         return true;
     }
 

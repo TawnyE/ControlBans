@@ -2,303 +2,302 @@ package ret.tawny.controlbans.services;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.YamlConfiguration;
 import ret.tawny.controlbans.ControlBansPlugin;
+import ret.tawny.controlbans.locale.LocaleManager;
 import ret.tawny.controlbans.model.Punishment;
 import ret.tawny.controlbans.model.PunishmentType;
-import ret.tawny.controlbans.storage.DatabaseManager;
-import ret.tawny.controlbans.storage.dao.PunishmentDao;
+import ret.tawny.controlbans.storage.StorageInterface;
 import ret.tawny.controlbans.util.IdUtil;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
+import java.util.stream.Stream;
 
 public class ImportService {
 
     private final ControlBansPlugin plugin;
-    private final DatabaseManager databaseManager;
-    private final PunishmentDao punishmentDao;
+    private final StorageInterface storage;
+    private final LocaleManager locale;
 
-    public ImportService(ControlBansPlugin plugin, DatabaseManager databaseManager) {
+    private static final int MAX_CONCURRENT_IMPORTS = 50;
+
+    public ImportService(ControlBansPlugin plugin, StorageInterface storage, LocaleManager locale) {
         this.plugin = plugin;
-        this.databaseManager = databaseManager;
-        this.punishmentDao = new PunishmentDao();
+        this.storage = storage;
+        this.locale = locale;
     }
 
     public void importFromEssentials(CommandSender sender) {
         CompletableFuture.runAsync(() -> {
             if (Bukkit.getPluginManager().getPlugin("Essentials") == null) {
-                sender.sendMessage("§cEssentials is not installed on this server.");
+                sender.sendMessage(locale.getMessage("import.essentials-not-installed"));
                 return;
             }
-
             File essentialsDataFolder = Bukkit.getPluginManager().getPlugin("Essentials").getDataFolder();
             File userdataFolder = new File(essentialsDataFolder, "userdata");
 
             if (!userdataFolder.exists() || !userdataFolder.isDirectory()) {
-                sender.sendMessage("§cEssentials userdata folder not found!");
-                sender.sendMessage("§cLooked in: " + userdataFolder.getPath());
+                sender.sendMessage(locale.getMessage("import.essentials-userdata-not-found"));
                 return;
             }
 
-            sender.sendMessage("§eStarting Essentials import... This may take a while.");
-            int muteCount = 0;
-            File[] userFiles = userdataFolder.listFiles((dir, name) -> name.toLowerCase().endsWith(".yml"));
+            sender.sendMessage(locale.getMessage("import.essentials-starting"));
 
-            if (userFiles == null || userFiles.length == 0) {
-                sender.sendMessage("§eNo user data files found in Essentials userdata folder.");
-                return;
+            AtomicInteger count = new AtomicInteger(0);
+            Semaphore semaphore = new Semaphore(MAX_CONCURRENT_IMPORTS);
+            List<CompletableFuture<Boolean>> importTasks = new ArrayList<>();
+
+            try (Stream<Path> paths = Files.walk(userdataFolder.toPath())) {
+                paths.filter(Files::isRegularFile)
+                        .filter(p -> p.toString().endsWith(".yml"))
+                        .forEach(path -> {
+                            try {
+                                semaphore.acquire();
+                                CompletableFuture<Boolean> task = processEssentialsFile(path.toFile()).whenComplete((v, t) -> {
+                                    semaphore.release();
+                                    if (t == null && v != null && v) {
+                                        count.incrementAndGet();
+                                    }
+                                });
+                                importTasks.add(task);
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
+                            }
+                        });
+
+                CompletableFuture.allOf(importTasks.toArray(new CompletableFuture[0])).join();
+
+                sender.sendMessage(locale.getMessage("import.essentials-success", Placeholder.unparsed("count", String.valueOf(count.get()))));
+
+            } catch (Exception e) {
+                sender.sendMessage(locale.getMessage("import.import-failed", Placeholder.unparsed("error", e.getMessage())));
+                plugin.getLogger().log(Level.SEVERE, "Error reading Essentials directory", e);
             }
+        });
+    }
 
-            for (File userFile : userFiles) {
-                try {
-                    YamlConfiguration userData = YamlConfiguration.loadConfiguration(userFile);
-                    if (userData.getBoolean("muted", false)) {
-                        long timeout = userData.getLong("mute-timeout", 0);
-                        long created = userData.getLong("timestamps.mute", System.currentTimeMillis());
-                        String reason = userData.getString("mute-reason", "Imported from Essentials");
-                        UUID uuid = UUID.fromString(userFile.getName().replace(".yml", ""));
+    private CompletableFuture<Boolean> processEssentialsFile(File userFile) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                YamlConfiguration userData = YamlConfiguration.loadConfiguration(userFile);
+                if (userData.getBoolean("muted", false)) {
+                    long timeout = userData.getLong("mute-timeout", 0);
+                    long created = userData.getLong("timestamps.mute", System.currentTimeMillis());
+                    String reason = userData.getString("mute-reason", "Imported from Essentials");
+                    String filename = userFile.getName().replace(".yml", "");
 
-                        Punishment.Builder builder = Punishment.builder()
-                                .punishmentId(IdUtil.generatePunishmentId())
-                                .targetUuid(uuid)
-                                .reason(reason)
-                                .staffName("Imported")
-                                .createdTime(created)
-                                .active(true);
-
-                        if (timeout > 0 && timeout > System.currentTimeMillis()) {
-                            builder.type(PunishmentType.TEMPMUTE).expiryTime(timeout);
-                        } else {
-                            builder.type(PunishmentType.MUTE).expiryTime(-1);
-                        }
-
-                        Punishment punishment = builder.build();
-                        databaseManager.executeAsync(conn -> punishmentDao.insertMute(conn, punishment)).join();
-                        muteCount++;
+                    UUID uuid;
+                    try {
+                        uuid = UUID.fromString(filename);
+                    } catch (IllegalArgumentException e) {
+                        return false;
                     }
-                } catch (Exception e) {
-                    plugin.getLogger().log(Level.WARNING, "Failed to import Essentials user file: " + userFile.getName(), e);
+
+                    Punishment.Builder builder = Punishment.builder()
+                            .punishmentId(IdUtil.generatePunishmentId())
+                            .targetUuid(uuid)
+                            .reason(reason)
+                            .staffName("Imported")
+                            .createdTime(created)
+                            .active(true);
+
+                    if (timeout > 0 && timeout > System.currentTimeMillis()) {
+                        builder.type(PunishmentType.TEMPMUTE).expiryTime(timeout);
+                    } else {
+                        builder.type(PunishmentType.MUTE).expiryTime(-1);
+                    }
+
+                    storage.importPunishment(builder.build()).join();
+                    return true;
                 }
+            } catch (Exception e) {
             }
-            sender.sendMessage("§aSuccessfully imported " + muteCount + " mute(s) from Essentials.");
+            return false;
         });
     }
 
     public void importFromLiteBans(CommandSender sender) {
         CompletableFuture.runAsync(() -> {
-            sender.sendMessage("§eConnecting to LiteBans source database...");
+            sender.sendMessage(locale.getMessage("import.litebans-connecting"));
             HikariConfig sourceConfig = new HikariConfig();
             String dbType = plugin.getConfig().getString("import.sources.litebans.type", "sqlite");
 
             try {
-                switch (dbType.toLowerCase()) {
-                    case "mysql", "mariadb" -> {
-                        sourceConfig.setDriverClassName("com.mysql.cj.jdbc.Driver");
-                        sourceConfig.setJdbcUrl(String.format("jdbc:mysql://%s:%d/%s",
-                                plugin.getConfig().getString("import.sources.litebans.host"),
-                                plugin.getConfig().getInt("import.sources.litebans.port"),
-                                plugin.getConfig().getString("import.sources.litebans.database")));
-                        sourceConfig.setUsername(plugin.getConfig().getString("import.sources.litebans.username"));
-                        sourceConfig.setPassword(plugin.getConfig().getString("import.sources.litebans.password"));
-                    }
-                    case "postgresql" -> {
-                        sourceConfig.setDriverClassName("org.postgresql.Driver");
-                        sourceConfig.setJdbcUrl(String.format("jdbc:postgresql://%s:%d/%s",
-                                plugin.getConfig().getString("import.sources.litebans.host"),
-                                plugin.getConfig().getInt("import.sources.litebans.port"),
-                                plugin.getConfig().getString("import.sources.litebans.database")));
-                        sourceConfig.setUsername(plugin.getConfig().getString("import.sources.litebans.username"));
-                        sourceConfig.setPassword(plugin.getConfig().getString("import.sources.litebans.password"));
-                    }
-                    case "sqlite" -> {
-                        File dbFile = new File(plugin.getConfig().getString("import.sources.litebans.sqlite-file"));
-                        if (!dbFile.exists()) {
-                            sender.sendMessage("§cLiteBans SQLite file not found at: " + dbFile.getPath());
-                            sender.sendMessage("§cPlease check your config.yml path for 'import.sources.litebans.sqlite-file'");
-                            return;
-                        }
-                        sourceConfig.setJdbcUrl("jdbc:sqlite:" + dbFile.getAbsolutePath());
-                    }
-                    default -> {
-                        sender.sendMessage("§cUnsupported database type for LiteBans import: " + dbType);
-                        return;
-                    }
-                }
+                configureDataSource(sourceConfig, dbType, "import.sources.litebans");
             } catch (Exception e) {
-                sender.sendMessage("§cFailed to configure LiteBans database connection. Please check your config and server logs.");
-                plugin.getLogger().log(Level.SEVERE, "LiteBans import connection failed", e);
+                sender.sendMessage(locale.getMessage("import.litebans-connection-failed"));
                 return;
             }
 
             sourceConfig.setPoolName("ControlBans-LiteBans-Importer");
-            sourceConfig.setMaximumPoolSize(3);
+            sourceConfig.setMaximumPoolSize(1);
 
             try (HikariDataSource sourceDataSource = new HikariDataSource(sourceConfig);
                  Connection sourceConn = sourceDataSource.getConnection()) {
 
-                sender.sendMessage("§eConnection successful. Starting import from LiteBans...");
-                int totalImported = 0;
-                totalImported += importTable(sourceConn, "bans", sender);
-                totalImported += importTable(sourceConn, "mutes", sender);
-                totalImported += importTable(sourceConn, "warnings", sender);
-                totalImported += importTable(sourceConn, "kicks", sender);
-                sender.sendMessage("§aLiteBans import complete. Imported a total of " + totalImported + " records.");
+                sender.sendMessage(locale.getMessage("import.litebans-connection-success"));
+
+                int total = 0;
+                total += importTable(sourceConn, "bans", sender);
+                total += importTable(sourceConn, "mutes", sender);
+                total += importTable(sourceConn, "warnings", sender);
+                total += importTable(sourceConn, "kicks", sender);
+
+                sender.sendMessage(locale.getMessage("import.litebans-import-complete", Placeholder.unparsed("count", String.valueOf(total))));
 
             } catch (Exception e) {
-                sender.sendMessage("§cAn error occurred during the LiteBans import: " + e.getMessage());
-                plugin.getLogger().log(Level.SEVERE, "LiteBans import failed", e);
+                sender.sendMessage(locale.getMessage("import.litebans-import-error", Placeholder.unparsed("error", e.getMessage())));
             }
         });
     }
 
     public void importFromAdvancedBan(CommandSender sender) {
         CompletableFuture.runAsync(() -> {
-            sender.sendMessage("§eConnecting to AdvancedBan source database...");
+            sender.sendMessage(locale.getMessage("import.advancedban-connecting"));
             HikariConfig sourceConfig = new HikariConfig();
-            String dbType = plugin.getConfig().getString("import.sources.advancedban.type", "mysql");
 
             try {
-                if ("mysql".equalsIgnoreCase(dbType) || "mariadb".equalsIgnoreCase(dbType)) {
-                    sourceConfig.setDriverClassName("com.mysql.cj.jdbc.Driver");
-                    sourceConfig.setJdbcUrl(String.format("jdbc:mysql://%s:%d/%s",
-                            plugin.getConfig().getString("import.sources.advancedban.host"),
-                            plugin.getConfig().getInt("import.sources.advancedban.port"),
-                            plugin.getConfig().getString("import.sources.advancedban.database")));
-                    sourceConfig.setUsername(plugin.getConfig().getString("import.sources.advancedban.username"));
-                    sourceConfig.setPassword(plugin.getConfig().getString("import.sources.advancedban.password"));
-                } else {
-                    sender.sendMessage("§cUnsupported database type for AdvancedBan import: " + dbType + ". Only MySQL/MariaDB is supported.");
-                    return;
-                }
+                configureDataSource(sourceConfig, "mysql", "import.sources.advancedban");
             } catch (Exception e) {
-                sender.sendMessage("§cFailed to configure AdvancedBan database connection. Please check your config and server logs.");
-                plugin.getLogger().log(Level.SEVERE, "AdvancedBan import connection failed", e);
+                sender.sendMessage(locale.getMessage("import.advancedban-connection-failed"));
                 return;
             }
 
             sourceConfig.setPoolName("ControlBans-AdvancedBan-Importer");
-            sourceConfig.setMaximumPoolSize(3);
+            sourceConfig.setMaximumPoolSize(1);
 
             try (HikariDataSource sourceDataSource = new HikariDataSource(sourceConfig);
                  Connection sourceConn = sourceDataSource.getConnection()) {
 
-                sender.sendMessage("§eConnection successful. Starting import from AdvancedBan...");
-                int totalImported = 0;
-                totalImported += importAdvancedBanTable(sourceConn, "Punishments", sender);
-                totalImported += importAdvancedBanTable(sourceConn, "PunishmentHistory", sender);
-                sender.sendMessage("§aAdvancedBan import complete. Imported a total of " + totalImported + " records.");
+                sender.sendMessage(locale.getMessage("import.advancedban-connection-success"));
+
+                int total = importAdvancedBanTable(sourceConn, sender);
+                sender.sendMessage(locale.getMessage("import.advancedban-import-complete", Placeholder.unparsed("count", String.valueOf(total))));
 
             } catch (Exception e) {
-                sender.sendMessage("§cAn error occurred during the AdvancedBan import: " + e.getMessage());
-                plugin.getLogger().log(Level.SEVERE, "AdvancedBan import failed", e);
+                sender.sendMessage(locale.getMessage("import.advancedban-import-error", Placeholder.unparsed("error", e.getMessage())));
             }
         });
     }
 
-    private int importAdvancedBanTable(Connection sourceConn, String tableName, CommandSender sender) {
+    private int importAdvancedBanTable(Connection sourceConn, CommandSender sender) {
         int count = 0;
-        String sql = "SELECT * FROM " + tableName;
+        Semaphore semaphore = new Semaphore(MAX_CONCURRENT_IMPORTS);
+        List<CompletableFuture<Void>> importTasks = new ArrayList<>();
+
         try (Statement stmt = sourceConn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+             ResultSet rs = stmt.executeQuery("SELECT * FROM Punishments")) {
 
             while (rs.next()) {
                 try {
                     String uuidStr = rs.getString("uuid");
-                    if (uuidStr == null || "CONSOLE".equalsIgnoreCase(uuidStr)) continue;
+                    String name = rs.getString("name");
+                    String reason = rs.getString("reason");
+                    String operator = rs.getString("operator");
+                    String typeStr = rs.getString("punishmentType");
+                    long start = rs.getLong("start");
+                    long end = rs.getLong("end");
 
-                    PunishmentType type = mapAdvancedBanType(rs.getString("punishmentType"));
+                    if (uuidStr == null) continue;
+
+                    PunishmentType type = switch (typeStr.toUpperCase()) {
+                        case "BAN" -> PunishmentType.BAN;
+                        case "TEMP_BAN" -> PunishmentType.TEMPBAN;
+                        case "IP_BAN" -> PunishmentType.IPBAN;
+                        case "MUTE" -> PunishmentType.MUTE;
+                        case "TEMP_MUTE" -> PunishmentType.TEMPMUTE;
+                        case "WARNING" -> PunishmentType.WARN;
+                        case "KICK" -> PunishmentType.KICK;
+                        default -> null;
+                    };
+
                     if (type == null) continue;
-
-                    long endTime = rs.getLong("end");
-                    boolean active = endTime == -1 || endTime > System.currentTimeMillis();
 
                     Punishment punishment = Punishment.builder()
                             .punishmentId(IdUtil.generatePunishmentId())
                             .targetUuid(UUID.fromString(uuidStr))
-                            .targetName(rs.getString("name"))
-                            .reason(rs.getString("reason"))
-                            .staffName(rs.getString("operator"))
-                            .createdTime(rs.getLong("start"))
-                            .expiryTime(endTime)
-                            .active(active)
-                            .ipBan(rs.getString("punishmentType").contains("IP_BAN"))
-                            .silent(false) // AdvancedBan doesn't have a silent concept
-                            .serverOrigin("imported")
+                            .targetName(name)
+                            .reason(reason)
+                            .staffName(operator)
+                            .createdTime(start)
+                            .expiryTime(end == -1 ? -1 : end)
                             .type(type)
+                            .active(true)
                             .build();
 
-                    saveImportedPunishment(punishment);
+                    semaphore.acquire();
+                    CompletableFuture<Void> task = storage.importPunishment(punishment).whenComplete((v, t) -> semaphore.release());
+                    importTasks.add(task);
                     count++;
-                } catch (Exception e) {
-                    // Ignore single record import failure
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
                 }
             }
-        } catch (SQLException e) {
-            sender.sendMessage("§cFailed to import from table: " + tableName + ". It may not exist. Error: " + e.getMessage());
-        }
-        if (count > 0) {
-            sender.sendMessage("§aImported " + count + " record(s) from " + tableName);
+            CompletableFuture.allOf(importTasks.toArray(new CompletableFuture[0])).join();
+        } catch (Exception e) {
+            sender.sendMessage(locale.getMessage("import.import-table-failed", Placeholder.unparsed("table", "Punishments")));
+            plugin.getLogger().log(Level.SEVERE, "Failed to import from AdvancedBan", e);
         }
         return count;
     }
 
-    private PunishmentType mapAdvancedBanType(String abType) {
-        return switch (abType) {
-            case "BAN", "IP_BAN" -> PunishmentType.BAN;
-            case "TEMP_BAN", "TEMP_IP_BAN" -> PunishmentType.TEMPBAN;
-            case "MUTE" -> PunishmentType.MUTE;
-            case "TEMP_MUTE" -> PunishmentType.TEMPMUTE;
-            case "KICK" -> PunishmentType.KICK;
-            case "WARN" -> PunishmentType.WARN;
-            default -> null;
-        };
-    }
-
-    private void saveImportedPunishment(Punishment punishment) {
-        databaseManager.executeAsync(conn -> {
-            switch (punishment.getType()) {
-                case BAN, TEMPBAN, IPBAN -> punishmentDao.insertBan(conn, punishment);
-                case MUTE, TEMPMUTE -> punishmentDao.insertMute(conn, punishment);
-                case WARN -> punishmentDao.insertWarning(conn, punishment);
-                case KICK -> punishmentDao.insertKick(conn, punishment);
+    private void configureDataSource(HikariConfig config, String dbType, String configPath) {
+        switch (dbType.toLowerCase()) {
+            case "mysql", "mariadb" -> {
+                config.setJdbcUrl(String.format("jdbc:mysql://%s:%d/%s",
+                        plugin.getConfig().getString(configPath + ".host"),
+                        plugin.getConfig().getInt(configPath + ".port"),
+                        plugin.getConfig().getString(configPath + ".database")));
+                config.setUsername(plugin.getConfig().getString(configPath + ".username"));
+                config.setPassword(plugin.getConfig().getString(configPath + ".password"));
             }
-        }).join(); // We join to ensure imports happen sequentially
+            case "sqlite" -> {
+                File dbFile = new File(plugin.getConfig().getString(configPath + ".sqlite-file"));
+                config.setJdbcUrl("jdbc:sqlite:" + dbFile.getAbsolutePath());
+            }
+            default -> throw new IllegalArgumentException("Unsupported type: " + dbType);
+        }
     }
-
 
     private int importTable(Connection sourceConn, String type, CommandSender sender) {
         String tableName = "litebans_" + type;
         int count = 0;
+        Semaphore semaphore = new Semaphore(MAX_CONCURRENT_IMPORTS);
+        List<CompletableFuture<Void>> importTasks = new ArrayList<>();
+
         try (Statement stmt = sourceConn.createStatement();
              ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName)) {
 
             while (rs.next()) {
                 try {
                     String uuid = rs.getString("uuid");
-                    if (uuid == null) continue; // Skip invalid entries
+                    if (uuid == null) continue;
 
                     Punishment.Builder builder = Punishment.builder()
-                            .punishmentId(IdUtil.generatePunishmentId()) // Generate new unique ID
+                            .punishmentId(IdUtil.generatePunishmentId())
                             .targetUuid(UUID.fromString(uuid))
                             .targetIp(rs.getString("ip"))
                             .reason(rs.getString("reason"))
-                            .staffUuid(rs.getString("banned_by_uuid") != null ? UUID.fromString(rs.getString("banned_by_uuid")) : null)
                             .staffName(rs.getString("banned_by_name"))
                             .createdTime(rs.getLong("time"))
                             .expiryTime(rs.getLong("until"))
-                            .serverOrigin(rs.getString("server_origin"))
-                            .silent(rs.getBoolean("silent"))
-                            .ipBan(rs.getBoolean("ipban"))
                             .active(rs.getBoolean("active"));
 
                     Punishment p = switch (type) {
@@ -310,18 +309,20 @@ public class ImportService {
                     };
 
                     if (p != null) {
-                        saveImportedPunishment(p);
+                        semaphore.acquire();
+                        CompletableFuture<Void> task = storage.importPunishment(p).whenComplete((v, t) -> semaphore.release());
+                        importTasks.add(task);
                         count++;
                     }
-                } catch (Exception e) {
-                    // Ignore single record import failure
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
                 }
             }
+            CompletableFuture.allOf(importTasks.toArray(new CompletableFuture[0])).join();
         } catch (Exception e) {
-            sender.sendMessage("§cFailed to import from table: " + tableName + ". It may not exist.");
-        }
-        if (count > 0) {
-            sender.sendMessage("§aImported " + count + " record(s) from " + tableName);
+            sender.sendMessage(locale.getMessage("import.import-table-failed", Placeholder.unparsed("table", tableName)));
+            plugin.getLogger().log(Level.SEVERE, "Failed to import from table: " + tableName, e);
         }
         return count;
     }

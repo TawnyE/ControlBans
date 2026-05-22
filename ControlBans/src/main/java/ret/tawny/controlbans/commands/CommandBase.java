@@ -1,5 +1,8 @@
 package ret.tawny.controlbans.commands;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import org.bukkit.Bukkit;
@@ -10,6 +13,7 @@ import ret.tawny.controlbans.locale.LocaleManager;
 import ret.tawny.controlbans.services.PunishmentService;
 import ret.tawny.controlbans.util.SchedulerAdapter;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -38,7 +42,8 @@ public abstract class CommandBase implements CommandExecutor, TabCompleter {
     }
 
     public void register() {
-        PluginCommand command = Objects.requireNonNull(plugin.getCommand(commandName), "Command '" + commandName + "' not found in plugin.yml!");
+        PluginCommand command = Objects.requireNonNull(plugin.getCommand(commandName),
+                "Command '" + commandName + "' not found in plugin.yml!");
         command.setExecutor(this);
         command.setTabCompleter(this);
     }
@@ -64,22 +69,68 @@ public abstract class CommandBase implements CommandExecutor, TabCompleter {
         return List.of();
     }
 
-    // Placeholder helpers
-    protected TagResolver playerPlaceholder(String name) { return Placeholder.unparsed("player", name); }
-    protected TagResolver staffPlaceholder(String name) { return Placeholder.unparsed("staff", name); }
-    protected TagResolver reasonPlaceholder(String reason) { return Placeholder.unparsed("reason", reason != null ? reason : "N/A"); }
-    protected TagResolver durationPlaceholder(String duration) { return Placeholder.unparsed("duration", duration); }
-    protected TagResolver idPlaceholder(String id) { return Placeholder.unparsed("id", id); }
-    protected TagResolver usagePlaceholder(String usage) { return Placeholder.unparsed("usage", usage); }
-    protected TagResolver typePlaceholder(String type) { return Placeholder.unparsed("type", type); }
-    protected TagResolver datePlaceholder(String date) { return Placeholder.unparsed("date", date); }
+    protected TagResolver playerPlaceholder(String name) {
+        return Placeholder.unparsed("player", name);
+    }
 
+    protected TagResolver ipPlaceholder(String ip) {
+        return Placeholder.unparsed("ip", ip);
+    }
+
+    protected TagResolver staffPlaceholder(String name) {
+        return Placeholder.unparsed("staff", name);
+    }
+
+    protected TagResolver reasonPlaceholder(String reason) {
+        return Placeholder.unparsed("reason", reason != null ? reason : "N/A");
+    }
+
+    protected TagResolver durationPlaceholder(String duration) {
+        return Placeholder.unparsed("duration", duration);
+    }
+
+    protected TagResolver idPlaceholder(String id) {
+        return Placeholder.unparsed("id", id);
+    }
+
+    protected TagResolver usagePlaceholder(String usage) {
+        return Placeholder.unparsed("usage", usage);
+    }
+
+    protected TagResolver typePlaceholder(String type) {
+        return Placeholder.unparsed("type", type);
+    }
+
+    protected TagResolver datePlaceholder(String date) {
+        return Placeholder.unparsed("date", date);
+    }
 
     protected List<String> getPlayerSuggestions(String arg) {
-        return Bukkit.getOnlinePlayers().stream()
+        if (arg == null || arg.isEmpty()) {
+            return Bukkit.getOnlinePlayers().stream()
+                    .map(Player::getName)
+                    .collect(Collectors.toList());
+        }
+
+        String query = arg.toLowerCase();
+
+        List<String> suggestions = Bukkit.getOnlinePlayers().stream()
                 .map(Player::getName)
-                .filter(name -> name.toLowerCase().startsWith(arg.toLowerCase()))
-                .collect(Collectors.toList());
+                .filter(name -> name.toLowerCase().startsWith(query))
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        List<String> cachedOffline = plugin.getCacheService().getOfflineSuggestions(query);
+        if (cachedOffline != null) {
+            for (String name : cachedOffline) {
+                if (!suggestions.contains(name)) suggestions.add(name);
+            }
+        } else {
+            plugin.getStorage().getNamesStartingWith(query).thenAccept(names -> {
+                plugin.getCacheService().cacheOfflineSuggestions(query, names);
+            });
+        }
+
+        return suggestions;
     }
 
     protected List<String> getTimeSuggestions(String arg) {
@@ -96,17 +147,35 @@ public abstract class CommandBase implements CommandExecutor, TabCompleter {
 
     protected void handlePunishmentError(Throwable throwable, CommandSender sender, String targetName) {
         if (throwable instanceof CompletionException) {
-            Throwable cause = throwable.getCause();
-            if (cause instanceof IllegalArgumentException && "Player not found".equals(cause.getMessage())) {
-                sender.sendMessage(locale.getMessage("errors.player-not-found-typo", playerPlaceholder(targetName)));
-                return;
-            }
-            if (cause != null && cause.getMessage().contains("Unable to find user in our cache")) {
-                sender.sendMessage(locale.getMessage("errors.floodgate-cache-error", playerPlaceholder(targetName)));
-                return;
+            throwable = throwable.getCause();
+        }
+
+        if (throwable instanceof IllegalArgumentException && "Player not found".equals(throwable.getMessage())) {
+            sender.sendMessage(locale.getMessage("errors.player-not-found-typo", playerPlaceholder(targetName)));
+            return;
+        }
+
+        String errorMsg = throwable != null ? throwable.getMessage() : "Unknown error";
+
+        if (errorMsg != null && containsMiniMessageTags(errorMsg)) {
+            Component parsedMessage = MiniMessage.miniMessage().deserialize(errorMsg);
+            sender.sendMessage(parsedMessage);
+        } else {
+            sender.sendMessage(Component.text("Error: " + errorMsg, NamedTextColor.RED));
+        }
+
+        if (throwable != null) {
+            if (!(throwable instanceof IllegalArgumentException) && !(throwable instanceof IllegalStateException)) {
+                plugin.getLogger().warning("Unexpected error during command execution: " + throwable.getMessage());
+                plugin.getLogger().log(java.util.logging.Level.FINE, "Stack trace for: " + commandName, throwable);
             }
         }
-        sender.sendMessage(locale.getMessage("errors.database-error"));
-        throwable.printStackTrace();
+    }
+
+    private boolean containsMiniMessageTags(String text) {
+        if (text == null) return false;
+        return text.contains("<#") || text.contains("<red>") || text.contains("<green>") ||
+                text.contains("<blue>") || text.contains("<yellow>") || text.contains("<gray>") ||
+                text.contains("<gradient:") || text.contains("<bold>") || text.contains("<italic>");
     }
 }

@@ -54,12 +54,15 @@ public class IpMuteCommand extends CommandBase {
         }
         String reason = reasonJoiner.toString().isEmpty() ? "IP Mute" : reasonJoiner.toString();
 
-        sender.sendMessage(locale.getMessage("actions.ip-muting", playerPlaceholder(target)));
-        // Fixed: Corrected method name typo
         punishmentService.ipMutePlayer(target, duration, reason, getSenderUuid(sender), sender.getName(), silent)
                 .whenComplete((success, throwable) -> {
                     if (throwable != null) {
-                        sender.sendMessage(locale.getMessage("errors.database-error"));
+                        if ((throwable.getMessage() != null && throwable.getMessage().contains("no-ip-on-record")) ||
+                            (throwable.getCause() != null && throwable.getCause().getMessage() != null && throwable.getCause().getMessage().contains("no-ip-on-record"))) {
+                            sender.sendMessage(locale.getMessage("errors.no-ip-on-record", playerPlaceholder(target)));
+                        } else {
+                            sender.sendMessage(locale.getMessage("errors.database-error"));
+                        }
                     } else if (success) {
                         sender.sendMessage(locale.getMessage("success.ipmute"));
                     } else {

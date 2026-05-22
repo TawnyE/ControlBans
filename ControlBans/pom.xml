@@ -6,18 +6,27 @@
 
     <groupId>ret.tawny</groupId>
     <artifactId>controlbans</artifactId>
-    <version>v3.3</version>
+    <version>5.4</version>
     <packaging>jar</packaging>
 
     <name>ControlBans</name>
-    <description>Advanced punishment system for Minecraft servers with LiteBans compatibility</description>
+    <description>Advanced, next-generation punishment system for Minecraft networks.</description>
 
     <properties>
-        <!-- Corrected Java Version -->
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <paper.version>1.21.1-R0.1-SNAPSHOT</paper.version>
+        <hikari.version>6.2.1</hikari.version>
+        <mysql.version>8.4.0</mysql.version>
+        <postgresql.version>42.7.4</postgresql.version>
+        <sqlite.version>3.47.2.0</sqlite.version>
+        <h2.version>2.3.232</h2.version>
+        <jedis.version>5.2.0</jedis.version>
+        <mongodb.version>5.2.1</mongodb.version>
+        <gson.version>2.11.0</gson.version>
+        <guava.version>33.4.0-jre</guava.version>
+        <caffeine.version>3.1.8</caffeine.version>
     </properties>
 
     <repositories>
@@ -44,61 +53,95 @@
     </repositories>
 
     <dependencies>
-        <!-- Paper API -->
+        <!-- APIs -->
         <dependency>
             <groupId>io.papermc.paper</groupId>
             <artifactId>paper-api</artifactId>
             <version>${paper.version}</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>net.md-5</groupId>
+            <artifactId>bungeecord-api</artifactId>
+            <version>1.21-R0.4</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.velocitypowered</groupId>
+            <artifactId>velocity-api</artifactId>
+            <version>3.4.0-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
 
-        <!-- Database & Connection Pooling -->
+        <!-- Shaded Dependencies (Included in JAR) -->
         <dependency>
             <groupId>com.zaxxer</groupId>
             <artifactId>HikariCP</artifactId>
-            <version>5.0.1</version>
+            <version>${hikari.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>com.mysql</groupId>
             <artifactId>mysql-connector-j</artifactId>
-            <version>8.0.33</version>
+            <version>${mysql.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <version>42.6.0</version>
+            <version>${postgresql.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.xerial</groupId>
             <artifactId>sqlite-jdbc</artifactId>
-            <version>3.42.0.0</version>
+            <version>${sqlite.version}</version>
             <scope>compile</scope>
         </dependency>
-
-        <!-- JSON & Web -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <version>${h2.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>redis.clients</groupId>
+            <artifactId>jedis</artifactId>
+            <version>${jedis.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mongodb</groupId>
+            <artifactId>mongodb-driver-sync</artifactId>
+            <version>${mongodb.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <version>${caffeine.version}</version>
+            <scope>compile</scope>
+        </dependency>
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
-            <version>2.10.1</version>
+            <version>${gson.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-server</artifactId>
-            <version>11.0.15</version>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>${guava.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-servlet</artifactId>
-            <version>11.0.15</version>
+            <groupId>org.bstats</groupId>
+            <artifactId>bstats-bukkit</artifactId>
+            <version>3.0.2</version>
             <scope>compile</scope>
         </dependency>
 
-        <!-- Integrations (Provided) -->
+        <!-- Soft Dependencies -->
         <dependency>
             <groupId>com.discordsrv</groupId>
             <artifactId>discordsrv</artifactId>
@@ -118,20 +161,6 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>32.1.2-jre</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.bstats</groupId>
-            <artifactId>bstats-bukkit</artifactId>
-            <version>3.0.2</version>
-            <scope>compile</scope>
-        </dependency>
-
-        <!-- Voice Chat -->
-        <dependency>
             <groupId>de.maxhenkel.voicechat</groupId>
             <artifactId>voicechat-api</artifactId>
             <version>2.6.0</version>
@@ -147,14 +176,12 @@
                 <filtering>true</filtering>
             </resource>
         </resources>
-
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.11.0</version>
                 <configuration>
-                    <!-- Also set here for good measure -->
                     <source>21</source>
                     <target>21</target>
                 </configuration>
@@ -162,7 +189,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>3.5.0</version>
+                <version>3.6.0</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -171,7 +198,27 @@
                         </goals>
                         <configuration>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <minimizeJar>false</minimizeJar>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                        <exclude>META-INF/MANIFEST.MF</exclude>
+                                        <exclude>META-INF/LICENSE*</exclude>
+                                        <exclude>META-INF/NOTICE*</exclude>
+                                        <exclude>META-INF/DEPENDENCIES</exclude>
+                                        <exclude>about.html</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                            </transformers>
                             <relocations>
+                                <!-- Shading all libraries to avoid conflicts -->
                                 <relocation>
                                     <pattern>org.bstats</pattern>
                                     <shadedPattern>ret.tawny.controlbans.libs.bstats</shadedPattern>
@@ -189,10 +236,6 @@
                                     <shadedPattern>ret.tawny.controlbans.libs.gson</shadedPattern>
                                 </relocation>
                                 <relocation>
-                                    <pattern>org.eclipse.jetty</pattern>
-                                    <shadedPattern>ret.tawny.controlbans.libs.jetty</shadedPattern>
-                                </relocation>
-                                <relocation>
                                     <pattern>com.mysql</pattern>
                                     <shadedPattern>ret.tawny.controlbans.libs.mysql</shadedPattern>
                                 </relocation>
@@ -203,6 +246,26 @@
                                 <relocation>
                                     <pattern>org.sqlite</pattern>
                                     <shadedPattern>ret.tawny.controlbans.libs.sqlite</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.h2</pattern>
+                                    <shadedPattern>ret.tawny.controlbans.libs.h2</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>redis.clients</pattern>
+                                    <shadedPattern>ret.tawny.controlbans.libs.jedis</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.mongodb</pattern>
+                                    <shadedPattern>ret.tawny.controlbans.libs.mongodb</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.bson</pattern>
+                                    <shadedPattern>ret.tawny.controlbans.libs.bson</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.github.benmanes.caffeine</pattern>
+                                    <shadedPattern>ret.tawny.controlbans.libs.caffeine</shadedPattern>
                                 </relocation>
                             </relocations>
                         </configuration>

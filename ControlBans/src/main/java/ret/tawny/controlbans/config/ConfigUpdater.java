@@ -1,112 +1,162 @@
 package ret.tawny.controlbans.config;
 
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import ret.tawny.controlbans.ControlBansPlugin;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
 public class ConfigUpdater {
 
-    /**
-     * Updates the user's config.yml with new keys from the default config, preserving comments.
-     * @param plugin The instance of the main plugin.
-     * @throws IOException If there is an error reading or writing the config files.
-     */
-    public static void update(ControlBansPlugin plugin) throws IOException {
+    public static void update(ControlBansPlugin plugin) {
         File configFile = new File(plugin.getDataFolder(), "config.yml");
-        FileConfiguration userConfig = YamlConfiguration.loadConfiguration(configFile);
+        if (!configFile.exists()) {
+            return;
+        }
 
-        // Load the default config from the JAR
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(plugin.getResource("config.yml"), StandardCharsets.UTF_8))) {
+        try (InputStream inputStream = plugin.getResource("config.yml")) {
+            if (inputStream == null) return;
+
+            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
             FileConfiguration defaultConfig = YamlConfiguration.loadConfiguration(reader);
+            FileConfiguration userConfig = YamlConfiguration.loadConfiguration(configFile);
 
-            Set<String> userKeys = userConfig.getKeys(true);
             Set<String> defaultKeys = defaultConfig.getKeys(true);
+            Set<String> userKeys = userConfig.getKeys(true);
 
-            // Check if there are any new keys to add
             if (userKeys.containsAll(defaultKeys)) {
-                plugin.getLogger().info("Configuration file is up to date.");
                 return;
             }
 
-            plugin.getLogger().info("Updating configuration file with new settings...");
+            plugin.getLogger().info("Updating configuration file with missing keys...");
 
-            // Get the raw lines from the default config to preserve comments
-            List<String> defaultLines = new BufferedReader(new InputStreamReader(plugin.getResource("config.yml"), StandardCharsets.UTF_8)).lines().toList();
-            StringBuilder newConfigContent = new StringBuilder();
+            List<String> newLines = new ArrayList<>();
+            
 
-            for (String line : defaultLines) {
-                String trimmedLine = line.trim();
-                if (trimmedLine.isEmpty() || trimmedLine.startsWith("#")) {
-                    // Always add comments and empty lines
-                    newConfigContent.append(line).append("\n");
-                } else {
-                    // It's a key-value line
-                    String key = getKeyFromLine(line);
-                    if (key != null) {
-                        if (userConfig.contains(key)) {
-                            // If the user's config has this key, use their line (preserves their value)
-                            newConfigContent.append(createLineFromKeyValue(key, userConfig.get(key), line)).append("\n");
-                        } else {
-                            // If the user's config is missing this key, add it from the default
-                            newConfigContent.append(line).append("\n");
-                        }
-                    } else {
-                        newConfigContent.append(line).append("\n");
+            try (BufferedReader lineReader = new BufferedReader(new InputStreamReader(plugin.getResource("config.yml"), StandardCharsets.UTF_8))) {
+                String line;
+                List<String> currentPath = new ArrayList<>();
+
+                while ((line = lineReader.readLine()) != null) {
+                    String trimmed = line.trim();
+                    
+                    if (trimmed.isEmpty() || trimmed.startsWith("#")) {
+                        newLines.add(line);
+                        continue;
                     }
+
+                    if (trimmed.contains(":")) {
+                        int indent = getIndent(line);
+                        String key = trimmed.split(":")[0];
+                        
+                        updatePath(currentPath, key, indent);
+                        String fullKey = String.join(".", currentPath);
+
+                        if (userConfig.contains(fullKey)) {
+                            Object value = userConfig.get(fullKey);
+                            if (!(value instanceof ConfigurationSection)) {
+                                newLines.add(formatLine(line, key, value, indent));
+                                continue;
+                            }
+                        }
+                    }
+                    newLines.add(line);
                 }
             }
 
-            // Write the new content to the config file
-            try (BufferedWriter writer = new BufferedWriter(new FileWriter(configFile))) {
-                writer.write(newConfigContent.toString());
+            try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(configFile), StandardCharsets.UTF_8))) {
+                for (String newLine : newLines) {
+                    writer.write(newLine);
+                    writer.newLine();
+                }
             }
 
             plugin.getLogger().info("Configuration file successfully updated.");
 
-        } catch (Exception e) {
-            plugin.getLogger().log(Level.SEVERE, "Could not update configuration file!", e);
+        } catch (IOException e) {
+            plugin.getLogger().log(Level.SEVERE, "Failed to update config.yml", e);
         }
     }
 
-    /**
-     * Extracts the key from a YAML configuration line.
-     * Example: "  host: localhost" -> "database.host" (assuming it's under 'database')
-     */
-    private static String getKeyFromLine(String line) {
-        if (!line.contains(":")) {
-            return null;
+    private static int getIndent(String line) {
+        int count = 0;
+        while (count < line.length() && line.charAt(count) == ' ') {
+            count++;
         }
-        return line.split(":")[0].trim();
+        return count;
     }
 
-    /**
-     * Reconstructs a config line with the user's value but the default's formatting.
-     * This is a simplified approach; a more complex one would be needed for nested lists/maps.
-     * For this config, it handles simple key-value pairs correctly.
-     */
-    private static String createLineFromKeyValue(String key, Object value, String defaultLine) {
-        int indent = 0;
-        while (defaultLine.charAt(indent) == ' ') {
-            indent++;
+    private static void updatePath(List<String> path, String key, int indent) {
+        int level = indent / 2;
+        while (path.size() > level) {
+            path.remove(path.size() - 1);
         }
-
-        String indentString = " ".repeat(indent);
-
-        if (value instanceof String) {
-            return indentString + key + ": \"" + value + "\"";
+        if (path.size() == level) {
+            path.add(key);
         } else {
-            return indentString + key + ": " + value;
+            path.add(key);
         }
+    }
+
+    private static String formatLine(String originalLine, String key, Object value, int indent) {
+        String prefix = " ".repeat(indent) + key + ": ";
+        if (value instanceof String str) {
+            if (needsQuoting(str)) {
+                return prefix + escapeYamlString(str);
+            }
+            return prefix + str;
+        } else if (value instanceof List<?> list) {
+            return prefix + formatYamlList(list);
+        }
+        return prefix + value.toString();
+    }
+
+    private static boolean needsQuoting(String value) {
+        if (value.isEmpty()) return true;
+        char first = value.charAt(0);
+        if (first == ':' || first == '#' || first == '-' || first == '[' || first == ']' || first == '{' || first == '}' || first == ',' || first == '&' || first == '*' || first == '?' || first == '|' || first == '!' || first == '%' || first == '@' || first == '`') return true;
+        if (value.contains("\n") || value.contains("\r") || value.contains("'") || value.contains("\"")) return true;
+        if (value.equalsIgnoreCase("true") || value.equalsIgnoreCase("false") || value.equalsIgnoreCase("null") || value.equalsIgnoreCase("yes") || value.equalsIgnoreCase("no") || value.equalsIgnoreCase("on") || value.equalsIgnoreCase("off")) return true;
+        try { Double.parseDouble(value); return true; } catch (NumberFormatException ignored) {}
+        return false;
+    }
+
+    private static String escapeYamlString(String value) {
+        StringBuilder sb = new StringBuilder("\"");
+        for (char c : value.toCharArray()) {
+            switch (c) {
+                case '\\' -> sb.append("\\\\");
+                case '"' -> sb.append("\\\"");
+                case '\n' -> sb.append("\\n");
+                case '\r' -> sb.append("\\r");
+                case '\t' -> sb.append("\\t");
+                default -> sb.append(c);
+            }
+        }
+        sb.append("\"");
+        return sb.toString();
+    }
+
+    private static String formatYamlList(List<?> list) {
+        if (list.isEmpty()) return "[]";
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < list.size(); i++) {
+            if (i > 0) sb.append(", ");
+            Object item = list.get(i);
+            if (item instanceof String str) {
+                sb.append(escapeYamlString(str));
+            } else {
+                sb.append(item.toString());
+            }
+        }
+        sb.append("]");
+        return sb.toString();
     }
 }

@@ -46,9 +46,6 @@ public class ProxyMessengerListener implements PluginMessageListener {
             if ("INVALIDATE_CACHE".equals(action)) {
                 handleCacheInvalidation(json);
             }
-            // Note: We don't need to handle KICK or BROADCAST here, as those are outbound from Bukkit.
-            // This listener is for messages coming IN from the proxy.
-
         } catch (IOException | JsonParseException e) {
             plugin.getLogger().log(Level.WARNING, "Failed to handle incoming plugin message from proxy.", e);
         }
@@ -62,6 +59,9 @@ public class ProxyMessengerListener implements PluginMessageListener {
         try {
             UUID playerUuid = UUID.fromString(json.get("playerUuid").getAsString());
             plugin.getCacheService().invalidatePlayerPunishments(playerUuid);
+            if (plugin.getPlayerChatListener() != null) {
+                plugin.getPlayerChatListener().invalidateMuteCache(playerUuid);
+            }
             plugin.getLogger().fine("Received instruction from proxy to invalidate cache for UUID: " + playerUuid);
         } catch (IllegalArgumentException e) {
             plugin.getLogger().warning("Received invalid UUID for cache invalidation from proxy.");

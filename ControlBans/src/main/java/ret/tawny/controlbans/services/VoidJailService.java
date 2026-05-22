@@ -4,14 +4,22 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import ret.tawny.controlbans.ControlBansPlugin;
 import ret.tawny.controlbans.config.ConfigManager;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 
 public class VoidJailService {
@@ -19,121 +27,140 @@ public class VoidJailService {
     private final ControlBansPlugin plugin;
     private final ConfigManager config;
     private Location jailLocation;
+    private final File dataFile;
+    private final ReentrantLock saveLock = new ReentrantLock();
 
-    // Stores the original location of a player before they were jailed
     private final Map<UUID, Location> returnLocations = new ConcurrentHashMap<>();
-    // A set of all currently jailed players
     private final Set<UUID> jailedPlayers = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> pendingUnjailedOffline = ConcurrentHashMap.newKeySet();
 
     public VoidJailService(ControlBansPlugin plugin) {
         this.plugin = plugin;
         this.config = plugin.getConfigManager();
+        this.dataFile = new File(plugin.getDataFolder(), "void-jail.yml");
+
         loadJailLocation();
+        loadData();
     }
 
-    /**
-     * Loads the jail location from the config.yml file.
-     */
     public void loadJailLocation() {
         String worldName = config.getJailWorld();
         World world = Bukkit.getWorld(worldName);
 
         if (world == null) {
-            plugin.getLogger().log(Level.SEVERE, "The world '" + worldName + "' specified for the void jail does not exist! The void jail will not function.");
+            plugin.getLogger().log(Level.SEVERE, "Void jail world '" + worldName + "' not found!");
             jailLocation = null;
             return;
         }
 
-        jailLocation = new Location(
-                world,
-                config.getJailX(),
-                config.getJailY(),
-                config.getJailZ(),
-                0,  // Yaw
-                0   // Pitch
-        );
-
-        plugin.getLogger().info("Void jail location loaded successfully.");
+        jailLocation = new Location(world, config.getJailX(), config.getJailY(), config.getJailZ(), 0, 0);
     }
 
-    /**
-     * Sends a player to the void jail.
-     * @param player The player to be jailed.
-     */
+    private void loadData() {
+        if (!dataFile.exists()) return;
+
+        FileConfiguration dataConfig = YamlConfiguration.loadConfiguration(dataFile);
+        ConfigurationSection playersSection = dataConfig.getConfigurationSection("players");
+        if (playersSection == null) return;
+
+        for (String uuidStr : playersSection.getKeys(false)) {
+            try {
+                UUID uuid = UUID.fromString(uuidStr);
+                ConfigurationSection locSection = playersSection.getConfigurationSection(uuidStr + ".return");
+                if (locSection != null) {
+                    World world = Bukkit.getWorld(locSection.getString("world", "world"));
+                    if (world != null) {
+                        returnLocations.put(uuid, new Location(world, locSection.getDouble("x"), locSection.getDouble("y"), locSection.getDouble("z")));
+                    }
+                }
+                if (playersSection.getBoolean(uuidStr + ".pending_unjail", false)) {
+                    pendingUnjailedOffline.add(uuid);
+                } else {
+                    jailedPlayers.add(uuid);
+                }
+            } catch (Exception ignored) {}
+        }
+    }
+
+    private void saveData() {
+        plugin.getSchedulerAdapter().runTaskAsynchronously(() -> {
+            saveLock.lock();
+            try {
+                final Set<UUID> jailedSnapshot = new HashSet<>(jailedPlayers);
+                final Set<UUID> pendingSnapshot = new HashSet<>(pendingUnjailedOffline);
+                final Map<UUID, Location> locationsSnapshot = new HashMap<>(returnLocations);
+
+                FileConfiguration newDataConfig = new YamlConfiguration();
+                for (UUID uuid : jailedSnapshot) {
+                    String path = "players." + uuid.toString();
+                    newDataConfig.set(path + ".jailed", true);
+                    Location loc = locationsSnapshot.get(uuid);
+                    if (loc != null && loc.getWorld() != null) {
+                        newDataConfig.set(path + ".return.world", loc.getWorld().getName());
+                        newDataConfig.set(path + ".return.x", loc.getX());
+                        newDataConfig.set(path + ".return.y", loc.getY());
+                        newDataConfig.set(path + ".return.z", loc.getZ());
+                    }
+                }
+                for (UUID uuid : pendingSnapshot) {
+                    String path = "players." + uuid.toString();
+                    newDataConfig.set(path + ".pending_unjail", true);
+                    Location loc = locationsSnapshot.get(uuid);
+                    if (loc != null && loc.getWorld() != null) {
+                        newDataConfig.set(path + ".return.world", loc.getWorld().getName());
+                        newDataConfig.set(path + ".return.x", loc.getX());
+                        newDataConfig.set(path + ".return.y", loc.getY());
+                        newDataConfig.set(path + ".return.z", loc.getZ());
+                    }
+                }
+                try {
+                    newDataConfig.save(dataFile);
+                } catch (IOException e) {
+                    plugin.getLogger().log(Level.SEVERE, "Failed to save void-jail.yml", e);
+                }
+            } finally {
+                saveLock.unlock();
+            }
+        });
+    }
+
     public void jailPlayer(Player player) {
         if (jailLocation == null) {
             player.sendMessage(plugin.getLocaleManager().getMessage("errors.voidjail-not-set"));
             return;
         }
 
-        // Store their current location so we can teleport them back
         returnLocations.put(player.getUniqueId(), player.getLocation());
         jailedPlayers.add(player.getUniqueId());
+        saveData();
 
-        // Teleport them to the jail
         player.teleport(jailLocation);
-
-        // Inform them
         player.sendMessage(plugin.getLocaleManager().getMessage("voidjail.jailed-message"));
     }
 
-    /**
-     * Releases a player from the void jail.
-     * @param target The player to be released.
-     */
     public void unjailPlayer(OfflinePlayer target) {
         UUID uuid = target.getUniqueId();
-        if (!jailedPlayers.contains(uuid)) {
-            return; // Not jailed
-        }
+        if (!jailedPlayers.contains(uuid)) return;
 
-        Location returnLoc = returnLocations.get(uuid); // Get location before removing from jail set
+        Location returnLoc = returnLocations.remove(uuid);
         jailedPlayers.remove(uuid);
-
+        saveData();
 
         Player onlinePlayer = target.getPlayer();
-        if (onlinePlayer != null && onlinePlayer.isOnline() && returnLoc != null) {
-            // If the player is online, teleport them back immediately.
+        if (onlinePlayer != null && returnLoc != null) {
             onlinePlayer.teleport(returnLoc);
             onlinePlayer.sendMessage(plugin.getLocaleManager().getMessage("voidjail.unjailed-message"));
-            // Clear the location now that they've been teleported
-            clearReturnLocation(uuid);
+        } else if (returnLoc != null) {
+            pendingUnjailedOffline.add(uuid);
+            saveData();
         }
-        // If the player is offline, the PlayerJoinListener will handle teleporting them back.
     }
 
-    /**
-     * Checks if a player is currently in the void jail.
-     * @param uuid The UUID of the player.
-     * @return true if the player is jailed.
-     */
-    public boolean isJailed(UUID uuid) {
-        return jailedPlayers.contains(uuid);
-    }
+    public boolean hasPendingUnjail(UUID uuid) { return pendingUnjailedOffline.contains(uuid); }
 
-    /**
-     * Gets the location the player should be returned to upon release.
-     * @param uuid The UUID of the player.
-     * @return The saved return location, or null if not found.
-     */
-    public Location getReturnLocation(UUID uuid) {
-        return returnLocations.get(uuid);
-    }
+    public void clearPendingUnjail(UUID uuid) { pendingUnjailedOffline.remove(uuid); }
 
-    /**
-     * Gets the location of the void jail itself.
-     * @return The jail location.
-     */
-    public Location getJailLocation() {
-        return jailLocation;
-    }
-
-
-    /**
-     * Clears a player's return location from memory.
-     * @param uuid The UUID of the player.
-     */
-    public void clearReturnLocation(UUID uuid) {
-        returnLocations.remove(uuid);
-    }
+    public boolean isJailed(UUID uuid) { return jailedPlayers.contains(uuid); }
+    public Location getReturnLocation(UUID uuid) { return returnLocations.get(uuid); }
+    public Location getJailLocation() { return jailLocation; }
 }

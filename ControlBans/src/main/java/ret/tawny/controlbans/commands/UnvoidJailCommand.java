@@ -7,6 +7,8 @@ import ret.tawny.controlbans.ControlBansPlugin;
 import ret.tawny.controlbans.services.VoidJailService;
 
 import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 public class UnvoidJailCommand extends CommandBase {
 
@@ -30,24 +32,39 @@ public class UnvoidJailCommand extends CommandBase {
             return true;
         }
 
-        @SuppressWarnings("deprecation")
-        OfflinePlayer target = Bukkit.getOfflinePlayer(args[0]);
+        String targetName = args[0];
+        resolveTarget(targetName).thenAccept(target -> {
+            if (target == null) {
+                scheduler.runTask(() -> sender.sendMessage(locale.getMessage("errors.player-not-found", playerPlaceholder(targetName))));
+                return;
+            }
 
-        if (!voidJailService.isJailed(target.getUniqueId())) {
-            sender.sendMessage(locale.getMessage("voidjail.not-jailed", playerPlaceholder(target.getName())));
-            return true;
-        }
+            if (!voidJailService.isJailed(target.getUniqueId())) {
+                scheduler.runTask(() -> sender.sendMessage(locale.getMessage("voidjail.not-jailed", playerPlaceholder(target.getName() != null ? target.getName() : targetName))));
+                return;
+            }
 
-        voidJailService.unjailPlayer(target);
-        sender.sendMessage(locale.getMessage("voidjail.success-unjail", playerPlaceholder(target.getName())));
-
+            voidJailService.unjailPlayer(target);
+            scheduler.runTask(() -> sender.sendMessage(locale.getMessage("voidjail.success-unjail", playerPlaceholder(target.getName() != null ? target.getName() : targetName))));
+        });
         return true;
+    }
+
+    private CompletableFuture<OfflinePlayer> resolveTarget(String name) {
+        org.bukkit.entity.Player online = Bukkit.getPlayerExact(name);
+        if (online != null) return CompletableFuture.completedFuture(online);
+
+        return plugin.getStorage().getUuidByName(name).thenCompose(uuid -> {
+            if (uuid != null) return CompletableFuture.completedFuture(Bukkit.getOfflinePlayer(uuid));
+            return CompletableFuture.supplyAsync(() -> {
+                UUID mojangUuid = ret.tawny.controlbans.util.UuidUtil.lookupUuid(name);
+                return mojangUuid != null ? Bukkit.getOfflinePlayer(mojangUuid) : null;
+            });
+        });
     }
 
     @Override
     public List<String> onTab(CommandSender sender, String[] args) {
-        // We don't suggest online players here because the player might be offline.
-        // A future improvement could be to suggest from a list of jailed players.
         return List.of();
     }
 }

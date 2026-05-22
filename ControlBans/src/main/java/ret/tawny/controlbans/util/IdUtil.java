@@ -6,13 +6,9 @@ import java.util.Random;
 public final class IdUtil {
 
     private static final String ALPHANUMERIC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    private static final int ID_LENGTH = 6;
+    private static final int ID_LENGTH = 8;
     private static final Random RANDOM = new SecureRandom();
 
-    /**
-     * Generates a short, random, alphanumeric ID for a punishment.
-     * @return A 6-character uppercase alphanumeric string.
-     */
     public static String generatePunishmentId() {
         StringBuilder sb = new StringBuilder(ID_LENGTH);
         for (int i = 0; i < ID_LENGTH; i++) {

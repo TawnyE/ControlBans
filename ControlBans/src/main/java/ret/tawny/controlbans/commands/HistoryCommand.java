@@ -8,13 +8,15 @@ import ret.tawny.controlbans.ControlBansPlugin;
 import ret.tawny.controlbans.commands.gui.HistoryGuiManager;
 
 import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 public class HistoryCommand extends CommandBase {
     private final HistoryGuiManager guiManager;
 
     public HistoryCommand(ControlBansPlugin plugin, HistoryGuiManager guiManager) {
         super(plugin);
-        setCommand("history"); // Sets the command name for registration
+        setCommand("history");
         this.guiManager = guiManager;
     }
 
@@ -36,17 +38,27 @@ public class HistoryCommand extends CommandBase {
         }
 
         String targetName = args[0];
-
-        @SuppressWarnings("deprecation")
-        OfflinePlayer target = Bukkit.getOfflinePlayer(targetName);
-
-        if (!target.hasPlayedBefore() && !target.isOnline()) {
-            viewer.sendMessage(locale.getMessage("errors.player-not-found", playerPlaceholder(targetName)));
-            return true;
-        }
-
-        guiManager.openHistoryGui(viewer, target, 1);
+        resolveTarget(targetName).thenAccept(target -> {
+            if (target == null) {
+                scheduler.runTask(() -> viewer.sendMessage(locale.getMessage("errors.player-not-found", playerPlaceholder(targetName))));
+                return;
+            }
+            scheduler.runTask(() -> guiManager.openHistoryGui(viewer, target, 1));
+        });
         return true;
+    }
+
+    private CompletableFuture<OfflinePlayer> resolveTarget(String name) {
+        Player online = Bukkit.getPlayerExact(name);
+        if (online != null) return CompletableFuture.completedFuture(online);
+
+        return plugin.getStorage().getUuidByName(name).thenCompose(uuid -> {
+            if (uuid != null) return CompletableFuture.completedFuture(Bukkit.getOfflinePlayer(uuid));
+            return CompletableFuture.supplyAsync(() -> {
+                UUID mojangUuid = ret.tawny.controlbans.util.UuidUtil.lookupUuid(name);
+                return mojangUuid != null ? Bukkit.getOfflinePlayer(mojangUuid) : null;
+            });
+        });
     }
 
     @Override

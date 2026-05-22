@@ -42,8 +42,6 @@ public class UnbanSkinCommand extends CommandBase {
 
     @Override
     public List<String> onTab(CommandSender sender, String[] args) {
-        // We do not suggest online players as the target may be offline.
-        // A future improvement could be to suggest from a list of skin-banned players.
         return List.of();
     }
 }

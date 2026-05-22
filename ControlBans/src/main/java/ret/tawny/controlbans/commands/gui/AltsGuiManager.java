@@ -1,8 +1,10 @@
 package ret.tawny.controlbans.commands.gui;
 
+import com.destroystokyo.paper.profile.PlayerProfile;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
@@ -14,21 +16,23 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import ret.tawny.controlbans.ControlBansPlugin;
+import ret.tawny.controlbans.menus.ControlBansHolder;
 import ret.tawny.controlbans.model.Punishment;
 import ret.tawny.controlbans.model.PunishmentType;
 import ret.tawny.controlbans.services.AltService;
 import ret.tawny.controlbans.services.PunishmentService;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class AltsGuiManager {
 
     private final ControlBansPlugin plugin;
     private final AltService altService;
     private final PunishmentService punishmentService;
-    private final Map<UUID, Integer> openInventories = new ConcurrentHashMap<>();
     private static final int ITEMS_PER_PAGE = 45;
 
     public AltsGuiManager(ControlBansPlugin plugin) {
@@ -37,48 +41,69 @@ public class AltsGuiManager {
         this.punishmentService = plugin.getPunishmentService();
     }
 
+    public static class AltsHolder extends ControlBansHolder {
+        private final OfflinePlayer target;
+        private final int page;
+
+        public AltsHolder(OfflinePlayer target, int page) {
+            this.target = target;
+            this.page = page;
+        }
+
+        public OfflinePlayer getTarget() {
+            return target;
+        }
+
+        public int getPage() {
+            return page;
+        }
+    }
+
     public void openAltsGui(Player viewer, OfflinePlayer target, int page) {
+        int startPage = Math.max(1, page);
+        String targetName = getDisplayName(target);
+
         altService.findAltAccounts(target.getUniqueId())
                 .thenCombine(altService.findSharedIps(target.getUniqueId()), (alts, ips) -> {
-                    // Run GUI logic on the main server thread
-                    plugin.getSchedulerAdapter().runTask(() -> {
-                        int maxPage = (int) Math.ceil((double) alts.size() / ITEMS_PER_PAGE);
-                        if (maxPage == 0) maxPage = 1;
+                    int maxPage = Math.max(1, (int) Math.ceil((double) alts.size() / ITEMS_PER_PAGE));
+                    int currentPage = startPage > maxPage ? maxPage : startPage;
+                    int startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+                    int endIndex = Math.min(startIndex + ITEMS_PER_PAGE, alts.size());
 
-                        String titleStr = String.format("Alts: %s (%d/%d)", target.getName(), page, maxPage);
-                        // Use Component for inventory title
-                        Inventory inv = Bukkit.createInventory(null, 54, Component.text(titleStr));
+                    List<CompletableFuture<ItemStack>> itemFutures = new ArrayList<>();
+                    for (int i = startIndex; i < endIndex; i++) {
+                        itemFutures.add(createAltItem(alts.get(i)));
+                    }
 
-                        if (alts.isEmpty()) {
-                            inv.setItem(22, createNoAltsItem());
-                        } else {
-                            List<CompletableFuture<ItemStack>> itemFutures = new ArrayList<>();
-                            int startIndex = (page - 1) * ITEMS_PER_PAGE;
-                            int endIndex = Math.min(startIndex + ITEMS_PER_PAGE, alts.size());
+                    CompletableFuture.allOf(itemFutures.toArray(new CompletableFuture[0]))
+                            .thenRun(() -> {
+                                List<ItemStack> loadedItems = itemFutures.stream().map(CompletableFuture::join).toList();
 
-                            for (int i = startIndex; i < endIndex; i++) {
-                                UUID altUuid = alts.get(i);
-                                itemFutures.add(createAltItem(altUuid));
-                            }
+                                plugin.getSchedulerAdapter().runTaskForPlayer(viewer, () -> {
+                                    Inventory inv = Bukkit.createInventory(new AltsHolder(target, currentPage), 54,
+                                            plugin.getLocaleManager().getMessage("gui.alts.title",
+                                                    Placeholder.unparsed("player", targetName),
+                                                    Placeholder.unparsed("page", String.valueOf(currentPage)),
+                                                    Placeholder.unparsed("maxpage", String.valueOf(maxPage))));
 
-                            CompletableFuture.allOf(itemFutures.toArray(new CompletableFuture[0]))
-                                    .thenRun(() -> plugin.getSchedulerAdapter().runTask(() -> {
-                                        for (int i = 0; i < itemFutures.size(); i++) {
-                                            inv.setItem(i, itemFutures.get(i).join());
+                                    if (alts.isEmpty()) {
+                                        inv.setItem(22, createNoAltsItem());
+                                    } else {
+                                        for (int i = 0; i < loadedItems.size(); i++) {
+                                            inv.setItem(i, loadedItems.get(i));
                                         }
-                                    }));
-                        }
+                                    }
 
-                        inv.setItem(45, (page > 1) ? createNavItem("« Previous Page") : createFillerGlass());
-                        inv.setItem(49, createPlayerHeadItem(target, alts.size(), ips));
-                        inv.setItem(53, (page < maxPage) ? createNavItem("Next Page »") : createFillerGlass());
+                                    inv.setItem(45, currentPage > 1 ? createNavItem("gui.nav-previous") : createFillerGlass());
+                                    inv.setItem(49, createPlayerHeadItem(target, alts.size(), ips));
+                                    inv.setItem(53, currentPage < maxPage ? createNavItem("gui.nav-next") : createFillerGlass());
 
-                        viewer.openInventory(inv);
-                        openInventories.put(viewer.getUniqueId(), page);
-                    });
+                                    viewer.openInventory(inv);
+                                });
+                            });
                     return null;
                 }).exceptionally(ex -> {
-                    viewer.sendMessage(Component.text("An error occurred while fetching alt accounts.", NamedTextColor.RED));
+                    viewer.sendMessage(plugin.getLocaleManager().getMessage("errors.database-error"));
                     plugin.getLogger().warning("Failed to fetch alts for GUI: " + ex.getMessage());
                     return null;
                 });
@@ -86,57 +111,67 @@ public class AltsGuiManager {
 
     private CompletableFuture<ItemStack> createAltItem(UUID altUuid) {
         OfflinePlayer altPlayer = Bukkit.getOfflinePlayer(altUuid);
-        String altName = altPlayer.getName() != null ? altPlayer.getName() : "Unknown";
+        String altName = getDisplayName(altPlayer);
 
-        CompletableFuture<Optional<Punishment>> banFuture = punishmentService.getActiveBan(altUuid);
-        CompletableFuture<Optional<Punishment>> muteFuture = punishmentService.getActiveMute(altUuid);
-        CompletableFuture<List<Punishment>> historyFuture = punishmentService.getPunishmentHistory(altUuid, 200);
+        CompletableFuture<PlayerProfile> profileFuture = CompletableFuture.supplyAsync(() -> {
+            try {
+                return Bukkit.createProfile(altUuid, altName);
+            } catch (Exception e) {
+                return null;
+            }
+        });
 
-        return CompletableFuture.allOf(banFuture, muteFuture, historyFuture).thenApply(v -> {
-            Optional<Punishment> ban = banFuture.join();
-            Optional<Punishment> mute = muteFuture.join();
-            long warnings = historyFuture.join().stream().filter(p -> p.getType() == PunishmentType.WARN).count();
+        CompletableFuture<List<Punishment>> historyFuture = punishmentService.getPunishmentHistory(altUuid, 100);
+
+        return CompletableFuture.allOf(profileFuture, historyFuture).thenApply(v -> {
+            PlayerProfile profile = profileFuture.join();
+            List<Punishment> history = historyFuture.join();
+
+            PunishmentView punishments = PunishmentView.fromHistory(history);
+            long warnings = history.stream().filter(p -> p.getType() == PunishmentType.WARN).count();
 
             ItemStack head = new ItemStack(Material.PLAYER_HEAD);
             SkullMeta meta = (SkullMeta) head.getItemMeta();
-            meta.setOwningPlayer(altPlayer);
 
-            boolean isBanned = ban.isPresent();
-            boolean isMuted = mute.isPresent();
+            if (profile != null) {
+                meta.setPlayerProfile(profile);
+            } else {
+                meta.setOwningPlayer(altPlayer);
+            }
 
-            NamedTextColor statusColor = (isBanned) ? NamedTextColor.RED : (isMuted) ? NamedTextColor.BLUE : NamedTextColor.GREEN;
-            // Use displayName(Component) instead of setDisplayName(String)
+            boolean isBanned = punishments.hasBan();
+            boolean isMuted = punishments.hasMute();
+            boolean isVoiceMuted = punishments.hasVoiceMute();
+
+            NamedTextColor statusColor = isBanned
+                    ? NamedTextColor.RED
+                    : (isMuted || isVoiceMuted) ? NamedTextColor.BLUE : NamedTextColor.GREEN;
             meta.displayName(Component.text(altName).color(statusColor).decoration(TextDecoration.ITALIC, false));
 
-            // Use List<Component> for lore instead of List<String>
             List<Component> lore = new ArrayList<>();
-            lore.add(Component.text("Status:", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+            lore.add(plugin.getLocaleManager().getMessage("gui.alts.status-label").decoration(TextDecoration.ITALIC, false));
+            lore.add(isBanned
+                    ? plugin.getLocaleManager().getMessage("gui.alts.alt-banned",
+                    Placeholder.unparsed("reason", punishments.banReason())).decoration(TextDecoration.ITALIC, false)
+                    : plugin.getLocaleManager().getMessage("gui.alts.alt-not-banned").decoration(TextDecoration.ITALIC, false));
+            lore.add(isMuted
+                    ? plugin.getLocaleManager().getMessage("gui.alts.alt-muted",
+                    Placeholder.unparsed("reason", punishments.muteReason())).decoration(TextDecoration.ITALIC, false)
+                    : plugin.getLocaleManager().getMessage("gui.alts.alt-not-muted").decoration(TextDecoration.ITALIC, false));
+            lore.add(isVoiceMuted
+                    ? plugin.getLocaleManager().getMessage("gui.alts.alt-voice-muted",
+                    Placeholder.unparsed("reason", punishments.voiceMuteReason())).decoration(TextDecoration.ITALIC, false)
+                    : plugin.getLocaleManager().getMessage("gui.alts.alt-not-voice-muted").decoration(TextDecoration.ITALIC, false));
+            lore.add(plugin.getLocaleManager().getMessage("gui.alts.warnings-entry",
+                    Placeholder.unparsed("warnings", String.valueOf(warnings))).decoration(TextDecoration.ITALIC, false));
+            lore.add(Component.empty());
+            lore.add(plugin.getLocaleManager().getMessage("gui.alts.uuid-entry",
+                    Placeholder.unparsed("uuid", altUuid.toString())).decoration(TextDecoration.ITALIC, false));
 
             if (isBanned) {
-                lore.add(Component.text(" - Banned: Yes (", NamedTextColor.RED)
-                        .append(Component.text(ban.get().getReason(), NamedTextColor.WHITE))
-                        .append(Component.text(")", NamedTextColor.RED))
-                        .decoration(TextDecoration.ITALIC, false));
                 meta.addEnchant(Enchantment.UNBREAKING, 1, true);
                 meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-            } else {
-                lore.add(Component.text(" - Banned: No", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
             }
-
-            if (isMuted) {
-                lore.add(Component.text(" - Muted: Yes (", NamedTextColor.BLUE)
-                        .append(Component.text(mute.get().getReason(), NamedTextColor.WHITE))
-                        .append(Component.text(")", NamedTextColor.BLUE))
-                        .decoration(TextDecoration.ITALIC, false));
-            } else {
-                lore.add(Component.text(" - Muted: No", NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
-            }
-
-            lore.add(Component.text(" - Warnings: " + warnings, NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
-            lore.add(Component.empty());
-            lore.add(Component.text("UUID: ", NamedTextColor.GRAY)
-                    .append(Component.text(altUuid.toString(), NamedTextColor.WHITE))
-                    .decoration(TextDecoration.ITALIC, false));
 
             meta.lore(lore);
             head.setItemMeta(meta);
@@ -147,30 +182,37 @@ public class AltsGuiManager {
     private ItemStack createPlayerHeadItem(OfflinePlayer target, int totalAlts, Set<String> ips) {
         ItemStack head = new ItemStack(Material.PLAYER_HEAD);
         SkullMeta meta = (SkullMeta) head.getItemMeta();
-        meta.setOwningPlayer(target);
+        try {
+            meta.setOwningPlayer(target);
+        } catch (Exception ignored) {
+        }
 
-        meta.displayName(Component.text("Alt Check For: ", NamedTextColor.GREEN)
-                .append(Component.text(Objects.requireNonNull(target.getName()), NamedTextColor.WHITE))
-                .decoration(TextDecoration.ITALIC, false));
+        meta.displayName(plugin.getLocaleManager().getMessage("gui.alts.player-head-name",
+                Placeholder.unparsed("player", getDisplayName(target))).decoration(TextDecoration.ITALIC, false));
 
-        List<Component> lore = new ArrayList<>();
-        lore.add(Component.text("Found ", NamedTextColor.GRAY)
-                .append(Component.text(totalAlts, NamedTextColor.YELLOW))
-                .append(Component.text(" alt(s).", NamedTextColor.GRAY))
-                .decoration(TextDecoration.ITALIC, false));
-        lore.add(Component.empty());
-        lore.add(Component.text("Shared IPs:", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        List<Component> lore = new ArrayList<>(plugin.getLocaleManager().getMessageList("gui.alts.player-head-lore",
+                Placeholder.unparsed("alts", String.valueOf(totalAlts))));
+        lore.replaceAll(component -> component.decoration(TextDecoration.ITALIC, false));
 
         if (ips.isEmpty()) {
-            lore.add(Component.text("- None found", NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false));
+            lore.add(plugin.getLocaleManager().getMessage("gui.alts.no-ips").decoration(TextDecoration.ITALIC, false));
         } else {
-            ips.stream().map(this::maskIp).forEach(ip ->
-                    lore.add(Component.text("- " + ip, NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false)));
+            ips.stream()
+                    .limit(10)
+                    .map(this::maskIp)
+                    .forEach(ip -> lore.add(plugin.getLocaleManager().getMessage("gui.alts.ip-entry",
+                            Placeholder.unparsed("ip", ip)).decoration(TextDecoration.ITALIC, false)));
         }
 
         meta.lore(lore);
         head.setItemMeta(meta);
         return head;
+    }
+
+    private String getDisplayName(OfflinePlayer player) {
+        return player.getName() != null
+                ? player.getName()
+                : plugin.getLocaleManager().getRawMessage("gui.alts.unknown-player");
     }
 
     private String maskIp(String ip) {
@@ -187,15 +229,15 @@ public class AltsGuiManager {
     private ItemStack createNoAltsItem() {
         ItemStack item = new ItemStack(Material.BARRIER);
         ItemMeta meta = item.getItemMeta();
-        meta.displayName(Component.text("No Alternate Accounts Found", NamedTextColor.RED).decoration(TextDecoration.ITALIC, false));
+        meta.displayName(plugin.getLocaleManager().getMessage("gui.alts.no-alts-item-name").decoration(TextDecoration.ITALIC, false));
         item.setItemMeta(meta);
         return item;
     }
 
-    private ItemStack createNavItem(String name) {
+    private ItemStack createNavItem(String localeKey) {
         ItemStack item = new ItemStack(Material.ARROW);
         ItemMeta meta = item.getItemMeta();
-        meta.displayName(Component.text(name, NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
+        meta.displayName(plugin.getLocaleManager().getMessage(localeKey).decoration(TextDecoration.ITALIC, false));
         item.setItemMeta(meta);
         return item;
     }
@@ -208,7 +250,36 @@ public class AltsGuiManager {
         return item;
     }
 
-    public Map<UUID, Integer> getOpenInventories() {
-        return openInventories;
+    private record PunishmentView(String banReason, String muteReason, String voiceMuteReason) {
+        private static PunishmentView fromHistory(List<Punishment> history) {
+            String ban = history.stream()
+                    .filter(p -> p.getType().isBan() && p.isActive() && !p.isExpired())
+                    .map(Punishment::getReason)
+                    .findFirst()
+                    .orElse(null);
+            String mute = history.stream()
+                    .filter(p -> (p.getType() == PunishmentType.MUTE || p.getType() == PunishmentType.TEMPMUTE) && p.isActive() && !p.isExpired())
+                    .map(Punishment::getReason)
+                    .findFirst()
+                    .orElse(null);
+            String voiceMute = history.stream()
+                    .filter(p -> (p.getType() == PunishmentType.VOICEMUTE || p.getType() == PunishmentType.TEMPVOICEMUTE) && p.isActive() && !p.isExpired())
+                    .map(Punishment::getReason)
+                    .findFirst()
+                    .orElse(null);
+            return new PunishmentView(ban, mute, voiceMute);
+        }
+
+        private boolean hasBan() {
+            return banReason != null;
+        }
+
+        private boolean hasMute() {
+            return muteReason != null;
+        }
+
+        private boolean hasVoiceMute() {
+            return voiceMuteReason != null;
+        }
     }
 }

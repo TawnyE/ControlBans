@@ -39,7 +39,7 @@ public class MuteCommand extends CommandBase {
         }
         String reason = reasonJoiner.toString().isEmpty() ? null : reasonJoiner.toString();
 
-        sender.sendMessage(locale.getMessage("actions.muting", playerPlaceholder(targetName)));
+
         punishmentService.mutePlayer(targetName, reason, getSenderUuid(sender), sender.getName(), silent)
                 .whenComplete((unused, throwable) -> {
                     if (throwable != null) {

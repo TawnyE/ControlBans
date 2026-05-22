@@ -50,7 +50,7 @@ public class TempBanCommand extends CommandBase {
         }
         String reason = reasonJoiner.toString().isEmpty() ? null : reasonJoiner.toString();
 
-        sender.sendMessage(locale.getMessage("actions.temp-banning", playerPlaceholder(targetName)));
+
         punishmentService.tempBanPlayer(targetName, duration, reason, getSenderUuid(sender), sender.getName(), silent, false)
                 .whenComplete((unused, throwable) -> {
                     if (throwable != null) {

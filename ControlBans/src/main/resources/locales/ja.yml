@@ -1,79 +1,581 @@
-# ControlBans Japanese Locale
-# Placeholders: <player>, <staff>, <reason>, <duration>, <id>, <server>, <usage>, <count>, <error>, <page>, <maxpage>, <alts>, <ips>
-# You can use MiniMessage formatting: https://docs.adventure.kyori.net/minimessage/format.html
+# ControlBans 日本語ローカライズ
+# プレースホルダー: <player>, <staff>, <reason>, <duration>, <id>, <server>, <usage>, <count>, <error>, <page>, <maxpage>, <alts>, <ips>
+# MiniMessage形式を使用できます: https://docs.adventure.kyori.net/minimessage/format.html
+# プレミアムカラーパレット (グラデーションとHexカラー)
 
-prefix: "<gray>[<red>ControlBans<gray>]<white>"
+prefix: "<gradient:#FFFFFF:#BC002D>ᴄᴏɴᴛʀᴏʟʙᴀɴꜱ</gradient> <dark_gray>»"
 
 errors:
-  no-permission: "<red>このコマンドを使用する権限がありません。"
-  player-not-found: "<red>プレイヤー '<player>' が見つかりません。"
-  player-not-found-typo: "<red>プレイヤー '<player>' が見つかりませんでした。入力ミスの可能性がありますので、名前を確認してもう一度お試しください。"
-  floodgate-cache-error: "<red>Bedrockプレイヤー '<player>' が見つかりませんでした。名前でBANするには、少なくとも一度サーバーに参加する必要があります。"
-  player-not-banned: "<red>プレイヤー '<player>' はBANされていません。"
-  player-not-muted: "<red>プレイヤー '<player>' はミュートされていません。"
-  player-not-voice-muted: "<red>プレイヤー '<player>' はボイスミュートされていません。"
-  player-offline: "<red>プレイヤー '<player>' はオンラインではありません。"
-  invalid-duration: "<red>無効な期間形式です。例: 1d2h3m4s"
-  invalid-arguments: "<red>無効な引数です。使用法: <usage>"
-  database-error: "<red>データベースエラーが発生しました。コンソールを確認してください。"
-  import-failed: "<red>インポートに失敗しました: <error>"
-  cannot-punish-self: "<red>自分自身を罰することはできません。"
-  cannot-punish-exempt: "<red>このプレイヤーは免除されているため、罰することはできません。"
+  no-permission: "<#FF6B6B>✘ <#FF8E8E>このコマンドを使用する権限がありません。"
+  player-not-found: "<#FF6B6B>✘ <#FF8E8E>プレイヤー '<white><player><#FF8E8E>' が見つかりません。"
+  player-not-found-typo: "<#FF6B6B>✘ <#FF8E8E>プレイヤー '<white><player><#FF8E8E>' が見つかりませんでした。入力ミスの可能性があります。名前を確認して再試行してください。"
+  floodgate-cache-error: "<#FF6B6B>✘ <#FF8E8E>Bedrockプレイヤー '<white><player><#FF8E8E>' が見つかりませんでした。名前でBANするには、サーバーに少なくとも1回参加する必要があります。"
+  player-not-banned: "<#FF6B6B>✘ <#FF8E8E>プレイヤー '<white><player><#FF8E8E>' はBANされていません。"
+  player-not-muted: "<#FF6B6B>✘ <#FF8E8E>プレイヤー '<white><player><#FF8E8E>' はミュートされていません。"
+  player-not-voice-muted: "<#FF6B6B>✘ <#FF8E8E>プレイヤー '<white><player><#FF8E8E>' はボイスミュートされていません。"
+  player-offline: "<#FF6B6B>✘ <#FF8E8E>プレイヤー '<white><player><#FF8E8E>' はオンラインではありません。"
+  invalid-duration: "<#FF6B6B>✘ <#FF8E8E>無効な期間形式です。例: <white>1d2h3m4s"
+  invalid-arguments: "<#FF6B6B>✘ <#FF8E8E>無効な引数です。使用法: <white><usage>"
+  database-error: "<#FF6B6B>✘ <#FF8E8E>データベースエラーが発生しました。コンソールを確認してください。"
+  import-failed: "<#FF6B6B>✘ <#FF8E8E>インポートに失敗しました: <white><error>"
+  cannot-punish-self: "<#FF6B6B>✘ <#FF8E8E>自分自身を罰することはできません。"
+  cannot-punish-exempt: "<#FF6B6B>✘ <#FF8E8E>このプレイヤーは免除されているため、罰することはできません。"
   command-from-console-error: "このコマンドはプレイヤーのみが実行できます。"
-  id-not-found: "<red>そのIDの処罰は見つかりませんでした。"
-  voidjail-not-set: "<red>Void jailが正しく設定されていません。管理者に連絡してください。"
+  id-not-found: "<#FF6B6B>✘ <#FF8E8E>そのIDの処罰は見つかりませんでした。"
+  voidjail-not-set: "<#FF6B6B>✘ <#FF8E8E>Void jailが正しく設定されていません。管理者に連絡してください。"
+  blacklisted: "<#FF6B6B>✘ <#FF8E8E>アクセスが拒否されました: <white><reason>"
+  ip-not-banned: "<red>IP '<white><ip><red>'はBANされていません。"
+  ip-not-muted: "<red>IP '<white><ip><red>'はミュートされていません。"
+  no-ip-on-record: "<red>'<white><target><red>'のIPが記録されていません。"
 
 appeals:
-  disabled: "<red>現在、アピールは利用できません。"
-  message-required: "<red>アピールには短いメッセージを含めてください。"
-  not-muted: "<red>アピールするアクティブなミュートがありません。"
-  submitted: "<green>処罰 <id> のアピールが送信されました。"
-  cooldown: "<red>次のアピールを送信するまで <duration> 待つ必要があります。"
-  limit: "<red>アピールの上限に達しました。 <duration> 後に再試行してください。"
-  error: "<red>アピールの送信中に問題が発生しました。スタッフに連絡してください。"
+  disabled: "<#FF6B6B>✘ <#FF8E8E>現在、アピールは利用できません。"
+  message-required: "<#FF6B6B>✘ <#FF8E8E>アピールには短いメッセージを含めてください。"
+  not-muted: "<#FF6B6B>✘ <#FF8E8E>アピールするアクティブなミュートがありません。"
+  submitted: "<#7FFF7F>✔ <#AAFFAA>処罰 <white><id><#AAFFAA> のアピールが送信されました。"
+  cooldown: "<#FF6B6B>✘ <#FF8E8E>次のアピールまで <white><duration><#FF8E8E> 待ってください。"
+  limit: "<#FF6B6B>✘ <#FF8E8E>アピールの上限に達しました。<white><duration><#FF8E8E> 後に再試行してください。"
+  error: "<#FF6B6B>✘ <#FF8E8E>アピールの送信中に問題が発生しました。スタッフに連絡してください。"
 
 success:
-  ban: "<green><red><player><green>を正常にBANしました。"
-  tempban: "<green><red><player><green>を<red><duration><green>の間、正常に一時BANしました。"
-  unban: "<green><red><player><green>を正常にBAN解除しました。"
-  mute: "<green><red><player><green>を正常にミュートしました。"
-  tempmute: "<green><red><player><green>を<red><duration><green>の間、正常に一時ミュートしました。"
-  unmute: "<green><red><player><green>のミュートを正常に解除しました。"
-  voicemute: "<green><red><player><green>を正常にボイスミュートしました。"
-  voiceunmute: "<green><red><player><green>のボイスミュートを正常に解除しました。"
-  warn: "<green><red><player><green>に正常に警告しました。"
-  kick: "<green><red><player><green>を正常にキックしました。"
-  ipban: "<green>IP BANを正常に適用しました。"
-  ipmute: "<green>IPミュートを正常に適用しました。"
-  import-complete: "<green>インポートが正常に完了しました。<red><count><green>件のレコードをインポートしました。"
-  reload: "<green>ControlBansの設定をリロードしました。"
+  ban: "<#7FFF7F>✔ <#AAFFAA><white><player><#AAFFAA>を正常にBANしました。"
+  tempban: "<#7FFF7F>✔ <#AAFFAA><white><player><#AAFFAA>を<#FFD93D><duration><#AAFFAA>の間、一時的にBANしました。"
+  unban: "<#7FFF7F>✔ <#AAFFAA><white><player><#AAFFAA>を正常にBAN解除しました。"
+  unban_ip: "<#7FFF7F>✔ <#AAFFAA>IPをBAN解除しました。"
+  mute: "<#7FFF7F>✔ <#AAFFAA><white><player><#AAFFAA>を正常にミュートしました。"
+  tempmute: "<#7FFF7F>✔ <#AAFFAA><white><player><#AAFFAA>を<#FFD93D><duration><#AAFFAA>の間、一時的にミュートしました。"
+  unmute: "<#7FFF7F>✔ <#AAFFAA><white><player><#AAFFAA>のミュートを解除しました。"
+  unmute_ip: "<#7FFF7F>✔ <#AAFFAA>IPのミュートを解除しました。"
+  voicemute: "<#7FFF7F>✔ <#AAFFAA><white><player><#AAFFAA>を正常にボイスミュートしました。"
+  voiceunmute: "<#7FFF7F>✔ <#AAFFAA><white><player><#AAFFAA>のボイスミュートを解除しました。"
+  warn: "<#7FFF7F>✔ <#AAFFAA><white><player><#AAFFAA>に正常に警告しました。"
+  kick: "<#7FFF7F>✔ <#AAFFAA><white><player><#AAFFAA>を正常にキックしました。"
+  ipban: "<#7FFF7F>✔ <#AAFFAA>IP BANを正常に適用しました。"
+  ipmute: "<#7FFF7F>✔ <#AAFFAA>IPミュートを正常に適用しました。"
+  import-complete: "<#7FFF7F>✔ <#AAFFAA>インポート完了。<white><count><#AAFFAA>件のレコードをインポートしました。"
+  reload: "<#7FFF7F>✔ <#AAFFAA>ControlBansの設定をリロードしました。"
+
+  shadowmute-secret: "<gray>[<white>シャドウミュートが秘密裏に適用されました<gray>]"
+  tempvoicemute: "<#7FFF7F>✔ <#AAFFAA><white><player><#AAFFAA>を<#FFD93D><duration><#AAFFAA>の間、ボイスミュートしました。"
+
+actionbar:
+  voice-muted: "<gradient:#FF4444:#FF6666><bold>🔇 ボイスチャットでミュートされています</bold></gradient>"
+
+bossbar:
+  voice-mute:
+    title: "<red><bold>🔇 ボイスミュート:</bold> <yellow><time_remaining>"
+    color: "RED"
+    style: "SOLID"
 
 actions:
-  banning: "<yellow><player>をBANしています..."
-  temp-banning: "<yellow><player>を一時BANしています..."
-  unbanning: "<yellow><player>のBANを解除しています..."
-  muting: "<yellow><player>をミュートしています..."
-  temp-muting: "<yellow><player>を一時ミュートしています..."
-  unmuting: "<yellow><player>のミュートを解除しています..."
-  voice-muting: "<yellow><player>をボイスミュートしています..."
-  voice-unmuting: "<yellow><player>のボイスミュートを解除しています..."
-  warning: "<yellow><player>に警告しています..."
-  kicking: "<yellow><player>をキックしています..."
-  ip-banning: "<yellow>対象のIP BANを適用しています: <player>..."
-  ip-muting: "<yellow>対象のIPミュートを適用しています: <player>..."
-  checking-id: "<yellow>処罰IDを確認しています: <id>..."
-  checking-player: "<yellow><player>の処罰状況を確認しています..."
-  finding-alts: "<yellow><player>の代替アカウントを検索しています..."
+  banning: "<#5DADE2>⏳ <#8BC4EA><white><player><#8BC4EA>をBANしています..."
+  temp-banning: "<#5DADE2>⏳ <#8BC4EA><white><player><#8BC4EA>を一時BANしています..."
+  unbanning: "<#5DADE2>⏳ <#8BC4EA><white><player><#8BC4EA>のBANを解除しています..."
+  muting: "<#5DADE2>⏳ <#8BC4EA><white><player><#8BC4EA>をミュートしています..."
+  temp-muting: "<#5DADE2>⏳ <#8BC4EA><white><player><#8BC4EA>を一時ミュートしています..."
+  unmuting: "<#5DADE2>⏳ <#8BC4EA><white><player><#8BC4EA>のミュートを解除しています..."
+  voice-muting: "<#5DADE2>⏳ <#8BC4EA><white><player><#8BC4EA>をボイスミュートしています..."
+  voice-unmuting: "<#5DADE2>⏳ <#8BC4EA><white><player><#8BC4EA>のボイスミュートを解除しています..."
+  warning: "<#5DADE2>⏳ <#8BC4EA><white><player><#8BC4EA>に警告しています..."
+  kicking: "<#5DADE2>⏳ <#8BC4EA><white><player><#8BC4EA>をキックしています..."
+  ip-banning: "<#5DADE2>⏳ <#8BC4EA>IP BANを適用しています: <white><player><#8BC4EA>..."
+  ip-muting: "<#5DADE2>⏳ <#8BC4EA>IPミュートを適用しています: <white><player><#8BC4EA>..."
+  checking-id: "<#5DADE2>⏳ <#8BC4EA>処罰IDを確認しています: <white><id><#8BC4EA>..."
+  checking-player: "<#5DADE2>⏳ <#8BC4EA><white><player><#8BC4EA>の処罰状況を確認しています..."
+  finding-alts: "<#5DADE2>⏳ <#8BC4EA><white><player><#8BC4EA>の代替アカウントを検索しています..."
+  unbanning_ip: "<aqua>IP <white><ip><aqua>のBANを解除しています..."
+  temp-voice-muting: "<#5DADE2>⏳ <#8BC4EA><white><player><#8BC4EA>を一時的にボイスミュートしています..."
+
+voidjail:
+  jailed-message: "<gradient:#8B0000:#B22222><bold>⛓ Void刑務所に送られました ⛓</bold></gradient>"
+  unjailed-message: "<#7FFF7F>✔ <#AAFFAA>Void刑務所から解放されました。"
+  command-blocked: "<#FF6B6B>✘ <#FF8E8E>Void刑務所ではこのコマンドを使用できません。"
+  chat-blocked: "<#666666>口に制限がかけられており、話すことができません。"
+  success-jail: "<#7FFF7F>✔ <#AAFFAA><white><player><#AAFFAA>を正常にVoid刑務所に送りました。"
+  success-unjail: "<#7FFF7F>✔ <#AAFFAA><white><player><#AAFFAA>を正常にVoid刑務所から解放しました。"
+  not-jailed: "<#FF6B6B>✘ <#FF8E8E>プレイヤー <white><player><#FF8E8E> は現在Void刑務所にいません。"
+
+skinban:
+  success-ban: "<#7FFF7F>✔ <#AAFFAA><white><player><#AAFFAA>のスキンを正常にBANしました。"
+  success-unban: "<#7FFF7F>✔ <#AAFFAA><white><player><#AAFFAA>のスキンを正常に復元しました。"
+  already-banned: "<#FF6B6B>✘ <#FF8E8E>プレイヤー <white><player><#FF8E8E> のスキンは既にBANされています。"
+  not-banned: "<#FF6B6B>✘ <#FF8E8E>プレイヤー <white><player><#FF8E8E> のスキンはBANされていません。"
+  player-notification: "<#FF6B6B>あなたのスキンはスタッフによって削除されました。BANが解除されれば、再参加時に復元されます。"
+  unban-kick: "<#7FFF7F>スキンが復元されました。変更を確認するために、サーバーに再参加してください。"
 
 broadcasts:
-  ban: "<dark_red><bold>BAN <gray>│ <white><player><red>は<white><staff><red>によって永久にBANされました。理由: <white><reason>"
-  tempban: "<dark_red><bold>BAN <gray>│ <white><player><red>は<white><staff><red>によって一時的にBANされました。理由: <white><reason>"
-  unban: "<dark_green><bold>UNBAN <gray>│ <white><player><green>は<white><staff><green>によってBAN解除されました。"
-  mute: "<dark_blue><bold>MUTE <gray>│ <white><player><blue>は<white><staff><blue>によって永久にミュートされました。理由: <white><reason>"
-  tempmute: "<dark_blue><bold>MUTE <gray>│ <white><player><blue>は<white><staff><blue>によって一時的にミュートされました。理由: <white><reason>"
-  unmute: "<dark_aqua><bold>UNMUTE <gray>│ <white><player><aqua>は<white><staff><aqua>によってミュート解除されました。"
-  voicemute: "<dark_blue><bold>VOICE MUTE <gray>│ <white><player><blue>は<white><staff><blue>によってボイスミュートされました。理由: <white><reason>"
-  voiceunmute: "<dark_aqua><bold>VOICE UNMUTE <gray>│ <white><player><aqua>は<white><staff><aqua>によってボイスミュート解除されました。"
-  warn: "<gold><bold>WARN <gray>│ <white><player><yellow>は<white><staff><yellow>によって警告されました。理由: <white><reason>"
-  kick: "<red><bold>KICK <gray>│ <white><player><red>は<white><staff><red>によってキックされました。理由: <white><reason>"
-  ipban: "<dark_red><bold>IP-BAN <gray>│ <red>IPアドレスが<white><staff><red>によって永久にBANされました。理由: <white><reason>"
+  ban: "<gradient:#FF4444:#FF6666><bold>BAN</bold></gradient> <dark_gray>┃ <white><player> <#FF8E8E>は <white><staff> <#FF8E8E>によって永久にBANされました。理由: <#B0B0B0><reason>"
+  tempban: "<gradient:#FF4444:#FF6666><bold>BAN</bold></gradient> <dark_gray>┃ <white><player> <#FF8E8E>は <white><staff> <#FF8E8E>によって一時BANされました。理由: <#B0B0B0><reason>"
+  unban: "<gradient:#4CAF50:#8BC34A><bold>UNBAN</bold></gradient> <dark_gray>┃ <white><player> <#AAFFAA>は <white><staff><#AAFFAA> によってBAN解除されました。"
+  mute: "<gradient:#3498DB:#5DADE2><bold>MUTE</bold></gradient> <dark_gray>┃ <white><player> <#8BC4EA>は <white><staff> <#8BC4EA>によって永久にミュートされました。理由: <#B0B0B0><reason>"
+  tempmute: "<gradient:#3498DB:#5DADE2><bold>MUTE</bold></gradient> <dark_gray>┃ <white><player> <#8BC4EA>は <white><staff> <#8BC4EA>によって一時ミュートされました。理由: <#B0B0B0><reason>"
+  unmute: "<gradient:#00BCD4:#4DD0E1><bold>UNMUTE</bold></gradient> <dark_gray>┃ <white><player> <#80DEEA>は <white><staff><#80DEEA> によってミュート解除されました。"
+  voicemute: "<gradient:#9C27B0:#BA68C8><bold>VOICE MUTE</bold></gradient> <dark_gray>┃ <white><player> <#CE93D8>は <white><staff> <#CE93D8>によってボイスミュートされました。理由: <#B0B0B0><reason>"
+  voiceunmute: "<gradient:#00BCD4:#4DD0E1><bold>VOICE UNMUTE</bold></gradient> <dark_gray>┃ <white><player> <#80DEEA>は <white><staff><#80DEEA> によってボイスミュート解除されました。"
+  tempvoicemute: "<gradient:#9C27B0:#BA68C8><bold>TEMP VOICE MUTE</bold></gradient> <dark_gray>┃ <white><player> <#CE93D8>は <white><staff> <#CE93D8>によって一時的にボイスミュートされました。理由: <#B0B0B0><reason>"
+  warn: "<gradient:#FF9800:#FFB74D><bold>WARN</bold></gradient> <dark_gray>┃ <white><player> <#FFCC80>は <white><staff> <#FFCC80>によって警告されました。理由: <#B0B0B0><reason>"
+  kick: "<gradient:#FF5722:#FF8A65><bold>KICK</bold></gradient> <dark_gray>┃ <white><player> <#FFAB91>は <white><staff> <#FFAB91>によってキックされました。理由: <#B0B0B0><reason>"
+  ipban: "<gradient:#8B0000:#B22222><bold>IP-BAN</bold></gradient> <dark_gray>┃ <#FF8E8E>IPアドレスが <white><staff> <#FF8E8E>によって永久にBANされました。理由: <#B0B0B0><reason>"
+
+screens:
+  ban:
+    - ""
+    - "<gradient:#FF4444:#FF8E53><bold>⚡ CONTROLBANS ⚡</bold></gradient>"
+    - ""
+    - "<gradient:#FF6B6B:#FF8E8E>§ あなたはこのサーバーからBANされています §</gradient>"
+    - ""
+    - "<#555555><strikethrough>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</strikethrough>"
+    - "<#B0B0B0>👤 <#5DADE2>ユーザー名 <dark_gray>» <white><player>"
+    - "<#B0B0B0>📅 <#5DADE2>処罰日時 <dark_gray>» <white><date>"
+    - "<#B0B0B0>🛡️ <#5DADE2>処罰者 <dark_gray>» <white><staff>"
+    - "<#B0B0B0>⚖ <#5DADE2>理由 <dark_gray>» <white><reason>"
+    - ""
+    - "<#B0B0B0>⌛ <#5DADE2>有効期限 <dark_gray>» <#FF6B6B>無期限"
+    - "<#B0B0B0>🆔 <#5DADE2>処罰ID <dark_gray>» <#FFD93D><id>"
+    - "<#B0B0B0>✉ <#5DADE2>アピール <dark_gray>» <#7FFF7F>appeal.yourserver.net"
+    - "<#555555><strikethrough>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</strikethrough>"
+    - ""
+  tempban:
+    - ""
+    - "<gradient:#FF4444:#FF8E53><bold>⚡ CONTROLBANS ⚡</bold></gradient>"
+    - ""
+    - "<gradient:#FF6B6B:#FF8E8E>§ あなたはこのサーバーからBANされています §</gradient>"
+    - ""
+    - "<#555555><strikethrough>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</strikethrough>"
+    - "<#B0B0B0>👤 <#5DADE2>ユーザー名 <dark_gray>» <white><player>"
+    - "<#B0B0B0>📅 <#5DADE2>処罰日時 <dark_gray>» <white><date>"
+    - "<#B0B0B0>🛡️ <#5DADE2>処罰者 <dark_gray>» <white><staff>"
+    - "<#B0B0B0>⚖ <#5DADE2>理由 <dark_gray>» <white><reason>"
+    - ""
+    - "<#B0B0B0>⌛ <#5DADE2>残り時間 <dark_gray>» <#FFD93D><duration>"
+    - "<#B0B0B0>🆔 <#5DADE2>処罰ID <dark_gray>» <#FFD93D><id>"
+    - "<#B0B0B0>✉ <#5DADE2>アピール <dark_gray>» <#7FFF7F>appeal.yourserver.net"
+    - "<#555555><strikethrough>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</strikethrough>"
+    - ""
+  ip_ban:
+    - ""
+    - "<gradient:#FF4444:#FF8E53><bold>⚡ CONTROLBANS ⚡</bold></gradient>"
+    - ""
+    - "<gradient:#8B0000:#B22222>§ あなたのIPはこのサーバーからBANされています §</gradient>"
+    - ""
+    - "<#555555><strikethrough>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</strikethrough>"
+    - "<#B0B0B0>🛡️ <#5DADE2>処罰者 <dark_gray>» <white><staff>"
+    - "<#B0B0B0>⚖ <#5DADE2>理由 <dark_gray>» <white><reason>"
+    - ""
+    - "<#B0B0B0>⌛ <#5DADE2>有効期限 <dark_gray>» <#FF6B6B>無期限"
+    - "<#B0B0B0>🆔 <#5DADE2>処罰ID <dark_gray>» <#FFD93D><id>"
+    - "<#B0B0B0>✉ <#5DADE2>アピール <dark_gray>» <#7FFF7F>appeal.yourserver.net"
+    - "<#555555><strikethrough>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</strikethrough>"
+    - ""
+  ip_tempban:
+    - ""
+    - "<gradient:#FF4444:#FF8E53><bold>⚡ CONTROLBANS ⚡</bold></gradient>"
+    - ""
+    - "<gradient:#8B0000:#B22222>§ あなたのIPはこのサーバーからBANされています §</gradient>"
+    - ""
+    - "<#555555><strikethrough>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</strikethrough>"
+    - "<#B0B0B0>🛡️ <#5DADE2>処罰者 <dark_gray>» <white><staff>"
+    - "<#B0B0B0>⚖ <#5DADE2>理由 <dark_gray>» <white><reason>"
+    - ""
+    - "<#B0B0B0>⌛ <#5DADE2>残り時間 <dark_gray>» <#FFD93D><duration>"
+    - "<#B0B0B0>🆔 <#5DADE2>処罰ID <dark_gray>» <#FFD93D><id>"
+    - "<#B0B0B0>✉ <#5DADE2>アピール <dark_gray>» <#7FFF7F>appeal.yourserver.net"
+    - "<#555555><strikethrough>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</strikethrough>"
+    - ""
+  kick:
+    - ""
+    - "<gradient:#FF4444:#FF8E53><bold>⚡ CONTROLBANS ⚡</bold></gradient>"
+    - ""
+    - "<gradient:#FF5722:#FF8A65>§ サーバーからキックされました §</gradient>"
+    - ""
+    - "<#555555><strikethrough>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</strikethrough>"
+    - "<#B0B0B0>🛡️ <#5DADE2>キック者 <dark_gray>» <white><staff>"
+    - "<#B0B0B0>⚖ <#5DADE2>理由 <dark_gray>» <white><reason>"
+    - "<#555555><strikethrough>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</strikethrough>"
+    - ""
+  mute:
+    - "<gradient:#3498DB:#5DADE2><bold>CONTROLBANS</bold></gradient> <dark_gray>» <#FF6B6B>ミュートされました"
+    - "<#B0B0B0><white><staff><#B0B0B0> によってミュートされました。"
+    - "<#B0B0B0>理由: <white><reason>"
+    - "<#B0B0B0>この処罰は <#FF6B6B>無期限<#B0B0B0> です。"
+  tempmute:
+    - "<gradient:#3498DB:#5DADE2><bold>CONTROLBANS</bold></gradient> <dark_gray>» <#FF6B6B>ミュートされました"
+    - "<#B0B0B0><white><staff><#B0B0B0> によってミュートされました。"
+    - "<#B0B0B0>理由: <white><reason>"
+    - "<#B0B0B0>この処罰は <#FFD93D><duration><#B0B0B0> で解除されます。"
+  voicemute:
+    - "<gradient:#9C27B0:#BA68C8><bold>CONTROLBANS</bold></gradient> <dark_gray>» <#FF6B6B>ボイスミュートされました"
+    - "<#B0B0B0><white><staff><#B0B0B0> によってボイスミュートされました。"
+    - "<#B0B0B0>理由: <white><reason>"
+    - "<#B0B0B0>ボイスチャットで話すことができません。"
+  ip_mute:
+    - "<gradient:#3498DB:#5DADE2><bold>CONTROLBANS</bold></gradient> <dark_gray>» <#FF6B6B>あなたのIPがミュートされました"
+    - "<#B0B0B0>あなたのIPは <white><staff><#B0B0B0> によってミュートされました。"
+    - "<#B0B0B0>理由: <white><reason>"
+    - "<#B0B0B0>この処罰は <#FF6B6B>無期限<#B0B0B0> です。"
+  ip_tempmute:
+    - "<gradient:#3498DB:#5DADE2><bold>CONTROLBANS</bold></gradient> <dark_gray>» <#FF6B6B>あなたのIPがミュートされました"
+    - "<#B0B0B0>あなたのIPは <white><staff><#B0B0B0> によってミュートされました。"
+    - "<#B0B0B0>理由: <white><reason>"
+    - "<#B0B0B0>この処罰は <#FFD93D><duration><#B0B0B0> で解除されます。"
+  warn:
+    - "<gradient:#FF9800:#FFB74D><bold>CONTROLBANS</bold></gradient> <dark_gray>» <#FFD93D>警告されました"
+    - "<#B0B0B0><white><staff><#B0B0B0> によって警告されました。"
+    - "<#B0B0B0>理由: <white><reason>"
+    - "<#B0B0B0>同じ行為を繰り返さないでください！"
+
+check:
+  banned: "<#FF6B6B>BAN中: <white><reason> <#B0B0B0>(ID: <#FFD93D><id><#B0B0B0>)"
+  not-banned: "<#7FFF7F>✔ BANされていません。"
+  muted: "<#FFD93D>ミュート中: <white><reason> <#B0B0B0>(ID: <#FFD93D><id><#B0B0B0>)"
+  not-muted: "<#7FFF7F>✔ ミュートされていません。"
+  info-header: "<gradient:#FF9800:#FFB74D><bold>処罰情報</bold></gradient> <#B0B0B0>(<#FFD93D><id><#B0B0B0>)"
+  info-type: "<#B0B0B0>  » <#5DADE2>種類: <white><type>"
+  info-player: "<#B0B0B0>  » <#5DADE2>プレイヤー: <white><player>"
+  info-staff: "<#B0B0B0>  » <#5DADE2>スタッフ: <white><staff>"
+  info-reason: "<#B0B0B0>  » <#5DADE2>理由: <white><reason>"
+  info-date: "<#B0B0B0>  » <#5DADE2>日付: <white><date>"
+  info-duration: "<#B0B0B0>  » <#5DADE2>期間: <white><duration>"
+  info-status: "<#B0B0B0>  » <#5DADE2>状態: <status>"
+  status-active: "<#7FFF7F>有効"
+  status-inactive: "<#FF6B6B>無効"
+
+alts:
+  no-alts: "<#7FFF7F>✔ <white><player><#B0B0B0>の代替アカウントは見つかりませんでした。"
+  header: "<gradient:#FF9800:#FFB74D><bold>代替アカウント</bold></gradient> <#B0B0B0>対象: <#FFD93D><player><#B0B0B0>:"
+  shared-ips: "<#B0B0B0>共有IP: <#FFD93D><ips>"
+  status-banned: "<#FF6B6B> [BAN中]"
+  status-muted: "<#5DADE2> [ミュート中]"
+  join-alert: "<red>[Alts]</red> <white><player> <gray>が参加しました。</gray> <white><banned_player></white> <gray>の疑いのあるaltアカウント</gray> <gray>(<#FFD93D><confidence>%<gray> 一致)"
+
+automod:
+  spam-warning: "<red>AutoMod >> </red><gray>メッセージの頻度を下げるか、同じ内容を繰り返さないでください。</gray>"
+  rule-denied: "<red>AutoMod >> </red><gray><message></gray>"
+  staff-alert: "<red>[AutoMod]</red> <white><player></white> <gray>が</gray> <yellow><rule></yellow> <gray>を</gray> <aqua><type></aqua> <gray>でトリガーしました</gray>"
+
+config-editor:
+  prompt: "<#FFD93D>チャットに<white><path><#FFD93D>の新しい値を入力するか、'cancel'と入力してください。"
+  cancelled: "<#FF6B6B>編集がキャンセルされました。"
+  updating: "<#FFD93D>設定を更新中..."
+  updated: "<#7FFF7F><white><path><#7FFF7F>を<white><value><#7FFF7F>に更新しました。"
+  save-failed: "<#FF6B6B>設定の保存に失敗しました: <white><error>"
+
+gui:
+  history:
+    title: "履歴: <player> (<page>/<maxpage>)"
+    item-name: "<#FFD93D><type>"
+    item-lore:
+      - "<#B0B0B0>理由: <white><reason>"
+      - "<#B0B0B0>実行者: <white><staff>"
+      - "<#B0B0B0>日付: <white><date>"
+      - " "
+      - "<#B0B0B0>期間: <white><duration>"
+      - "<#B0B0B0>状態: <status>"
+      - "<#B0B0B0>ID: <#FFD93D><id>"
+    player-head-name: "<#7FFF7F>履歴: <white><player>"
+    player-head-lore: "<#B0B0B0>処罰総数: <#FFD93D><count>"
+    summary-total: "<#FFD93D>処罰総数: <count>"
+    summary-bans: "<#B0B0B0>BAN: <red><count></red>"
+    summary-mutes: "<#B0B0B0>ミュート: <blue><count></blue>"
+    summary-voice-mutes: "<#B0B0B0>ボイスミュート: <aqua><count></aqua>"
+    summary-warnings: "<#B0B0B0>警告: <yellow><count></yellow>"
+    summary-kicks: "<#B0B0B0>キック: <gold><count></gold>"
+    unknown-player: "不明"
+  alts:
+    title: "代替アカウント: <player> (<page>/<maxpage>)"
+    no-alts-item-name: "<#FF6B6B>代替アカウントが見つかりません"
+    player-head-name: "<#7FFF7F>代替アカウント確認: <white><player>"
+    player-head-lore:
+      - "<#B0B0B0>見つかった代替アカウント: <#FFD93D><alts><#B0B0B0> 件。"
+      - " "
+      - "<#B0B0B0>共有IP:"
+    no-ips: "<white>- なし"
+    ip-entry: "<white>- <ip>"
+    alt-item-lore:
+      - "<#B0B0B0>状態:"
+      - " <status_ban>"
+      - " <status_mute>"
+      - " <#FFD93D>- 警告: <warnings>"
+      - " "
+      - "<#B0B0B0>UUID: <white><uuid>"
+    status-label: "<#B0B0B0>状態:"
+    warnings-entry: "<#FFD93D>- 警告: <warnings>"
+    uuid-entry: "<#B0B0B0>UUID: <white><uuid>"
+    alt-banned: "<#FF6B6B>- BAN: はい (<white><reason><#FF6B6B>)"
+    alt-not-banned: "<#7FFF7F>- BAN: いいえ"
+    alt-muted: "<#5DADE2>- ミュート: はい (<white><reason><#5DADE2>)"
+    alt-not-muted: "<#7FFF7F>- ミュート: いいえ"
+    alt-voice-muted: "<#5DADE2>- ボイスミュート: はい (<white><reason><#5DADE2>)"
+    alt-not-voice-muted: "<#7FFF7F>- ボイスミュート: いいえ"
+    unknown-player: "不明"
+    settings:
+      title: "ControlBans 設定"
+      value-label: "<#B0B0B0>値: <value>"
+      current-label: "<#B0B0B0>現在: <#5DADE2><value>"
+      click-toggle: "<#FFD93D>クリックして切り替え"
+      click-edit: "<#FFD93D>クリックしてチャットで編集"
+      prompt-bedrock-prefix: "<#FFD93D>チャットに新しいBedrockプレフィックスを入力するか、'cancel'と入力してください。"
+      items:
+        silent-bans:
+          name: "<#FFD93D>デフォルトでサイレントBAN"
+        broadcast-bans:
+          name: "<#FFD93D>処罰をブロードキャスト"
+        bedrock-prefix:
+          name: "<#FFD93D>Bedrockプレフィックス"
+        alts-punishment:
+          name: "<#FFD93D>代替アカウント処罰"
+
+  report:
+    title: "🚨 Report <player>"
+    head:
+      name: "<#8BC4EA><bold><player>"
+      lore:
+        - " "
+        - "<white>Carefully select the reason"
+        - "<white>you are reporting this player."
+    click-to-select:
+      - "<#8BC4EA>▶ Click to select</#8BC4EA>"
+    items:
+      hacking:
+        name: "<#E74C3C>⚔ Hacking / Cheating"
+        lore:
+          - "<gray>Unfair modifications, killaura,"
+          - "<gray>x-ray, reach, fly, etc."
+      chat:
+        name: "<#F1C40F>💬 Chat Abuse"
+        lore:
+          - "<gray>Spam, toxicity, swearing,"
+          - "<gray>or bypassing chat filters."
+      griefing:
+        name: "<#E67E22>💥 Griefing"
+        lore:
+          - "<gray>Trolling, team-killing,"
+          - "<gray>or destroying builds."
+      other:
+        name: "<#BFC9CA>❓ Other"
+        lore:
+          - "<gray>Other rule-breaking behavior"
+          - "<gray>not listed here."
+  my-reports:
+    title: "My Reports (<page>/<maxpage>)"
+    item-name: "<#8BC4EA>Report: <white><target>"
+    item-lore:
+      - "<#B0B0B0>Reason: <white><reason>"
+      - "<#B0B0B0>Date: <white><date>"
+      - " "
+      - "<status>"
+      - " "
+      - "<#B0B0B0>ID: <#FFD93D><id>"
+    status-pending: "<#F1C40F>⌛ Pending Review"
+    status-resolved: "<#2ECC71>✔ Resolved"
+    status-rejected: "<#E74C3C>✘ Rejected"
+    summary-title: "<#8BC4EA>Reports Summary"
+    summary-total: "<#B0B0B0>Total Submitted: <white><count>"
+    summary-resolved: "<#B0B0B0>Resolved: <#2ECC71><count>"
+    summary-pending: "<#B0B0B0>Pending: <#F1C40F><count>"
+  punish:
+    title: "Punish: <player>" # Prefix must match English for code detection
+    unknown-player: "不明"
+    permission-node: "<dark_gray>Node: <node>"
+    no-permission-action: "<#FF6B6B>このアクションを実行する権限がありません。"
+    prompt-duration-reason: "<#FFD93D><bold>Punish</bold> <dark_gray>>> <white>チャットに<yellow>期間</yellow>と<yellow>理由</yellow>を入力してください。"
+    prompt-reason: "<#FFD93D><bold>Punish</bold> <dark_gray>>> <white>チャットに<yellow>理由</yellow>を入力してください。"
+    prompt-example-duration: "<#B0B0B0>例: 1d Hacking"
+    prompt-cancel: "<#B0B0B0>'cancel'と入力して中止します。"
+    prompt-cancelled: "<#FF6B6B>キャンセルされました。"
+    no-permission:
+      - "<#FF6B6B>この処罰を使用する"
+      - "<#FF6B6B>権限がありません。"
+    click-to-select:
+      - "<#FFD93D>クリックして選択"
+    head:
+      name: "<#FFD93D><player>"
+      lore:
+        - "<#B0B0B0>以下から処罰を選択してください。"
+    items:
+      ban:
+        name: "<#FF6B6B>永久BAN"
+        lore:
+          - "<#B0B0B0>このプレイヤーを永久に追放します。"
+      tempban:
+        name: "<#FF6B6B>一時BAN"
+        lore:
+          - "<#B0B0B0>このプレイヤーを一時的に追放します。"
+          - "<#B0B0B0>(期間が必要)"
+      ipban:
+        name: "<#FF6B6B>IP BAN"
+        lore:
+          - "<#B0B0B0>このプレイヤーのIPアドレスをBANします。"
+      mute:
+        name: "<#5DADE2>永久ミュート"
+        lore:
+          - "<#B0B0B0>このプレイヤーを永久にミュートします。"
+      tempmute:
+        name: "<#5DADE2>一時ミュート"
+        lore:
+          - "<#B0B0B0>このプレイヤーを一時的にミュートします。"
+          - "<#B0B0B0>(期間が必要)"
+      voicemute:
+        name: "<#BA68C8>ボイスミュート"
+        lore:
+          - "<#B0B0B0>ボイスチャットでこのプレイヤーをミュートします。"
+      kick:
+        name: "<#FFAB91>キック"
+        lore:
+          - "<#B0B0B0>プレイヤーを切断します。"
+      warn:
+        name: "<#FFCC80>警告"
+        lore:
+          - "<#B0B0B0>公式な警告を送信します。"
+      freeze:
+        name: "<#80DEEA>凍結"
+        lore:
+          - "<#B0B0B0>検査のためにプレイヤーを凍結します。"
+
+  nav-previous: "<#7FFF7F>« 前のページ"
+  nav-next: "<#7FFF7F>次のページ »"
+
+import:
+  essentials-not-installed: "<#FF6B6B>✘ Essentialsはこのサーバーにインストールされていません。"
+  essentials-userdata-not-found: "<#FF6B6B>✘ Essentialsのuserdataフォルダが見つかりません！"
+  essentials-looked-in: "<#FF6B6B>✘ 検索場所: <white><path>"
+  essentials-starting: "<#5DADE2>⏳ Essentialsのインポートを開始します... これには時間がかかる場合があります。"
+  essentials-no-user-files: "<#FFD93D>ℹ Essentialsのuserdataフォルダにユーザーファイルが見つかりません。"
+  essentials-success: "<#7FFF7F>✔ Essentialsから <white><count><#7FFF7F> 件のミュートを正常にインポートしました。"
+  litebans-connecting: "<#5DADE2>⏳ LiteBansソースデータベースに接続中..."
+  litebans-sqlite-not-found: "<#FF6B6B>✘ LiteBansのSQLiteファイルが見つかりません: <white><path>"
+  litebans-sqlite-check-path: "<#FF6B6B>✘ config.ymlの 'import.sources.litebans.sqlite-file' パスを確認してください。"
+  litebans-unsupported-db: "<#FF6B6B>✘ LiteBansインポートでサポートされていないデータベースタイプです: <white><type>"
+  litebans-connection-failed: "<#FF6B6B>✘ LiteBansデータベース接続の設定に失敗しました。設定とサーバーログを確認してください。"
+  litebans-connection-success: "<#7FFF7F>✔ 接続に成功しました。LiteBansからのインポートを開始します..."
+  litebans-import-complete: "<#7FFF7F>✔ LiteBansのインポートが完了しました。合計 <white><count><#7FFF7F> 件のレコードをインポートしました。"
+  litebans-import-error: "<#FF6B6B>✘ LiteBansのインポート中にエラーが発生しました: <white><error>"
+  advancedban-connecting: "<#5DADE2>⏳ AdvancedBanソースデータベースに接続中..."
+  advancedban-unsupported-db: "<#FF6B6B>✘ AdvancedBanインポートでサポートされていないデータベースタイプです: <white><type><#FF6B6B>。MySQL/MariaDBのみサポートされています。"
+  advancedban-connection-failed: "<#FF6B6B>✘ AdvancedBanデータベース接続の設定に失敗しました。設定とサーバーログを確認してください。"
+  advancedban-connection-success: "<#7FFF7F>✔ 接続に成功しました。AdvancedBanからのインポートを開始します..."
+  advancedban-import-complete: "<#7FFF7F>✔ AdvancedBanのインポートが完了しました。合計 <white><count><#7FFF7F> 件のレコードをインポートしました。"
+  advancedban-import-error: "<#FF6B6B>✘ AdvancedBanのインポート中にエラーが発生しました: <white><error>"
+  import-table-failed-with-error: "<#FF6B6B>✘ テーブルからのインポートに失敗しました: <white><table><#FF6B6B>。存在しない可能性があります。エラー: <white><error>"
+  import-table-failed: "<#FF6B6B>✘ テーブルからのインポートに失敗しました: <white><table><#FF6B6B>。存在しない可能性があります。"
+  import-table-success: "<#7FFF7F>✔ <white><table><#7FFF7F> から <white><count><#7FFF7F> 件のレコードをインポートしました。"
+
+admin:
+  export:
+    not-available: "<#FF6B6B>✘ <#FF8E8E>エクスポートサービスは利用できません。"
+    start: "<#5DADE2>⏳ 処罰データをエクスポートしています..."
+    success: "<#7FFF7F>✔ <#AAFFAA>エクスポート完了！ ファイル: <white><file> <#AAFFAA>パス: <white><path>"
+    failed: "<#FF6B6B>✘ <#FF8E8E>エクスポート失敗: <white><error>"
+  import:
+    no-files: "<#FFD93D>⚠ <#FFCC80>plugins/ControlBans/exports/ にエクスポートファイルが見つかりません"
+    available-files: "<#5DADE2>利用可能なエクスポートファイル:"
+    file-entry: "<#B0B0B0>  • <#5DADE2><file>"
+    file-usage: "<#B0B0B0>使用法: <white><usage>"
+    file-not-found: "<#FF6B6B>✘ <#FF8E8E>ファイルが見つかりません: <white><file>"
+    start: "<#5DADE2>⏳ <white><file><#5DADE2> からインポートしています..."
+    success: "<#7FFF7F>✔ <#AAFFAA>インポート完了！ <white><count> <#AAFFAA>件のレコードをインポートしました。"
+    failed-count: "<#FFD93D>⚠ <#FFCC80><count> 件のレコードが失敗しました。"
+    failed: "<#FF6B6B>✘ <#FF8E8E>インポート失敗: <white><error>"
+  database:
+    confirm-clear-all: "<#FF6B6B>⚠ <#FF8E8E>本当に<#FFD93D>すべてのデータ<#FF8E8E>を削除しますか？ これは元に戻せません。"
+    confirm-clear: "<#FF6B6B>⚠ <#FF8E8E>本当に <#FFD93D><target><#FF8E8E> のデータを削除しますか？ これは元に戻せません。"
+    instruction: "<#B0B0B0>確認するには 'yes'、キャンセルするには 'no' と入力してください。"
+    clearing: "<#5DADE2>⏳ データベースのクリーニングを処理中..."
+    success: "<#7FFF7F>✔ <#AAFFAA>データベースが正常にクリアされました。"
+    error: "<#FF6B6B>✘ <#FF8E8E>データベースのクリア中にエラーが発生しました。"
+    player-success: "<#7FFF7F>✔ <#AAFFAA>プレイヤーデータが正常にクリアされました。"
+    player-not-found: "<#FF6B6B>✘ <#FF8E8E>プレイヤーが見つからないか、エラーが発生しました。"
+    cancelled: "<#FF6B6B>✘ <#FF8E8E>データベースのクリアがキャンセルされました。"
+
+  rollback:
+    start: "<#FFD93D>Rollback >> <#B0B0B0><white><staff><#B0B0B0>の過去<white><duration><#B0B0B0>の処罰をスキャン中..."
+    error: "<#FF6B6B>Rollback >> データベースレコードの取得に失敗しました。"
+    none-found: "<#FFD93D>Rollback >> <#FF8E8E>要求された期間内にこのスタッフメンバーのアクティブな処罰は見つかりませんでした。"
+    found: "<#FFD93D>Rollback >> <white><count><#B0B0B0>件の処罰が見つかりました。復元中..."
+    success: "<#7FFF7F>Rollback >> <white><count><#AAFFAA>件のアクションが復元されました。"
+
+freeze:
+  usage: "<#FF6B6B>✘ <#FF8E8E>使用法: <white>/freeze <player>"
+  cannot-freeze: "<#FF6B6B>✘ <#FF8E8E>このプレイヤーを凍結することはできません。"
+  cannot-interact: "<#FF6B6B>✘ <#FF8E8E>凍結中は対話できません。"
+  cannot-attack: "<#FF6B6B>✘ <#FF8E8E>凍結中は攻撃できません。"
+  logout-ban-reason: "SS拒否 / 凍結中のログアウト"
+  status: "<#5DADE2>❄ <#8BC4EA>プレイヤー <white><player> <#8BC4EA>は現在 <status><#8BC4EA> です。"
+  frozen: "<#FF6B6B>凍結中"
+  unfrozen: "<#7FFF7F>解凍済み"
+  frozen-title: "<red><bold>凍結されました！</bold></red>"
+  frozen-discord: "<yellow>サポート用Discordに参加: <white>discord.gg/yourserver"
+  frozen-logout-warning: "<red>ログアウトするとBANされます！</red>"
+
+chat:
+  usage: "<#FF6B6B>✘ <#FF8E8E>使用法: <white>/chat <lock|slow|clear> [引数]"
+  slow-usage: "<#FF6B6B>✘ <#FF8E8E>使用法: <white>/chat slow <秒数>"
+  locked: "<#FF6B6B>🔒 <#FF8E8E>グローバルチャットは <white><player><#FF8E8E> によって<bold>ロック</bold>されました。"
+  unlocked: "<#7FFF7F>🔓 <#AAFFAA>グローバルチャットは <white><player><#AAFFAA> によって<bold>ロック解除</bold>されました。"
+  slowed: "<#FFD93D>⏱ <#FFCC80>チャットの低速モードが <white><player><#FFCC80> によって <white><seconds>秒 <#FFCC80>に設定されました。"
+  slow-disabled: "<#7FFF7F>⚡ <#AAFFAA>チャットの低速モードが <white><player><#AAFFAA> によって無効化されました。"
+  cleared: "<#5DADE2>🧹 <#8BC4EA>グローバルチャットが <white><player><#8BC4EA> によってクリアされました。"
+  invalid-number: "<#FF6B6B>✘ <#FF8E8E>無効な数字です。"
+  unknown-subcommand: "<#FF6B6B>✘ <#FF8E8E>不明なサブコマンドです。"
+
+report:
+  usage: "<#FF6B6B>✘ <#FF8E8E>使用法: <white>/report <player> <reason>"
+  self-report: "<#FF6B6B>✘ <#FF8E8E>自分自身を通報することはできません。"
+  submitted: "<#7FFF7F>✔ <#AAFFAA><white><player><#AAFFAA>の通報が送信されました。"
+  already-reported: "<#FF6B6B>✘ <#FF8E8E>このプレイヤーは既に通報済みです。"
+  cooldown: "<#FF6B6B>✘ <#FF8E8E>再度通報するまで<white><duration><#FF8E8E>お待ちください。"
+  reason-required: "<#FF6B6B>✘ <#FF8E8E>通報の理由を入力してください。"
+  staff-alert: "<red>[通報]</red> <white><reporter></white> <gray>が</gray> <white><player></white> <gray>を通報しました</gray> <yellow><reason></yellow>"
+
+notes:
+  added: "<#7FFF7F>✔ <#AAFFAA><white><player><#AAFFAA>のメモを追加しました。"
+  removed: "<#7FFF7F>✔ <#AAFFAA><white><player><#AAFFAA>のメモ<white><index><#AAFFAA>を削除しました。"
+  no-notes: "<#FF6B6B>✘ <#FF8E8E><white><player><#FF8E8E>のメモが見つかりません。"
+  header: "<gradient:#FF9800:#FFB74D><bold><player>のメモ</bold></gradient>"
+  entry: "<#B0B0B0>[<#FFD93D><index><#B0B0B0>] <white><note> <#555555>- <gray><staff> <white><date>"
+  usage-add: "<#FF6B6B>✘ <#FF8E8E>使用法: <white>/note add <player> <note>"
+  usage-remove: "<#FF6B6B>✘ <#FF8E8E>使用法: <white>/note remove <player> <index>"
+  usage-view: "<#FF6B6B>✘ <#FF8E8E>使用法: <white>/note <player>"
+  invalid-index: "<#FF6B6B>✘ <#FF8E8E>無効なメモインデックスです。"
+
+banlist:
+  header: "<gradient:#FF4444:#FF6666><bold>アクティブなBAN</bold></gradient> <#B0B0B0>(<#FFD93D><count><#B0B0B0>)"
+  entry: "<#B0B0B0>• <white><player> <#555555>- <gray><reason> <#555555>(<white><staff><#555555>)"
+  empty: "<#7FFF7F>✔ アクティブなBANはありません。"
+  page-info: "<#B0B0B0>ページ <white><page><#B0B0B0>/<white><maxpage><#B0B0B0>"
+
+mutelist:
+  header: "<gradient:#3498DB:#5DADE2><bold>アクティブなミュート</bold></gradient> <#B0B0B0>(<#FFD93D><count><#B0B0B0>)"
+  entry: "<#B0B0B0>• <white><player> <#555555>- <gray><reason> <#555555>(<white><staff><#555555>)"
+  empty: "<#7FFF7F>✔ アクティブなミュートはありません。"
+  page-info: "<#B0B0B0>ページ <white><page><#B0B0B0>/<white><maxpage><#B0B0B0>"
+
+blame:
+  header: "<gradient:#FF9800:#FFB74D><bold><staff>の処罰</bold></gradient> <#B0B0B0>(<#FFD93D><count><#B0B0B0>)"
+  entry: "<#B0B0B0>• <white><type> <white><player> <#555555>- <gray><reason> <#555555>(<white><date><#555555>)"
+  empty: "<#7FFF7F>✔ <white><staff><#7FFF7F>の処罰は見つかりませんでした。"
+  usage: "<#FF6B6B>✘ <#FF8E8E>使用法: <white>/blame <staff>"
+
+staff:
+  header: "<gradient:#5DADE2:#8BC4EA><bold>オンラインスタッフ</bold></gradient>"
+  entry: "<#B0B0B0>• <white><player> <#555555>- <gray><rank>"
+  empty: "<#7FFF7F>✔ オンラインのスタッフはいません。"
+
+staff-alerts:
+  prefix: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃"
+  ban: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#FF8E8E>permanently banned <white><player> <#FF8E8E>for: <#B0B0B0><reason>"
+  tempban: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#FF8E8E>temp-banned <white><player> <#FF8E8E>for <#FFD93D><duration> <#FF8E8E>— <#B0B0B0><reason>"
+  ipban: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#FF8E8E>IP-banned <white><player> <#FF8E8E>for: <#B0B0B0><reason>"
+  mute: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#8BC4EA>permanently muted <white><player> <#8BC4EA>for: <#B0B0B0><reason>"
+  tempmute: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#8BC4EA>temp-muted <white><player> <#8BC4EA>for <#FFD93D><duration> <#8BC4EA>— <#B0B0B0><reason>"
+  voicemute: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#CE93D8>voice muted <white><player> <#CE93D8>for: <#B0B0B0><reason>"
+  tempvoicemute: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#CE93D8>temp voice muted <white><player> <#CE93D8>for <#FFD93D><duration> <#CE93D8>— <#B0B0B0><reason>"
+  warn: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#FFCC80>warned <white><player> <#FFCC80>for: <#B0B0B0><reason>"
+  kick: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#FFAB91>kicked <white><player> <#FFAB91>for: <#B0B0B0><reason>"
+  freeze: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#80DEEA>froze <white><player><#80DEEA>."
+  unfreeze: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#80DEEA>unfroze <white><player><#80DEEA>."
+  voidjail: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#FF8E8E>void jailed <white><player><#FF8E8E>."
+  unban: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#AAFFAA>unbanned <white><player><#AAFFAA>."
+  unmute: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#80DEEA>unmuted <white><player><#80DEEA>."
+update:
+  available: "<gradient:#a259ff:#ff6b6b><bold>ControlBansã®ã‚¢ãƒƒãƒ—ãƒ‡ãƒ¼ãƒˆãŒåˆ©ç”¨å¯èƒ½ã§ã™ï¼</bold></gradient> <gray>ç¾åœ¨ã®ãƒãƒ¼ã‚¸ãƒ§ãƒ³ã¯ <white>v<current></white>ã€æœ€æ–°ãƒãƒ¼ã‚¸ãƒ§ãƒ³ã¯ <white>v<latest></white> ã§ã™ã€‚<aqua><click:open_url:'https://modrinth.com/plugin/controlbans'>[Modrinthã§ãƒ€ã‚¦ãƒ³ãƒ­ãƒ¼ãƒ‰]</click></aqua>"

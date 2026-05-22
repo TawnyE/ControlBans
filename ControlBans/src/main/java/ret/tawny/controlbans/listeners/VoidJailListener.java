@@ -14,15 +14,16 @@ import ret.tawny.controlbans.services.VoidJailService;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 public class VoidJailListener implements Listener {
 
-    private final ControlBansPlugin plugin; // <-- FIX: Add this field
+    private final ControlBansPlugin plugin;
     private final VoidJailService voidJailService;
     private final List<String> allowedCommands;
 
     public VoidJailListener(ControlBansPlugin plugin) {
-        this.plugin = plugin; // <-- FIX: Assign the plugin instance
+        this.plugin = plugin;
         this.voidJailService = plugin.getVoidJailService();
         this.allowedCommands = plugin.getConfigManager().getJailAllowedCommands()
                 .stream()
@@ -30,29 +31,35 @@ public class VoidJailListener implements Listener {
                 .toList();
     }
 
-    // Ensure jailed players who log in are sent back to jail
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        if (voidJailService.isJailed(player.getUniqueId())) {
+        UUID uuid = player.getUniqueId();
+
+        if (voidJailService.hasPendingUnjail(uuid)) {
+            Location returnLoc = voidJailService.getReturnLocation(uuid);
+            voidJailService.clearPendingUnjail(uuid);
+            if (returnLoc != null) {
+                plugin.getSchedulerAdapter().runTaskForPlayer(player, () -> {
+                    player.teleport(returnLoc);
+                    player.sendMessage(plugin.getLocaleManager().getMessage("voidjail.unjailed-message"));
+                });
+            }
+            return;
+        }
+
+        if (voidJailService.isJailed(uuid)) {
             Location jailLocation = plugin.getVoidJailService().getJailLocation();
             if (jailLocation != null) {
-                // Use the scheduler to teleport them on the next tick to ensure everything is loaded
                 plugin.getSchedulerAdapter().runTaskForPlayer(player, () -> player.teleport(jailLocation));
             }
         }
     }
 
-    // Handle players who are released while offline
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(PlayerQuitEvent event) {
-        // This doesn't require a fix, but it's good practice.
-        // If a player is released while offline, their return location should be cleared
-        // when they next join, which is handled in the onPlayerJoin logic.
     }
 
-
-    // Teleport them back if they try to move or teleport
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerMove(PlayerMoveEvent event) {
         if (!voidJailService.isJailed(event.getPlayer().getUniqueId())) {
@@ -62,7 +69,6 @@ public class VoidJailListener implements Listener {
         Location from = event.getFrom();
         Location to = event.getTo();
 
-        // Allow looking around, but not moving
         if (from.getX() != to.getX() || from.getY() != to.getY() || from.getZ() != to.getZ()) {
             event.setTo(from);
         }
@@ -72,7 +78,6 @@ public class VoidJailListener implements Listener {
     public void onPlayerTeleport(PlayerTeleportEvent event) {
         if (voidJailService.isJailed(event.getPlayer().getUniqueId())) {
             Location returnLoc = voidJailService.getReturnLocation(event.getPlayer().getUniqueId());
-            // Allow the specific teleport that releases them from jail
             if (returnLoc != null && event.getTo().equals(returnLoc)) {
                 return;
             }
@@ -80,7 +85,6 @@ public class VoidJailListener implements Listener {
         }
     }
 
-    // Prevent interactions and damage
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event) {
         if (voidJailService.isJailed(event.getPlayer().getUniqueId())) {
@@ -106,13 +110,11 @@ public class VoidJailListener implements Listener {
     public void onEntityDamage(EntityDamageEvent event) {
         if (event.getEntity() instanceof Player player) {
             if (voidJailService.isJailed(player.getUniqueId())) {
-                // Prevent all damage, including void damage
                 event.setCancelled(true);
             }
         }
     }
 
-    // Block commands
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onCommandPreprocess(PlayerCommandPreprocessEvent event) {
         Player player = event.getPlayer();
@@ -120,10 +122,16 @@ public class VoidJailListener implements Listener {
             return;
         }
 
-        String command = event.getMessage().substring(1).split(" ")[0].toLowerCase(Locale.ROOT);
+        String message = event.getMessage();
+        if (message.length() < 2) {
+            event.setCancelled(true);
+            player.sendMessage(plugin.getLocaleManager().getMessage("voidjail.command-blocked"));
+            return;
+        }
+
+        String command = message.substring(1).split(" ")[0].toLowerCase(Locale.ROOT);
         if (!allowedCommands.contains(command)) {
             event.setCancelled(true);
-            // Now this line will work correctly
             player.sendMessage(plugin.getLocaleManager().getMessage("voidjail.command-blocked"));
         }
     }

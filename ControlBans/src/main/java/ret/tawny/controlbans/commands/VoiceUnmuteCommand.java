@@ -25,13 +25,13 @@ public class VoiceUnmuteCommand extends CommandBase {
 
         String targetName = args[0];
 
-        sender.sendMessage(locale.getMessage("actions.voice-unmuting", playerPlaceholder(targetName)));
+
         punishmentService.unVoiceMutePlayer(targetName, getSenderUuid(sender), sender.getName())
                 .whenComplete((success, throwable) -> {
                     if (throwable != null) {
                         handlePunishmentError(throwable, sender, targetName);
                     } else if (success) {
-                        sender.sendMessage(locale.getMessage("success.voice-unmute", playerPlaceholder(targetName)));
+                        sender.sendMessage(locale.getMessage("success.voiceunmute", playerPlaceholder(targetName)));
                     } else {
                         sender.sendMessage(locale.getMessage("errors.player-not-voice-muted", playerPlaceholder(targetName)));
                     }

@@ -40,7 +40,7 @@ public class WarnCommand extends CommandBase {
         }
         String reason = reasonJoiner.toString().isEmpty() ? null : reasonJoiner.toString();
 
-        sender.sendMessage(locale.getMessage("actions.warning", playerPlaceholder(targetName)));
+
         punishmentService.warnPlayer(targetName, reason, getSenderUuid(sender), sender.getName(), silent)
                 .whenComplete((unused, throwable) -> {
                     if (throwable != null) {

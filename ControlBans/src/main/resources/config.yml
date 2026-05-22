@@ -1,28 +1,50 @@
-# ControlBans Configuration
-# Advanced punishment system with LiteBans compatibility
-# Version: 3.1
+# ==============================================================================
+#  _____                 _                 _  ______
+# /  __ \               | |               | | | ___ \
+# | /  \/  ___   _ __   | |_   _ __   ___ | | | |_/ /  __ _  _ __   ___
+# | |     / _ \ | '_ \  | __| | '__| / _ \| | | ___ \ / _` || '_ \ / __|
+# | \__/\| (_) || | | | | |_  | |   | (_) | | | |_/ /| (_| || | | |\__ \
+#  \____/ \___/ |_| |_|  \__| |_|    \___/|_| \____/  \__,_||_| |_||___/
+#
+#  ControlBans Configuration
+#  Advanced punishment and moderation system for Minecraft networks.
+#  Version: 5.4
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# GENERAL SETTINGS
+# ------------------------------------------------------------------------------
 
 # Language for all plugin messages.
-# Default language files (en, de, es, fr, ru, tr) are included.
-# You can create your own by copying 'en.yml' from the locales folder.
+# Files are located in the /locales/ folder.
+# Available: en, de, es, fr, it, ja, nl, pt, ru, tr
 language: "en"
 
-# Database Configuration
+# ------------------------------------------------------------------------------
+# STORAGE SETTINGS
+# ------------------------------------------------------------------------------
 database:
-  # Database type: mysql, mariadb, postgresql, sqlite
+  # Database Backend
+  # Options: sqlite, h2, mysql, mariadb, postgresql, mongodb
   type: sqlite
 
-  # Database connection details (not needed for SQLite)
+  # SQL Connection Details (MySQL, MariaDB, PostgreSQL)
   host: localhost
   port: 3306
-  database: controlbans
+  name: controlbans
   username: root
   password: password
 
-  # SQLite file location (relative to plugin data folder)
+  # File Paths (SQLite / H2)
   sqlite-file: punishments.db
+  h2-file: punishments
 
-  # Connection pool settings
+  # MongoDB Settings (Only if type is 'mongodb')
+  mongodb:
+    connection-string: "mongodb://localhost:27017"
+    database: controlbans
+
+  # Advanced Connection Pool Settings (HikariCP)
   pool:
     maximum-pool-size: 10
     minimum-idle: 5
@@ -30,242 +52,346 @@ database:
     idle-timeout: 300000
     max-lifetime: 1800000
 
-# Alt Account Punishment
-alts-punish:
-  # Enable automatic punishment of alternate accounts
-  enabled: false
+  janitor:
+    ban-retention-days: 30
+    kick-retention-days: 90
+    warning-retention-days: 90
+    report-retention-days: 60
 
-  # Punishment types to apply to alts
+# ------------------------------------------------------------------------------
+# REDIS CACHE / SYNC
+# ------------------------------------------------------------------------------
+redis:
+  enabled: false
+  host: localhost
+  port: 6379
+  password: ""
+  pubsub: true
+  cache-ttl: 300
+
+# ------------------------------------------------------------------------------
+# PUNISHMENT SETTINGS
+# ------------------------------------------------------------------------------
+punishments:
+  default-reasons:
+    ban: "Unspecified"
+    mute: "Unspecified"
+    warn: "Unspecified"
+    kick: "Disconnected"
+
+  max-duration:
+    tempban: 2592000
+    tempmute: 604800
+
+  broadcast:
+    enabled: true
+    console: true
+    players: true
+    silent-by-default: false
+
+# ------------------------------------------------------------------------------
+# STAFF ALERT SYSTEM
+# ------------------------------------------------------------------------------
+# Sends detailed alerts to all online staff with 'controlbans.alerts.receive'
+# whenever a punishment is issued. Unlike broadcasts, staff alerts are ALWAYS
+# sent regardless of silent mode, so staff are always informed.
+staff-alerts:
+  enabled: true
+  sound:
+    enabled: true
+    type: "BLOCK_NOTE_BLOCK_PLING"
+    volume: 0.7
+    pitch: 1.5
+
+# ------------------------------------------------------------------------------
+# ALT ACCOUNT DETECTION & PUNISHMENT
+# ------------------------------------------------------------------------------
+alts-punish:
+  enabled: false
   apply-to:
     bans: true
     tempbans: false
     mutes: false
 
-  # Safety features
   safety:
-    # Minimum confidence level for alt detection (0.0-1.0)
     min-confidence: 0.8
-    # Maximum alts to punish at once
     max-alts: 5
-    # Cooldown between alt punishments (seconds)
     cooldown: 300
+    # INTEGRITY FIX: Max accounts on one IP before it's ignored as a Public IP.
+    # Prevents "148 alts" bugs on VPNs or public networks.
+    ip-account-limit: 15
 
-  # Logging
   log-alt-punishments: true
   notify-staff: true
 
-# Web Interface
-web:
-  # Enable built-in web viewer
-  enabled: false
+# ------------------------------------------------------------------------------
+# SMART AUTOMOD (Regex Engine)
+# ------------------------------------------------------------------------------
+# Automatically scan Chat, Signs, and Books for prohibited content.
+automod:
+  enabled: true
+  anti-spam:
+    enabled: true
+    max-messages: 4
+    seconds: 4
+    block-similar: true
+  anti-caps:
+    enabled: true
+    min-length: 5
+    percentage: 0.7
+  rules:
+    links:
+      pattern: "(https?://)?(www\\.)?([-a-zA-Z0-9@:%._\\+~#=]{2,256}\\.[a-z]{2,4}\\b)(/[-a-zA-Z0-9@:%_\\+.~#?&//=]*)?"
+      action: CANCEL
+      message: "External links are not permitted here."
+    discord_invites:
+      pattern: "(discord\\.(gg|io|me|li)|discordapp\\.com/invite)/[a-zA-Z0-9]+"
+      action: CANCEL
+      message: "Discord invites are not allowed."
+    ip_addresses:
+      pattern: "\\b(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\b"
+      action: CANCEL
+      message: "Do not post IP addresses in chat."
 
-  # Server configuration
-  host: 0.0.0.0
-  port: 8080
-
-  # Security
-  admin-token: change-me-please
-  allowed-hosts:
-    - localhost
-    - 127.0.0.1
-
-  # SSL/TLS (requires certificate files)
-  tls:
-    enabled: false
-    keystore-path: keystore.jks
-    keystore-password: password
-
-  # Web interface settings
-  records-per-page: 50
-  auto-refresh-interval: 30
-
-# Integration Settings
+# ------------------------------------------------------------------------------
+# INTEGRATIONS
+# ------------------------------------------------------------------------------
 integrations:
-  # DiscordSRV Integration
+  # DiscordSRV - Send embed notifications to Discord channels.
   discord:
     enabled: false
-
-    # Placeholders: {player}, {staff}, {reason}, {duration}, {id}, {server}
     messages:
       ban:
         enabled: true
         channel: "ban-logs"
-        color: "#AA0000"
-        title: "Player Banned"
-        description: "`{player}` was permanently banned from the server."
+        color: "#DC2626"
+        title: "🔨 Permanent Ban Issued"
+        description: "**{player}** has been permanently banned."
         fields:
-          - name: "Banned By"
-            value: "`{staff}`"
-            inline: true
-          - name: "Reason"
-            value: "`{reason}`"
-            inline: true
-        footer: "Punishment ID: {id}"
+          - { name: "👤 Player", value: "`{player}`", inline: true }
+          - { name: "🛡️ Staff", value: "`{staff}`", inline: true }
+          - { name: "📝 Reason", value: "```{reason}```", inline: false }
+        footer: "ID: {id}"
       tempban:
         enabled: true
         channel: "ban-logs"
-        color: "#FFAA00"
-        title: "Player Temporarily Banned"
-        description: "`{player}` was temporarily banned from the server."
+        color: "#F59E0B"
+        title: "⏳ Temporary Ban Issued"
+        description: "**{player}** has been banned for {duration}."
         fields:
-          - name: "Banned By"
-            value: "`{staff}`"
-            inline: true
-          - name: "Duration"
-            value: "`{duration}`"
-            inline: true
-          - name: "Reason"
-            value: "`{reason}`"
-            inline: false
-        footer: "Punishment ID: {id}"
+          - { name: "👤 Player", value: "`{player}`", inline: true }
+          - { name: "🛡️ Staff", value: "`{staff}`", inline: true }
+          - { name: "⏱️ Duration", value: "`{duration}`", inline: true }
+          - { name: "📝 Reason", value: "```{reason}```", inline: false }
+        footer: "ID: {id}"
       ipban:
         enabled: true
         channel: "ban-logs"
-        color: "#550000"
-        title: "Player IP Banned"
-        description: "An IP address associated with `{player}` was banned."
+        color: "#7F1D1D"
+        title: "🚫 IP Ban Issued"
+        description: "**{player}** (or their IP) has been banned."
         fields:
-          - name: "Banned By"
-            value: "`{staff}`"
-            inline: true
-          - name: "Reason"
-            value: "`{reason}`"
-            inline: true
-          - name: "Duration"
-            value: "`{duration}`"
-            inline: false
-        footer: "Punishment ID: {id}"
+          - { name: "👤 Player", value: "`{player}`", inline: true }
+          - { name: "🛡️ Staff", value: "`{staff}`", inline: true }
+          - { name: "📝 Reason", value: "```{reason}```", inline: false }
+        footer: "ID: {id}"
       mute:
         enabled: true
         channel: "mute-logs"
-        color: "#5555FF"
-        title: "Player Muted"
-        description: "`{player}` was permanently muted."
+        color: "#3B82F6"
+        title: "🔇 Mute Issued"
+        description: "**{player}** has been permanently muted."
         fields:
-          - name: "Muted By"
-            value: "`{staff}`"
-            inline: true
-          - name: "Reason"
-            value: "`{reason}`"
-            inline: true
-        footer: "Punishment ID: {id}"
+          - { name: "👤 Player", value: "`{player}`", inline: true }
+          - { name: "🛡️ Staff", value: "`{staff}`", inline: true }
+          - { name: "📝 Reason", value: "```{reason}```", inline: false }
+        footer: "ID: {id}"
       tempmute:
         enabled: true
         channel: "mute-logs"
-        color: "#55FFFF"
-        title: "Player Temporarily Muted"
-        description: "`{player}` was temporarily muted."
+        color: "#06B6D4"
+        title: "🤐 Temporary Mute Issued"
+        description: "**{player}** has been muted for {duration}."
         fields:
-          - name: "Muted By"
-            value: "`{staff}`"
-            inline: true
-          - name: "Duration"
-            value: "`{duration}`"
-            inline: true
-          - name: "Reason"
-            value: "`{reason}`"
-            inline: false
-        footer: "Punishment ID: {id}"
-      warn:
+          - { name: "👤 Player", value: "`{player}`", inline: true }
+          - { name: "🛡️ Staff", value: "`{staff}`", inline: true }
+          - { name: "⏱️ Duration", value: "`{duration}`", inline: true }
+          - { name: "📝 Reason", value: "```{reason}```", inline: false }
+        footer: "ID: {id}"
+      voicemute:
         enabled: true
-        channel: "warn-logs"
-        color: "#FFFF55"
-        title: "Player Warned"
-        description: "`{player}` has been warned."
+        channel: "mute-logs"
+        color: "#8B5CF6"
+        title: "🎙️ Voice Mute Issued"
+        description: "**{player}** has been muted in voice chat."
         fields:
-          - name: "Warned By"
-            value: "`{staff}`"
-            inline: true
-          - name: "Reason"
-            value: "`{reason}`"
-            inline: true
-        footer: "Punishment ID: {id}"
+          - { name: "👤 Player", value: "`{player}`", inline: true }
+          - { name: "🛡️ Staff", value: "`{staff}`", inline: true }
+          - { name: "📝 Reason", value: "```{reason}```", inline: false }
+        footer: "ID: {id}"
       kick:
         enabled: true
         channel: "kick-logs"
-        color: "#FF55FF"
-        title: "Player Kicked"
-        description: "`{player}` was kicked from the server."
+        color: "#EC4899"
+        title: "👢 Player Kicked"
+        description: "**{player}** was kicked from the server."
         fields:
-          - name: "Kicked By"
-            value: "`{staff}`"
-            inline: true
-          - name: "Reason"
-            value: "`{reason}`"
-            inline: true
-        footer: "Punishment ID: {id}"
+          - { name: "👤 Player", value: "`{player}`", inline: true }
+          - { name: "🛡️ Staff", value: "`{staff}`", inline: true }
+          - { name: "📝 Reason", value: "```{reason}```", inline: false }
+        footer: "ID: {id}"
+      warn:
+        enabled: true
+        channel: "warn-logs"
+        color: "#EAB308"
+        title: "⚠️ Warning Issued"
+        description: "**{player}** has been warned."
+        fields:
+          - { name: "👤 Player", value: "`{player}`", inline: true }
+          - { name: "🛡️ Staff", value: "`{staff}`", inline: true }
+          - { name: "📝 Reason", value: "```{reason}```", inline: false }
+        footer: "ID: {id}"
       unban:
         enabled: true
-        channel: "unban-logs"
-        color: "#55FF55"
-        title: "Player Unbanned"
-        description: "`{player}` was unbanned from the server."
+        channel: "ban-logs"
+        color: "#22C55E"
+        title: "🔓 Player Unbanned"
+        description: "**{player}** has been unbanned."
         fields:
-          - name: "Unbanned By"
-            value: "`{staff}`"
-            inline: true
-          - name: "Player"
-            value: "`{player}`"
-            inline: true
+          - { name: "👤 Player", value: "`{player}`", inline: true }
+          - { name: "🛡️ Staff", value: "`{staff}`", inline: true }
+      report:
+        enabled: true
+        channel: "report-logs"
+        color: "#EAB308"
+        title: "🚨 Player Report"
+        description: "**{target}** has been reported."
+        fields:
+          - { name: "👤 Reporter", value: "`{reporter}`", inline: true }
+          - { name: "🎯 Target", value: "`{target}`", inline: true }
+          - { name: "📝 Reason", value: "```{reason}```", inline: false }
 
-  # Geyser/Floodgate Integration
+  # Geyser / Floodgate (Bedrock Support)
   geyser:
-    # Set to true if you have Geyser and Floodgate installed.
     enabled: true
-    # The prefix that Floodgate adds to Bedrock player usernames.
-    # Common prefixes are "." (default), "*", or "-".
-    # This allows commands like /ban .Tawny to correctly find the Bedrock player.
     bedrock-prefix: "."
 
-  # MCBlacklist Integration
+  # MCBlacklist (Global Ban List)
   mcblacklist:
     enabled: false
-
-    # Firebase URL
     firebase-url: "https://mcblacklistdb-default-rtdb.firebaseio.com/players.json"
-
-    # Check frequency (minutes)
     check-interval: 60
-
-    # Action on blacklisted player
-    action: ban  # ban, kick, warn
     reason: "Player found on MCBlacklist database"
 
-    # Auto-update blacklist
-    auto-update: true
+  # Simple Voice Chat
+  voicechat:
+    enabled: true
 
-# Import Settings
+# ------------------------------------------------------------------------------
+# CACHE & PERFORMANCE (Caffeine Powered)
+# ------------------------------------------------------------------------------
+cache:
+  enabled: true
+  ttl:
+    player-lookup: 300
+    punishment-check: 60
+    alt-lookup: 600
+  max-size: 10000
+
+performance:
+  async-database: true
+  validate-connections: true
+  query-timeout: 30
+  debug-logging: false
+
+# ------------------------------------------------------------------------------
+# UI FEEDBACK
+# ------------------------------------------------------------------------------
+bossbar:
+  voice-mute:
+    color: RED
+    style: PROGRESS
+
+# ------------------------------------------------------------------------------
+# APPEALS SYSTEM
+# ------------------------------------------------------------------------------
+appeals:
+  enabled: true
+  cooldown-hours: 24
+  max-submissions: 3
+  window-days: 7
+
+# ------------------------------------------------------------------------------
+# ESCALATION SYSTEM
+# ------------------------------------------------------------------------------
+escalation:
+  enabled: false
+  filter-by-reason: true
+  history-limit: 100
+  window-days: 90
+  include:
+    bans: true
+    tempbans: true
+    ipbans: true
+  aliases:
+    Hacking:
+      - cheat
+      - cheating
+      - hacked client
+      - killaura
+      - reach
+      - scaffold
+    Advertising:
+      - ad
+      - ads
+      - external links
+      - spam links
+  levels:
+    default:
+      1: 1d
+      2: 7d
+      3: 30d
+      4: permanent
+    "Hacking":
+      1: 7d
+      2: 30d
+      3: permanent
+    "Advertising":
+      1: 12h
+      2: 3d
+      3: 14d
+      4: permanent
+
+# ------------------------------------------------------------------------------
+# VOID JAIL
+# ------------------------------------------------------------------------------
+void-jail:
+  location:
+    world: "world"
+    x: 0.5
+    y: -1000.0
+    z: 0.5
+  allowed-commands:
+    - "msg"
+    - "r"
+    - "tell"
+    - "helpop"
+    - "appeal"
+
+# ------------------------------------------------------------------------------
+# IMPORT SETTINGS
+# ------------------------------------------------------------------------------
 import:
-  # Progress reporting interval (records processed)
-  progress-interval: 1000
-
-  # Batch size for database operations
-  batch-size: 500
-
-  # Timeout for import operations (seconds)
-  timeout: 3600
-
-  # Backup before import
-  create-backup: true
-
-  # Configure connection details for external punishment sources.
   sources:
     litebans:
-      # Database type: mysql, mariadb, postgresql, sqlite
       type: sqlite
-      # For SQLite, provide the path relative to the server root directory
-      # e.g., plugins/LiteBans/litebans.db
-      sqlite-file: "plugins/LiteBans/litebans.db"
-
-      # --- Settings for MySQL/PostgreSQL ---
+      sqlite-file: "plugins/LiteBans/litebans.sqlite"
       host: localhost
       port: 3306
       database: litebans
       username: root
       password: "password"
     advancedban:
-   # Database type: mysql, mariadb, postgresql
-   # NOTE: AdvancedBan's local storage (HSQLDB) is not supported for import. Please use MySQL.
       type: mysql
       host: localhost
       port: 3306
@@ -273,113 +399,78 @@ import:
       username: root
       password: "password"
 
-# Punishment Settings
-punishments:
-  # Default reasons
-  default-reasons:
-    ban: "Unspecified"
-    mute: "Unspecified"
-    warn: "Unspecified"
-    kick: "Disconnected"
-
-  # Maximum punishment duration (for non-admins)
-  max-duration:
-    tempban: 2592000  # 30 days in seconds
-    tempmute: 604800  # 7 days in seconds
-
-  # Punishment broadcast settings
-  broadcast:
-    enabled: true
-
-    # Broadcast to console
-    console: true
-
-    # Broadcast to players with permission
-    players: true
-
-    # When true, all punishments will be silent (staff-only) unless the -s flag is used to make them public.
-    # When false (default), punishments are public unless the -s flag is used to make them silent.
-    silent-by-default: false
-
-# Cache Settings
-cache:
-  # Enable caching for performance
-  enabled: true
-
-  # Cache TTL (seconds)
-  ttl:
-    player-lookup: 300
-    punishment-check: 60
-    alt-lookup: 600
-
-  # Maximum cache size
-  max-size: 10000
-
-  # Clear cache on punishment changes
-  clear-on-change: true
-
-# Appeal Settings
-appeals:
-  # Enable the /appeal command for muted players
-  enabled: true
-
-  # Minimum time (in hours) a player must wait between appeals
-  cooldown-hours: 24
-
-  # Maximum number of appeals allowed during the rolling window
-  max-submissions: 3
-
-  # Length of the rolling window (in days) for appeal limits. Set to 0 to disable the window limit.
-  window-days: 7
-
-# Performance Settings
-performance:
-  # Use async database operations
-  async-database: true
-
-  # Connection validation
-  validate-connections: true
-
-  # Query timeout (seconds)
-  query-timeout: 30
-
-  # Enable debug logging
-  debug-logging: false
-
-# Time Format
+# ------------------------------------------------------------------------------
+# TIME FORMATTING
+# ------------------------------------------------------------------------------
 time-format:
-  # Date format for displays
   date-format: "yyyy-MM-dd"
-
-  # Timezone (default: server timezone)
   timezone: "UTC"
 
-  # Duration parsing
-  duration-units:
-    s: seconds
-    m: minutes
-    h: hours
-    d: days
-    w: weeks
-    mo: months
-    y: years
+# ------------------------------------------------------------------------------
+# REPORT SYSTEM
+# ------------------------------------------------------------------------------
+report:
+  enabled: true
+  cooldown-seconds: 60
+  notify-staff-permission: "controlbans.alerts.receive"
 
-# Void Jail Settings
-# A psychological punishment that traps players in an inescapable void box.
-void-jail:
-  # The location where the void jail box will be.
-  # It's highly recommended to set this far away from your main world, e.g., at Y=-1000.
-  location:
-    world: "world"
-    x: 0.5
-    y: -1000.0
-    z: 0.5
+# ------------------------------------------------------------------------------
+# PLAYER NOTES
+# ------------------------------------------------------------------------------
+notes:
+  enabled: true
+  max-notes-per-player: 50
 
-  # Commands that a jailed player is allowed to use.
-  # All other commands will be blocked.
-  allowed-commands:
-    - "msg"
-    - "r"
-    - "tell"
-    - "helpop"
-    - "appeal"
+# ------------------------------------------------------------------------------
+# PUNISHMENT TEMPLATES (Auto-Escalation)
+# ------------------------------------------------------------------------------
+templates:
+  enabled: true
+  rules:
+    swearing:
+      type: "mute"
+      keywords:
+        - "swear"
+        - "curse"
+        - "toxic"
+      levels:
+        window-days: 7
+        1: "TEMPMUTE"
+        2: "TEMPMUTE"
+        3: "MUTE"
+        4: "MUTE"
+    spam:
+      type: "mute"
+      keywords:
+        - "spam"
+        - "flood"
+        - "caps"
+      levels:
+        window-days: 1
+        1: "WARN"
+        2: "TEMPMUTE"
+        3: "MUTE"
+    hacking:
+      type: "any"
+      keywords:
+        - "hack"
+        - "cheat"
+        - "exploit"
+        - "xray"
+        - "fly"
+      levels:
+        window-days: 30
+        1: "TEMPBAN"
+        2: "BAN"
+        3: "IPBAN"
+    griefing:
+      type: "any"
+      keywords:
+        - "grief"
+        - "destroy"
+        - "tnt"
+      levels:
+        window-days: 14
+        1: "WARN"
+        2: "TEMPBAN"
+        3: "BAN"

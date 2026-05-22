@@ -2,123 +2,133 @@ package ret.tawny.controlbans.services;
 
 import ret.tawny.controlbans.ControlBansPlugin;
 import ret.tawny.controlbans.model.Punishment;
-import ret.tawny.controlbans.storage.DatabaseManager;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import ret.tawny.controlbans.model.PunishmentType;
+import ret.tawny.controlbans.storage.StorageInterface;
+import ret.tawny.controlbans.util.IdUtil;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
 
 public class AltService {
 
     private final ControlBansPlugin plugin;
-    private final DatabaseManager databaseManager;
+    private final StorageInterface storage;
     private final CacheService cacheService;
 
-    public AltService(ControlBansPlugin plugin, DatabaseManager databaseManager, CacheService cacheService) {
+    public AltService(ControlBansPlugin plugin, StorageInterface storage, CacheService cacheService) {
         this.plugin = plugin;
-        this.databaseManager = databaseManager;
+        this.storage = storage;
         this.cacheService = cacheService;
     }
 
+    private boolean isInvalidOrLocalIp(String ip) {
+        if (ip == null || ip.isEmpty() || ip.equals("0.0.0.0") || ip.equals("127.0.0.1") || ip.equals("localhost")) {
+            return true;
+        }
+        return ip.startsWith("192.168.") || ip.startsWith("10.") || ip.matches("^172\\.(1[6-9]|2[0-9]|3[0-1])\\..*");
+    }
+
     public CompletableFuture<List<UUID>> findAltAccounts(UUID uuid) {
-        return cacheService.getOrCache("alts_" + uuid, () ->
-                databaseManager.executeQueryAsync(connection -> {
-                    try {
-                        Set<UUID> alts = new HashSet<>();
-                        Set<String> playerIps = getPlayerIps(connection, uuid);
+        return cacheService.getOrCache("alts_" + uuid, () -> storage.getIpsForUuid(uuid).thenCompose(playerIps -> {
+            if (playerIps == null || playerIps.isEmpty()) {
+                return CompletableFuture.completedFuture(new ArrayList<>());
+            }
 
-                        if (playerIps.isEmpty()) {
-                            return new ArrayList<>();
-                        }
+            Set<UUID> alts = ConcurrentHashMap.newKeySet();
+            List<CompletableFuture<Void>> futures = new ArrayList<>();
+            int ipLimit = plugin.getConfigManager().getAltIpAccountLimit();
 
-                        for (String ip : playerIps) {
-                            alts.addAll(getPlayersForIp(connection, ip));
-                        }
+            for (String ip : playerIps) {
+                if (isInvalidOrLocalIp(ip)) {
+                    continue;
+                }
 
-                        alts.remove(uuid); // Remove the original player from the alt list
-                        return new ArrayList<>(alts);
-                    } catch (SQLException e) {
-                        throw new RuntimeException("Failed to find alt accounts", e);
+                CompletableFuture<Void> ipFuture = storage.getUserCountOnIp(ip).thenCompose(count -> {
+                    if (count > ipLimit) {
+                        plugin.getLogger().log(Level.FINE, "Skipping shared IP " + ip + " (Count: " + count + ")");
+                        return CompletableFuture.completedFuture(null);
                     }
-                }), 600L // 10 minute cache
-        );
+                    return storage.getUuidsOnIp(ip).thenAccept(alts::addAll);
+                });
+                futures.add(ipFuture);
+            }
+
+            return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                    .thenApply(v -> {
+                        alts.remove(uuid);
+                        return new ArrayList<>(alts);
+                    });
+        }), 600L);
     }
 
     public CompletableFuture<Set<String>> findSharedIps(UUID uuid) {
-        return databaseManager.executeQueryAsync(connection -> {
-            try {
-                return getPlayerIps(connection, uuid);
-            } catch (SQLException e) {
-                throw new RuntimeException("Failed to find shared IPs", e);
-            }
+        return storage.getIpsForUuid(uuid).thenApply(ips -> {
+            if (ips == null) return new HashSet<>();
+
+            ips.removeIf(this::isInvalidOrLocalIp);
+
+            return ips;
         });
     }
 
     public CompletableFuture<Void> punishAlts(Punishment originalPunishment) {
+        if (!plugin.getConfigManager().isAltPunishEnabled()) {
+            return CompletableFuture.completedFuture(null);
+        }
+
         return findAltAccounts(originalPunishment.getTargetUuid())
                 .thenCompose(alts -> {
                     List<CompletableFuture<Void>> punishmentFutures = new ArrayList<>();
+                    int maxPunishments = plugin.getConfigManager().getAltMaxPunishments();
+
+                    int count = 0;
                     for (UUID altUuid : alts) {
+                        if (count >= maxPunishments) break;
                         punishmentFutures.add(createAltPunishment(altUuid, originalPunishment));
+                        count++;
                     }
                     return CompletableFuture.allOf(punishmentFutures.toArray(new CompletableFuture[0]));
                 });
     }
 
     private CompletableFuture<Void> createAltPunishment(UUID altUuid, Punishment originalPunishment) {
-        return databaseManager.executeAsync(connection -> {
-            String altReason = "Alt account of " + originalPunishment.getTargetName();
-            String sql = """
-                INSERT INTO litebans_bans (uuid, reason, banned_by_uuid, banned_by_name, time, until, server_origin, silent, ipban, active)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """;
-            try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-                stmt.setString(1, altUuid.toString());
-                stmt.setString(2, altReason);
-                stmt.setString(3, originalPunishment.getStaffUuid() != null ? originalPunishment.getStaffUuid().toString() : null);
-                stmt.setString(4, "[ALT] " + originalPunishment.getStaffName());
-                stmt.setLong(5, System.currentTimeMillis());
-                stmt.setLong(6, originalPunishment.getExpiryTime());
-                stmt.setString(7, originalPunishment.getServerOrigin());
-                stmt.setBoolean(8, true); // Alt punishments are always silent
-                stmt.setBoolean(9, false);
-                stmt.setBoolean(10, true);
-                stmt.executeUpdate();
-            }
+        String altReason = "Alt account of " + originalPunishment.getTargetName();
+
+        return storage.getLastKnownName(altUuid).thenCompose(altName -> {
+            Punishment altPunishment = Punishment.builder()
+                    .punishmentId(IdUtil.generatePunishmentId())
+                    .type(PunishmentType.BAN)
+                    .targetUuid(altUuid)
+                    .targetName(altName)
+                    .reason(altReason)
+                    .staffUuid(originalPunishment.getStaffUuid())
+                    .staffName("[ALT] " + originalPunishment.getStaffName())
+                    .createdTime(System.currentTimeMillis())
+                    .expiryTime(originalPunishment.getExpiryTime())
+                    .serverOrigin(originalPunishment.getServerOrigin())
+                    .silent(true)
+                    .ipBan(false)
+                    .active(true)
+                    .build();
+
+            return storage.insertBan(altPunishment).thenRun(() -> {
+                cacheService.invalidatePlayerPunishments(altUuid);
+
+                plugin.getSchedulerAdapter().runTask(() -> {
+                    org.bukkit.entity.Player altPlayer = org.bukkit.Bukkit.getPlayer(altUuid);
+                    if (altPlayer != null && altPlayer.isOnline()) {
+                        net.kyori.adventure.text.Component kickMessage = plugin.getNotificationService()
+                                .formatKickScreen(altPunishment);
+                        altPlayer.kick(kickMessage);
+                    }
+                });
+            });
         });
-    }
-
-    private Set<String> getPlayerIps(Connection connection, UUID uuid) throws SQLException {
-        Set<String> ips = new HashSet<>();
-        String sql = "SELECT DISTINCT ip FROM litebans_history WHERE uuid = ? AND ip IS NOT NULL";
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            stmt.setString(1, uuid.toString());
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    ips.add(rs.getString("ip"));
-                }
-            }
-        }
-        return ips;
-    }
-
-    private Set<UUID> getPlayersForIp(Connection connection, String ip) throws SQLException {
-        Set<UUID> players = new HashSet<>();
-        String sql = "SELECT DISTINCT uuid FROM litebans_history WHERE ip = ?";
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            stmt.setString(1, ip);
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    players.add(UUID.fromString(rs.getString("uuid")));
-                }
-            }
-        }
-        return players;
     }
 }

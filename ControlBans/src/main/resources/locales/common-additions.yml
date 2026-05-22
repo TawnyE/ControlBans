@@ -1,0 +1,132 @@
+success:
+  shadowmute-secret: "<gray>[<white>Shadow mute applied secretly<gray>]"
+
+broadcasts:
+  tempvoicemute: "<gradient:#9C27B0:#BA68C8><bold>VOICE MUTE</bold></gradient> <dark_gray>| <white><player> <#CE93D8>voice muted by <white><staff> <#CE93D8>for <#FFD93D><duration><#CE93D8>."
+
+automod:
+  spam-warning: "<red>AutoMod >> </red><gray>Please slow down your messages or avoid repeating yourself.</gray>"
+  rule-denied: "<red>AutoMod >> </red><gray><message></gray>"
+  staff-alert: "<red>[AutoMod]</red> <white><player></white> <gray>triggered</gray> <yellow><rule></yellow> <gray>in</gray> <aqua><type></aqua>"
+
+config-editor:
+  prompt: "<#FFD93D>Type the new value for <white><path><#FFD93D> in chat, or type 'cancel'."
+  cancelled: "<#FF6B6B>Editing cancelled."
+  updating: "<#FFD93D>Updating configuration..."
+  updated: "<#7FFF7F>Updated <white><path><#7FFF7F> to <white><value><#7FFF7F>."
+  save-failed: "<#FF6B6B>Failed to save configuration: <white><error>"
+
+gui:
+  history:
+    summary-total: "<#FFD93D>Total Punishments: <count>"
+    summary-bans: "<#B0B0B0>Bans: <red><count></red>"
+    summary-mutes: "<#B0B0B0>Mutes: <blue><count></blue>"
+    summary-voice-mutes: "<#B0B0B0>Voice Mutes: <aqua><count></aqua>"
+    summary-warnings: "<#B0B0B0>Warnings: <yellow><count></yellow>"
+    summary-kicks: "<#B0B0B0>Kicks: <gold><count></gold>"
+    unknown-player: "Unknown"
+  alts:
+    status-label: "<#B0B0B0>Status:"
+    warnings-entry: "<#FFD93D>- Warnings: <warnings>"
+    uuid-entry: "<#B0B0B0>UUID: <white><uuid>"
+    alt-voice-muted: "<#5DADE2>- Voice Muted: Yes (<white><reason><#5DADE2>)"
+    alt-not-voice-muted: "<#7FFF7F>- Voice Muted: No"
+    unknown-player: "Unknown"
+  settings:
+    title: "ControlBans Settings"
+    value-label: "<#B0B0B0>Value: <value>"
+    current-label: "<#B0B0B0>Current: <#5DADE2><value>"
+    click-toggle: "<#FFD93D>Click to toggle"
+    click-edit: "<#FFD93D>Click to edit in chat"
+    prompt-bedrock-prefix: "<#FFD93D>Type the new Bedrock prefix in chat, or type 'cancel'."
+    items:
+      silent-bans:
+        name: "<#FFD93D>Silent Bans Default"
+      broadcast-bans:
+        name: "<#FFD93D>Broadcast Punishments"
+      bedrock-prefix:
+        name: "<#FFD93D>Bedrock Prefix"
+      alts-punishment:
+        name: "<#FFD93D>Alt Punishment"
+  report:
+    title: "🚨 Report <player>"
+    head:
+      name: "<#8BC4EA><bold><player>"
+      lore:
+        - " "
+        - "<white>Carefully select the reason"
+        - "<white>you are reporting this player."
+    click-to-select:
+      - "<#8BC4EA>▶ Click to select</#8BC4EA>"
+    items:
+      hacking:
+        name: "<#E74C3C>⚔ Hacking / Cheating"
+        lore:
+          - "<gray>Unfair modifications, killaura,"
+          - "<gray>x-ray, reach, fly, etc."
+      chat:
+        name: "<#F1C40F>💬 Chat Abuse"
+        lore:
+          - "<gray>Spam, toxicity, swearing,"
+          - "<gray>or bypassing chat filters."
+      griefing:
+        name: "<#E67E22>💥 Griefing"
+        lore:
+          - "<gray>Trolling, team-killing,"
+          - "<gray>or destroying builds."
+      other:
+        name: "<#BFC9CA>❓ Other"
+        lore:
+          - "<gray>Other rule-breaking behavior"
+          - "<gray>not listed here."
+  my-reports:
+    title: "My Reports (<page>/<maxpage>)"
+    item-name: "<#8BC4EA>Report: <white><target>"
+    item-lore:
+      - "<#B0B0B0>Reason: <white><reason>"
+      - "<#B0B0B0>Date: <white><date>"
+      - " "
+      - "<status>"
+      - " "
+      - "<#B0B0B0>ID: <#FFD93D><id>"
+    status-pending: "<#F1C40F>⌛ Pending Review"
+    status-resolved: "<#2ECC71>✔ Resolved"
+    status-rejected: "<#E74C3C>✘ Rejected"
+    summary-title: "<#8BC4EA>Reports Summary"
+    summary-total: "<#B0B0B0>Total Submitted: <white><count>"
+    summary-resolved: "<#B0B0B0>Resolved: <#2ECC71><count>"
+    summary-pending: "<#B0B0B0>Pending: <#F1C40F><count>"
+  punish:
+    unknown-player: "Unknown"
+    permission-node: "<dark_gray>Node: <node>"
+    no-permission-action: "<#FF6B6B>You do not have permission for this action."
+    prompt-duration-reason: "<#FFD93D><bold>Punish</bold> <dark_gray>>> <white>Type the <yellow>duration</yellow> and <yellow>reason</yellow> in chat."
+    prompt-reason: "<#FFD93D><bold>Punish</bold> <dark_gray>>> <white>Type the <yellow>reason</yellow> in chat."
+    prompt-example-duration: "<#B0B0B0>Example: 1d Hacking"
+    prompt-cancel: "<#B0B0B0>Type 'cancel' to abort."
+    prompt-cancelled: "<#FF6B6B>Cancelled."
+
+admin:
+  rollback:
+    start: "<#FFD93D>Rollback >> <#B0B0B0>Scanning punishments by <white><staff><#B0B0B0> from the last <white><duration><#B0B0B0>..."
+    error: "<#FF6B6B>Rollback >> Failed to fetch database records."
+    none-found: "<#FFD93D>Rollback >> <#FF8E8E>No active punishments found for that staff member in the requested timeframe."
+    found: "<#FFD93D>Rollback >> <white><count><#B0B0B0> punishments found. Reverting..."
+    success: "<#7FFF7F>Rollback >> <white><count><#AAFFAA> action(s) reverted."
+
+staff-alerts:
+  prefix: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃"
+  ban: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#FF8E8E>permanently banned <white><player> <#FF8E8E>for: <#B0B0B0><reason>"
+  tempban: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#FF8E8E>temp-banned <white><player> <#FF8E8E>for <#FFD93D><duration> <#FF8E8E>— <#B0B0B0><reason>"
+  ipban: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#FF8E8E>IP-banned <white><player> <#FF8E8E>for: <#B0B0B0><reason>"
+  mute: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#8BC4EA>permanently muted <white><player> <#8BC4EA>for: <#B0B0B0><reason>"
+  tempmute: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#8BC4EA>temp-muted <white><player> <#8BC4EA>for <#FFD93D><duration> <#8BC4EA>— <#B0B0B0><reason>"
+  voicemute: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#CE93D8>voice muted <white><player> <#CE93D8>for: <#B0B0B0><reason>"
+  tempvoicemute: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#CE93D8>temp voice muted <white><player> <#CE93D8>for <#FFD93D><duration> <#CE93D8>— <#B0B0B0><reason>"
+  warn: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#FFCC80>warned <white><player> <#FFCC80>for: <#B0B0B0><reason>"
+  kick: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#FFAB91>kicked <white><player> <#FFAB91>for: <#B0B0B0><reason>"
+  freeze: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#80DEEA>froze <white><player><#80DEEA>."
+  unfreeze: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#80DEEA>unfroze <white><player><#80DEEA>."
+  voidjail: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#FF8E8E>void jailed <white><player><#FF8E8E>."
+  unban: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#AAFFAA>unbanned <white><player><#AAFFAA>."
+  unmute: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#80DEEA>unmuted <white><player><#80DEEA>."

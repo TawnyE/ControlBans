@@ -1,0 +1,581 @@
+# ControlBans Nederlandse Lokalisatie
+# Placeholders: <player>, <staff>, <reason>, <duration>, <id>, <server>, <usage>, <count>, <error>, <page>, <maxpage>, <alts>, <ips>
+# Je kunt MiniMessage formatting gebruiken: https://docs.adventure.kyori.net/minimessage/format.html
+# by Qracky (discord: gracky_was_taken)
+
+prefix: "<gradient:#FF6600:#FFFFFF:#21468B>ᴄᴏɴᴛʀᴏʟʙᴀɴꜱ</gradient> <dark_gray>»"
+
+errors:
+  no-permission: "<#FF6B6B>✘ <#FF8E8E>Je hebt geen toestemming om dit commando te gebruiken."
+  player-not-found: "<#FF6B6B>✘ <#FF8E8E>Speler '<white><player><#FF8E8E>' niet gevonden."
+  player-not-found-typo: "<#FF6B6B>✘ <#FF8E8E>Kon speler '<white><player><#FF8E8E>' niet vinden. Dit is mogelijk een typefout, controleer de naam en probeer het opnieuw."
+  floodgate-cache-error: "<#FF6B6B>✘ <#FF8E8E>Kon Bedrock-speler '<white><player><#FF8E8E>' niet vinden. Ze moeten mogelijk ten minste één keer verbinding maken met de server voordat ze op naam kunnen worden verbannen."
+  player-not-banned: "<#FF6B6B>✘ <#FF8E8E>Speler '<white><player><#FF8E8E>' is niet verbannen."
+  player-not-muted: "<#FF6B6B>✘ <#FF8E8E>Speler '<white><player><#FF8E8E>' is niet gedempt."
+  player-not-voice-muted: "<#FF6B6B>✘ <#FF8E8E>Speler '<white><player><#FF8E8E>' is niet stem-gedempt."
+  player-offline: "<#FF6B6B>✘ <#FF8E8E>Speler '<white><player><#FF8E8E>' is niet online."
+  invalid-duration: "<#FF6B6B>✘ <#FF8E8E>Ongeldig tijdsformaat. Gebruik: <white>1d2h3m4s"
+  invalid-arguments: "<#FF6B6B>✘ <#FF8E8E>Ongeldige argumenten. Gebruik: <white><usage>"
+  database-error: "<#FF6B6B>✘ <#FF8E8E>Er is een databasefout opgetreden. Controleer de console."
+  import-failed: "<#FF6B6B>✘ <#FF8E8E>Import mislukt: <white><error>"
+  cannot-punish-self: "<#FF6B6B>✘ <#FF8E8E>Je kunt jezelf niet straffen."
+  cannot-punish-exempt: "<#FF6B6B>✘ <#FF8E8E>Je kunt deze speler niet straffen omdat ze zijn vrijgesteld."
+  command-from-console-error: "Dit commando kan alleen door een speler worden uitgevoerd."
+  id-not-found: "<#FF6B6B>✘ <#FF8E8E>Geen straf gevonden met die ID."
+  voidjail-not-set: "<#FF6B6B>✘ <#FF8E8E>De void-gevangenis is niet goed ingesteld. Neem contact op met een beheerder."
+  blacklisted: "<#FF6B6B>✘ <#FF8E8E>Toegang geweigerd: <white><reason>"
+  ip-not-banned: "<red>IP '<white><ip><red>' is niet verbannen."
+  ip-not-muted: "<red>IP '<white><ip><red>' is niet genegeerd."
+  no-ip-on-record: "<red>Geen IP geregistreerd voor '<white><target><red>'."
+
+appeals:
+  disabled: "<#FF6B6B>✘ <#FF8E8E>Bezwaren zijn momenteel niet beschikbaar."
+  message-required: "<#FF6B6B>✘ <#FF8E8E>Voeg een kort bericht toe aan je bezwaar."
+  not-muted: "<#FF6B6B>✘ <#FF8E8E>Je hebt geen actieve demping om bezwaar tegen te maken."
+  submitted: "<#7FFF7F>✔ <#AAFFAA>Je bezwaar voor straf <white><id><#AAFFAA> is ingediend."
+  cooldown: "<#FF6B6B>✘ <#FF8E8E>Je moet <white><duration><#FF8E8E> wachten voordat je een nieuw bezwaar kunt indienen."
+  limit: "<#FF6B6B>✘ <#FF8E8E>Je hebt de bezwaarlimiet bereikt. Probeer opnieuw over <white><duration><#FF8E8E>."
+  error: "<#FF6B6B>✘ <#FF8E8E>Er ging iets mis bij het indienen van je bezwaar. Neem contact op met het personeel."
+
+success:
+  ban: "<#7FFF7F>✔ <#AAFFAA>Succesvol <white><player><#AAFFAA> verbannen."
+  tempban: "<#7FFF7F>✔ <#AAFFAA>Succesvol <white><player><#AAFFAA> tijdelijk verbannen voor <#FFD93D><duration><#AAFFAA>."
+  unban: "<#7FFF7F>✔ <#AAFFAA>Succesvol <white><player><#AAFFAA> ontbannen."
+  unban_ip: "<#7FFF7F>✔ <#AAFFAA>IP succesvol ontbannen."
+  mute: "<#7FFF7F>✔ <#AAFFAA>Succesvol <white><player><#AAFFAA> gedempt."
+  tempmute: "<#7FFF7F>✔ <#AAFFAA>Succesvol <white><player><#AAFFAA> tijdelijk gedempt voor <#FFD93D><duration><#AAFFAA>."
+  unmute: "<#7FFF7F>✔ <#AAFFAA>Succesvol <white><player><#AAFFAA> gedempt opgeheven."
+  unmute_ip: "<#7FFF7F>✔ <#AAFFAA>IP-demping succesvol opgeheven."
+  voicemute: "<#7FFF7F>✔ <#AAFFAA>Succesvol <white><player><#AAFFAA> stem-gedempt."
+  voiceunmute: "<#7FFF7F>✔ <#AAFFAA>Succesvol <white><player><#AAFFAA> stem-demping opgeheven."
+  warn: "<#7FFF7F>✔ <#AAFFAA>Succesvol <white><player><#AAFFAA> gewaarschuwd."
+  kick: "<#7FFF7F>✔ <#AAFFAA>Succesvol <white><player><#AAFFAA> gekickt."
+  ipban: "<#7FFF7F>✔ <#AAFFAA>IP-ban succesvol toegepast."
+  ipmute: "<#7FFF7F>✔ <#AAFFAA>IP-demping succesvol toegepast."
+  import-complete: "<#7FFF7F>✔ <#AAFFAA>Import voltooid. <white><count><#AAFFAA> records geïmporteerd."
+  reload: "<#7FFF7F>✔ <#AAFFAA>ControlBans configuratie herladen."
+
+  shadowmute-secret: "<gray>[<white>Shadow mute stiekem toegepast<gray>]"
+  tempvoicemute: "<#7FFF7F>✔ <#AAFFAA>Stem-gedempt <white><player><#AAFFAA> voor <#FFD93D><duration><#AAFFAA>."
+
+actionbar:
+  voice-muted: "<gradient:#FF4444:#FF6666><bold>🔇 JE BENT GEDEMPT IN DE VOICECHAT</bold></gradient>"
+
+bossbar:
+  voice-mute:
+    title: "<red><bold>🔇 STEM GEDEMPT:</bold> <yellow><time_remaining>"
+    color: "RED"
+    style: "SOLID"
+
+actions:
+  banning: "<#5DADE2>⏳ <#8BC4EA>Verbannen van <white><player><#8BC4EA>..."
+  temp-banning: "<#5DADE2>⏳ <#8BC4EA>Tijdelijk verbannen van <white><player><#8BC4EA>..."
+  unbanning: "<#5DADE2>⏳ <#8BC4EA>Ontbannen van <white><player><#8BC4EA>..."
+  muting: "<#5DADE2>⏳ <#8BC4EA>Dempen van <white><player><#8BC4EA>..."
+  temp-muting: "<#5DADE2>⏳ <#8BC4EA>Tijdelijk dempen van <white><player><#8BC4EA>..."
+  unmuting: "<#5DADE2>⏳ <#8BC4EA>Demping opheffen van <white><player><#8BC4EA>..."
+  voice-muting: "<#5DADE2>⏳ <#8BC4EA>Stem-dempen van <white><player><#8BC4EA>..."
+  voice-unmuting: "<#5DADE2>⏳ <#8BC4EA>Stem-demping opheffen van <white><player><#8BC4EA>..."
+  warning: "<#5DADE2>⏳ <#8BC4EA>Waarschuwen van <white><player><#8BC4EA>..."
+  kicking: "<#5DADE2>⏳ <#8BC4EA>Kicken van <white><player><#8BC4EA>..."
+  ip-banning: "<#5DADE2>⏳ <#8BC4EA>IP-ban toepassen voor doel: <white><player><#8BC4EA>..."
+  ip-muting: "<#5DADE2>⏳ <#8BC4EA>IP-demping toepassen voor doel: <white><player><#8BC4EA>..."
+  checking-id: "<#5DADE2>⏳ <#8BC4EA>Controleren van straf ID: <white><id><#8BC4EA>..."
+  checking-player: "<#5DADE2>⏳ <#8BC4EA>Controleren van strafstatus voor <white><player><#8BC4EA>..."
+  finding-alts: "<#5DADE2>⏳ <#8BC4EA>Zoeken naar alternatieve accounts voor <white><player><#8BC4EA>..."
+  unbanning_ip: "<aqua>IP <white><ip><aqua> ontbannen..."
+  temp-voice-muting: "<#5DADE2>⏳ <#8BC4EA>Tijdelijk stem-dempen van <white><player><#8BC4EA>..."
+
+voidjail:
+  jailed-message: "<gradient:#8B0000:#B22222><bold>⛓ JE BENT NAAR DE VOID-GEVANGENIS GESTUURD ⛓</bold></gradient>"
+  unjailed-message: "<#7FFF7F>✔ <#AAFFAA>Je bent vrijgelaten uit de void-gevangenis."
+  command-blocked: "<#FF6B6B>✘ <#FF8E8E>Je kunt dit commando niet gebruiken in de void-gevangenis."
+  chat-blocked: "<#666666>Je hebt beperkingen rond je mond en kunt niet praten."
+  success-jail: "<#7FFF7F>✔ <#AAFFAA>Succesvol <white><player><#AAFFAA> naar de void-gevangenis gestuurd."
+  success-unjail: "<#7FFF7F>✔ <#AAFFAA>Succesvol <white><player><#AAFFAA> vrijgelaten uit de void-gevangenis."
+  not-jailed: "<#FF6B6B>✘ <#FF8E8E>Speler <white><player><#FF8E8E> zit momenteel niet in de void-gevangenis."
+
+skinban:
+  success-ban: "<#7FFF7F>✔ <#AAFFAA>Succesvol de skin van <white><player><#AAFFAA> verbannen."
+  success-unban: "<#7FFF7F>✔ <#AAFFAA>Succesvol de skin van <white><player><#AAFFAA> hersteld."
+  already-banned: "<#FF6B6B>✘ <#FF8E8E>De skin van speler <white><player><#FF8E8E> is al verbannen."
+  not-banned: "<#FF6B6B>✘ <#FF8E8E>De skin van speler <white><player><#FF8E8E> is niet verbannen."
+  player-notification: "<#FF6B6B>Je skin is verwijderd door een staflid. Het zal worden hersteld bij opnieuw joinen als de ban is opgeheven."
+  unban-kick: "<#7FFF7F>Je skin is hersteld. Gelieve de server opnieuw te joinen om de wijzigingen te zien."
+
+broadcasts:
+  ban: "<gradient:#FF4444:#FF6666><bold>BAN</bold></gradient> <dark_gray>┃ <white><player> <#FF8E8E>is permanent verbannen door <white><staff> <#FF8E8E>wegens: <#B0B0B0><reason>"
+  tempban: "<gradient:#FF4444:#FF6666><bold>BAN</bold></gradient> <dark_gray>┃ <white><player> <#FF8E8E>is tijdelijk verbannen door <white><staff> <#FF8E8E>wegens: <#B0B0B0><reason>"
+  unban: "<gradient:#4CAF50:#8BC34A><bold>ONTBAN</bold></gradient> <dark_gray>┃ <white><player> <#AAFFAA>is ontbannen door <white><staff><#AAFFAA>."
+  mute: "<gradient:#3498DB:#5DADE2><bold>DEMP</bold></gradient> <dark_gray>┃ <white><player> <#8BC4EA>is permanent gedempt door <white><staff> <#8BC4EA>wegens: <#B0B0B0><reason>"
+  tempmute: "<gradient:#3498DB:#5DADE2><bold>DEMP</bold></gradient> <dark_gray>┃ <white><player> <#8BC4EA>is tijdelijk gedempt door <white><staff> <#8BC4EA>wegens: <#B0B0B0><reason>"
+  unmute: "<gradient:#00BCD4:#4DD0E1><bold>ONDEMP</bold></gradient> <dark_gray>┃ <white><player> <#80DEEA>is ondempt door <white><staff><#80DEEA>."
+  voicemute: "<gradient:#9C27B0:#BA68C8><bold>STEM DEMP</bold></gradient> <dark_gray>┃ <white><player> <#CE93D8>is stem-gedempt door <white><staff> <#CE93D8>wegens: <#B0B0B0><reason>"
+  voiceunmute: "<gradient:#00BCD4:#4DD0E1><bold>STEM ONDEMP</bold></gradient> <dark_gray>┃ <white><player> <#80DEEA>is stem-ondempt door <white><staff><#80DEEA>."
+  tempvoicemute: "<gradient:#9C27B0:#BA68C8><bold>TEMP STEM DEMP</bold></gradient> <dark_gray>┃ <white><player> <#CE93D8>is tijdelijk stem-gedempt door <white><staff> <#CE93D8>wegens: <#B0B0B0><reason>"
+  warn: "<gradient:#FF9800:#FFB74D><bold>WAARSCHUWING</bold></gradient> <dark_gray>┃ <white><player> <#FFCC80>is gewaarschuwd door <white><staff> <#FFCC80>wegens: <#B0B0B0><reason>"
+  kick: "<gradient:#FF5722:#FF8A65><bold>KICK</bold></gradient> <dark_gray>┃ <white><player> <#FFAB91>is gekickt door <white><staff> <#FFAB91>wegens: <#B0B0B0><reason>"
+  ipban: "<gradient:#8B0000:#B22222><bold>IP-BAN</bold></gradient> <dark_gray>┃ <#FF8E8E>Een IP-adres is permanent verbannen door <white><staff> <#FF8E8E>wegens: <#B0B0B0><reason>"
+
+screens:
+  ban:
+    - ""
+    - "<gradient:#FF4444:#FF8E53><bold>⚡ CONTROLBANS ⚡</bold></gradient>"
+    - ""
+    - "<gradient:#FF6B6B:#FF8E8E>§ JE BENT VERBANNEN VAN DEZE SERVER §</gradient>"
+    - ""
+    - "<#555555><strikethrough>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</strikethrough>"
+    - "<#B0B0B0>👤 <#5DADE2>GEBRUIKERSNAAM <dark_gray>» <white><player>"
+    - "<#B0B0B0>📅 <#5DADE2>GESTRAFT OP <dark_gray>» <white><date>"
+    - "<#B0B0B0>🛡️ <#5DADE2>GESTRAFT DOOR <dark_gray>» <white><staff>"
+    - "<#B0B0B0>⚖ <#5DADE2>REDEN <dark_gray>» <white><reason>"
+    - ""
+    - "<#B0B0B0>⌛ <#5DADE2>VERVALDATUM <dark_gray>» <#FF6B6B>Nooit"
+    - "<#B0B0B0>🆔 <#5DADE2>STRAF ID <dark_gray>» <#FFD93D><id>"
+    - "<#B0B0B0>✉ <#5DADE2>BEZWAAR <dark_gray>» <#7FFF7F>appeal.yourserver.net"
+    - "<#555555><strikethrough>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</strikethrough>"
+    - ""
+  tempban:
+    - ""
+    - "<gradient:#FF4444:#FF8E53><bold>⚡ CONTROLBANS ⚡</bold></gradient>"
+    - ""
+    - "<gradient:#FF6B6B:#FF8E8E>§ JE BENT VERBANNEN VAN DEZE SERVER §</gradient>"
+    - ""
+    - "<#555555><strikethrough>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</strikethrough>"
+    - "<#B0B0B0>👤 <#5DADE2>GEBRUIKERSNAAM <dark_gray>» <white><player>"
+    - "<#B0B0B0>📅 <#5DADE2>GESTRAFT OP <dark_gray>» <white><date>"
+    - "<#B0B0B0>🛡️ <#5DADE2>GESTRAFT DOOR <dark_gray>» <white><staff>"
+    - "<#B0B0B0>⚖ <#5DADE2>REDEN <dark_gray>» <white><reason>"
+    - ""
+    - "<#B0B0B0>⏳ <#5DADE2>VERLOOPT OVER <dark_gray>» <#FFD93D><duration>"
+    - "<#B0B0B0>🆔 <#5DADE2>STRAF ID <dark_gray>» <#FFD93D><id>"
+    - "<#B0B0B0>✉ <#5DADE2>BEZWAAR <dark_gray>» <#7FFF7F>appeal.yourserver.net"
+    - "<#555555><strikethrough>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</strikethrough>"
+    - ""
+  ip_ban:
+    - ""
+    - "<gradient:#FF4444:#FF8E53><bold>⚡ CONTROLBANS ⚡</bold></gradient>"
+    - ""
+    - "<gradient:#8B0000:#B22222>§ JE IP IS VERBANNEN VAN DEZE SERVER §</gradient>"
+    - ""
+    - "<#555555><strikethrough>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</strikethrough>"
+    - "<#B0B0B0>🛡️ <#5DADE2>GESTRAFT DOOR <dark_gray>» <white><staff>"
+    - "<#B0B0B0>⚖ <#5DADE2>REDEN <dark_gray>» <white><reason>"
+    - ""
+    - "<#B0B0B0>⌛ <#5DADE2>VERVALDATUM <dark_gray>» <#FF6B6B>Nooit"
+    - "<#B0B0B0>🆔 <#5DADE2>STRAF ID <dark_gray>» <#FFD93D><id>"
+    - "<#B0B0B0>✉ <#5DADE2>BEZWAAR <dark_gray>» <#7FFF7F>appeal.yourserver.net"
+    - "<#555555><strikethrough>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</strikethrough>"
+    - ""
+  ip_tempban:
+    - ""
+    - "<gradient:#FF4444:#FF8E53><bold>⚡ CONTROLBANS ⚡</bold></gradient>"
+    - ""
+    - "<gradient:#8B0000:#B22222>§ JE IP IS VERBANNEN VAN DEZE SERVER §</gradient>"
+    - ""
+    - "<#555555><strikethrough>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</strikethrough>"
+    - "<#B0B0B0>🛡️ <#5DADE2>GESTRAFT DOOR <dark_gray>» <white><staff>"
+    - "<#B0B0B0>⚖ <#5DADE2>REDEN <dark_gray>» <white><reason>"
+    - ""
+    - "<#B0B0B0>⏳ <#5DADE2>VERLOOPT OVER <dark_gray>» <#FFD93D><duration>"
+    - "<#B0B0B0>🆔 <#5DADE2>STRAF ID <dark_gray>» <#FFD93D><id>"
+    - "<#B0B0B0>✉ <#5DADE2>BEZWAAR <dark_gray>» <#7FFF7F>appeal.yourserver.net"
+    - "<#555555><strikethrough>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</strikethrough>"
+    - ""
+  kick:
+    - ""
+    - "<gradient:#FF4444:#FF8E53><bold>⚡ CONTROLBANS ⚡</bold></gradient>"
+    - ""
+    - "<gradient:#FF5722:#FF8A65>§ JE BENT GEKICKT VAN DE SERVER §</gradient>"
+    - ""
+    - "<#555555><strikethrough>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</strikethrough>"
+    - "<#B0B0B0>🛡️ <#5DADE2>GEKICKT DOOR <dark_gray>» <white><staff>"
+    - "<#B0B0B0>⚖ <#5DADE2>REDEN <dark_gray>» <white><reason>"
+    - "<#555555><strikethrough>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</strikethrough>"
+    - ""
+  mute:
+    - "<gradient:#3498DB:#5DADE2><bold>CONTROLBANS</bold></gradient> <dark_gray>» <#FF6B6B>JE BENT GEDEMPT"
+    - "<#B0B0B0>Je bent gedempt door <white><staff><#B0B0B0>."
+    - "<#B0B0B0>Reden: <white><reason>"
+    - "<#B0B0B0>Deze straf is <#FF6B6B>permanent<#B0B0B0>."
+  tempmute:
+    - "<gradient:#3498DB:#5DADE2><bold>CONTROLBANS</bold></gradient> <dark_gray>» <#FF6B6B>JE BENT GEDEMPT"
+    - "<#B0B0B0>Je bent gedempt door <white><staff><#B0B0B0>."
+    - "<#B0B0B0>Reden: <white><reason>"
+    - "<#B0B0B0>Deze straf verloopt over <#FFD93D><duration><#B0B0B0>."
+  voicemute:
+    - "<gradient:#9C27B0:#BA68C8><bold>CONTROLBANS</bold></gradient> <dark_gray>» <#FF6B6B>JE BENT STEM-GEDEMPT"
+    - "<#B0B0B0>Je bent stem-gedempt door <white><staff><#B0B0B0>."
+    - "<#B0B0B0>Reden: <white><reason>"
+    - "<#B0B0B0>Je kunt niet praten in voice chat."
+  ip_mute:
+    - "<gradient:#3498DB:#5DADE2><bold>CONTROLBANS</bold></gradient> <dark_gray>» <#FF6B6B>JE IP IS GEDEMPT"
+    - "<#B0B0B0>Je IP is gedempt door <white><staff><#B0B0B0>."
+    - "<#B0B0B0>Reden: <white><reason>"
+    - "<#B0B0B0>Deze straf is <#FF6B6B>permanent<#B0B0B0>."
+  ip_tempmute:
+    - "<gradient:#3498DB:#5DADE2><bold>CONTROLBANS</bold></gradient> <dark_gray>» <#FF6B6B>JE IP IS GEDEMPT"
+    - "<#B0B0B0>Je IP is gedempt door <white><staff><#B0B0B0>."
+    - "<#B0B0B0>Reden: <white><reason>"
+    - "<#B0B0B0>Deze straf verloopt over <#FFD93D><duration><#B0B0B0>."
+  warn:
+    - "<gradient:#FF9800:#FFB74D><bold>CONTROLBANS</bold></gradient> <dark_gray>» <#FFD93D>JE BENT GEWAARSCHUWD"
+    - "<#B0B0B0>Je bent gewaarschuwd door <white><staff><#B0B0B0>."
+    - "<#B0B0B0>Reden: <white><reason>"
+    - "<#B0B0B0>Zorg ervoor dat je je acties niet herhaalt!"
+
+check:
+  banned: "<#FF6B6B>VERBANNEN: <white><reason> <#B0B0B0>(ID: <#FFD93D><id><#B0B0B0>)"
+  not-banned: "<#7FFF7F>✔ Niet verbannen."
+  muted: "<#FFD93D>GEDEMPT: <white><reason> <#B0B0B0>(ID: <#FFD93D><id><#B0B0B0>)"
+  not-muted: "<#7FFF7F>✔ Niet gedempt."
+  info-header: "<gradient:#FF9800:#FFB74D><bold>Straf Info</bold></gradient> <#B0B0B0>(<#FFD93D><id><#B0B0B0>)"
+  info-type: "<#B0B0B0>  » <#5DADE2>Type: <white><type>"
+  info-player: "<#B0B0B0>  » <#5DADE2>Speler: <white><player>"
+  info-staff: "<#B0B0B0>  » <#5DADE2>Personeel: <white><staff>"
+  info-reason: "<#B0B0B0>  » <#5DADE2>Reden: <white><reason>"
+  info-date: "<#B0B0B0>  » <#5DADE2>Datum: <white><date>"
+  info-duration: "<#B0B0B0>  » <#5DADE2>Duur: <white><duration>"
+  info-status: "<#B0B0B0>  » <#5DADE2>Status: <status>"
+  status-active: "<#7FFF7F>Actief"
+  status-inactive: "<#FF6B6B>Inactief"
+
+alts:
+  no-alts: "<#7FFF7F>✔ Geen alternatieve accounts gevonden voor <white><player><#B0B0B0>."
+  header: "<gradient:#FF9800:#FFB74D><bold>Alternatieve accounts</bold></gradient> <#B0B0B0>voor <#FFD93D><player><#B0B0B0>:"
+  shared-ips: "<#B0B0B0>Gedeelde IPs: <#FFD93D><ips>"
+  status-banned: "<#FF6B6B> [VERBANNEN]"
+  status-muted: "<#5DADE2> [GEDEMPT]"
+  join-alert: "<red>[Alts]</red> <white><player> <gray>is joined. Vermoedelijke alt van</gray> <white><banned_player></white> <gray>(<#FFD93D><confidence>%<gray> overeenkomst)"
+
+automod:
+  spam-warning: "<red>AutoMod >> </red><gray>Vertraag je berichten of vermijd herhaling.</gray>"
+  rule-denied: "<red>AutoMod >> </red><gray><message></gray>"
+  staff-alert: "<red>[AutoMod]</red> <white><player></white> <gray>activeerde</gray> <yellow><rule></yellow> <gray>in</gray> <aqua><type></aqua>"
+
+config-editor:
+  prompt: "<#FFD93D>Typ de nieuwe waarde voor <white><path><#FFD93D> in chat, of typ 'cancel'."
+  cancelled: "<#FF6B6B>Bewerking geannuleerd."
+  updating: "<#FFD93D>Configuratie bijwerken..."
+  updated: "<#7FFF7F><white><path><#7FFF7F> bijgewerkt naar <white><value><#7FFF7F>."
+  save-failed: "<#FF6B6B>Configuratie opslaan mislukt: <white><error>"
+
+gui:
+  history:
+    title: "Geschiedenis: <player> (<page>/<maxpage>)"
+    item-name: "<#FFD93D><type>"
+    item-lore:
+      - "<#B0B0B0>Reden: <white><reason>"
+      - "<#B0B0B0>Door: <white><staff>"
+      - "<#B0B0B0>Datum: <white><date>"
+      - " "
+      - "<#B0B0B0>Duur: <white><duration>"
+      - "<#B0B0B0>Status: <status>"
+      - "<#B0B0B0>ID: <#FFD93D><id>"
+    player-head-name: "<#7FFF7F>Geschiedenis Voor: <white><player>"
+    player-head-lore: "<#B0B0B0>Totaal Straffen: <#FFD93D><count>"
+    summary-total: "<#FFD93D>Totaal Straffen: <count>"
+    summary-bans: "<#B0B0B0>Bans: <red><count></red>"
+    summary-mutes: "<#B0B0B0>Mutes: <blue><count></blue>"
+    summary-voice-mutes: "<#B0B0B0>Voice Mutes: <aqua><count></aqua>"
+    summary-warnings: "<#B0B0B0>Waarschuwingen: <yellow><count></yellow>"
+    summary-kicks: "<#B0B0B0>Kicks: <gold><count></gold>"
+    unknown-player: "Onbekend"
+  alts:
+    title: "Alts: <player> (<page>/<maxpage>)"
+    no-alts-item-name: "<#FF6B6B>Geen Alternatieve Accounts Gevonden"
+    player-head-name: "<#7FFF7F>Alt Controle Voor: <white><player>"
+    player-head-lore:
+      - "<#B0B0B0>Gevonden <#FFD93D><alts><#B0B0B0> alt(s)."
+      - " "
+      - "<#B0B0B0>Gedeelde IPs:"
+    no-ips: "<white>- Geen gevonden"
+    ip-entry: "<white>- <ip>"
+    alt-item-lore:
+      - "<#B0B0B0>Status:"
+      - " <status_ban>"
+      - " <status_mute>"
+      - " <#FFD93D>- Waarschuwingen: <warnings>"
+      - " "
+      - "<#B0B0B0>UUID: <white><uuid>"
+    status-label: "<#B0B0B0>Status:"
+    warnings-entry: "<#FFD93D>- Waarschuwingen: <warnings>"
+    uuid-entry: "<#B0B0B0>UUID: <white><uuid>"
+    alt-banned: "<#FF6B6B>- Verbannen: Ja (<white><reason><#FF6B6B>)"
+    alt-not-banned: "<#7FFF7F>- Verbannen: Nee"
+    alt-muted: "<#5DADE2>- Gedempt: Ja (<white><reason><#5DADE2>)"
+    alt-not-muted: "<#7FFF7F>- Gedempt: Nee"
+    alt-voice-muted: "<#5DADE2>- Voice Mute: Ja (<white><reason><#5DADE2>)"
+    alt-not-voice-muted: "<#7FFF7F>- Voice Mute: Nee"
+    unknown-player: "Onbekend"
+    settings:
+      title: "ControlBans Instellingen"
+      value-label: "<#B0B0B0>Waarde: <value>"
+      current-label: "<#B0B0B0>Huidig: <#5DADE2><value>"
+      click-toggle: "<#FFD93D>Klik om te wisselen"
+      click-edit: "<#FFD93D>Klik om te bewerken in chat"
+      prompt-bedrock-prefix: "<#FFD93D>Typ het nieuwe Bedrock-voorvoegsel in chat, of typ 'cancel'."
+      items:
+        silent-bans:
+          name: "<#FFD93D>Stille Bans Standaard"
+        broadcast-bans:
+          name: "<#FFD93D>Uitzenden Straffen"
+        bedrock-prefix:
+          name: "<#FFD93D>Bedrock Voorvoegsel"
+        alts-punishment:
+          name: "<#FFD93D>Alt Straf"
+
+  report:
+    title: "🚨 Report <player>"
+    head:
+      name: "<#8BC4EA><bold><player>"
+      lore:
+        - " "
+        - "<white>Carefully select the reason"
+        - "<white>you are reporting this player."
+    click-to-select:
+      - "<#8BC4EA>▶ Click to select</#8BC4EA>"
+    items:
+      hacking:
+        name: "<#E74C3C>⚔ Hacking / Cheating"
+        lore:
+          - "<gray>Unfair modifications, killaura,"
+          - "<gray>x-ray, reach, fly, etc."
+      chat:
+        name: "<#F1C40F>💬 Chat Abuse"
+        lore:
+          - "<gray>Spam, toxicity, swearing,"
+          - "<gray>or bypassing chat filters."
+      griefing:
+        name: "<#E67E22>💥 Griefing"
+        lore:
+          - "<gray>Trolling, team-killing,"
+          - "<gray>or destroying builds."
+      other:
+        name: "<#BFC9CA>❓ Other"
+        lore:
+          - "<gray>Other rule-breaking behavior"
+          - "<gray>not listed here."
+  my-reports:
+    title: "My Reports (<page>/<maxpage>)"
+    item-name: "<#8BC4EA>Report: <white><target>"
+    item-lore:
+      - "<#B0B0B0>Reason: <white><reason>"
+      - "<#B0B0B0>Date: <white><date>"
+      - " "
+      - "<status>"
+      - " "
+      - "<#B0B0B0>ID: <#FFD93D><id>"
+    status-pending: "<#F1C40F>⌛ Pending Review"
+    status-resolved: "<#2ECC71>✔ Resolved"
+    status-rejected: "<#E74C3C>✘ Rejected"
+    summary-title: "<#8BC4EA>Reports Summary"
+    summary-total: "<#B0B0B0>Total Submitted: <white><count>"
+    summary-resolved: "<#B0B0B0>Resolved: <#2ECC71><count>"
+    summary-pending: "<#B0B0B0>Pending: <#F1C40F><count>"
+  punish:
+    title: "Punish: <player>" # This prefix must match English for code detection
+    unknown-player: "Onbekend"
+    permission-node: "<dark_gray>Node: <node>"
+    no-permission-action: "<#FF6B6B>Je hebt geen toestemming voor deze actie."
+    prompt-duration-reason: "<#FFD93D><bold>Punish</bold> <dark_gray>>> <white>Typ de <yellow>duur</yellow> en <yellow>reden</yellow> in chat."
+    prompt-reason: "<#FFD93D><bold>Punish</bold> <dark_gray>>> <white>Typ de <yellow>reden</yellow> in chat."
+    prompt-example-duration: "<#B0B0B0>Voorbeeld: 1d Hacking"
+    prompt-cancel: "<#B0B0B0>Typ 'cancel' om te annuleren."
+    prompt-cancelled: "<#FF6B6B>Geannuleerd."
+    no-permission:
+      - "<#FF6B6B>Je hebt geen toestemming"
+      - "<#FF6B6B>om deze straf te gebruiken."
+    click-to-select:
+      - "<#FFD93D>Klik om te selecteren"
+    head:
+      name: "<#FFD93D><player>"
+      lore:
+        - "<#B0B0B0>Selecteer hieronder een straf."
+    items:
+      ban:
+        name: "<#FF6B6B>Perm Ban"
+        lore:
+          - "<#B0B0B0>Verban deze speler permanent."
+      tempban:
+        name: "<#FF6B6B>Tijdelijke Ban"
+        lore:
+          - "<#B0B0B0>Verban deze speler tijdelijk."
+          - "<#B0B0B0>(Duur vereist)"
+      ipban:
+        name: "<#FF6B6B>IP Ban"
+        lore:
+          - "<#B0B0B0>Verban het IP-adres van deze speler."
+      mute:
+        name: "<#5DADE2>Perm Mute"
+        lore:
+          - "<#B0B0B0>Demp deze speler permanent."
+      tempmute:
+        name: "<#5DADE2>Tijdelijke Mute"
+        lore:
+          - "<#B0B0B0>Demp deze speler tijdelijk."
+          - "<#B0B0B0>(Duur vereist)"
+      voicemute:
+        name: "<#BA68C8>Voice Mute"
+        lore:
+          - "<#B0B0B0>Demp deze speler in Voice Chat."
+      kick:
+        name: "<#FFAB91>Kick"
+        lore:
+          - "<#B0B0B0>Verbreek de verbinding met de speler."
+      warn:
+        name: "<#FFCC80>Waarschuwing"
+        lore:
+          - "<#B0B0B0>Stuur een formele waarschuwing."
+      freeze:
+        name: "<#80DEEA>Bevriezen"
+        lore:
+          - "<#B0B0B0>Bevries speler voor inspectie."
+
+  nav-previous: "<#7FFF7F>« Vorige Pagina"
+  nav-next: "<#7FFF7F>Volgende Pagina »"
+
+import:
+  essentials-not-installed: "<#FF6B6B>✘ Essentials is niet geïnstalleerd op deze server."
+  essentials-userdata-not-found: "<#FF6B6B>✘ Essentials userdata map niet gevonden!"
+  essentials-looked-in: "<#FF6B6B>✘ Gezocht in: <white><path>"
+  essentials-starting: "<#5DADE2>⏳ Essentials import starten... Dit kan even duren."
+  essentials-no-user-files: "<#FFD93D>ℹ Geen gebruikersbestanden gevonden in Essentials userdata map."
+  essentials-success: "<#7FFF7F>✔ Succesvol <white><count><#7FFF7F> mute(s) geïmporteerd van Essentials."
+  litebans-connecting: "<#5DADE2>⏳ Verbinden met LiteBans bron database..."
+  litebans-sqlite-not-found: "<#FF6B6B>✘ LiteBans SQLite bestand niet gevonden op: <white><path>"
+  litebans-sqlite-check-path: "<#FF6B6B>✘ Controleer je config.yml pad voor 'import.sources.litebans.sqlite-file'"
+  litebans-unsupported-db: "<#FF6B6B>✘ Niet-ondersteund databasetype voor LiteBans import: <white><type>"
+  litebans-connection-failed: "<#FF6B6B>✘ LiteBans databaseverbinding configureren mislukt. Controleer je configuratie en server logs."
+  litebans-connection-success: "<#7FFF7F>✔ Verbinding succesvol. Start import van LiteBans..."
+  litebans-import-complete: "<#7FFF7F>✔ LiteBans import voltooid. Totaal <white><count><#7FFF7F> records geïmporteerd."
+  litebans-import-error: "<#FF6B6B>✘ Er is een fout opgetreden tijdens de LiteBans import: <white><error>"
+  advancedban-connecting: "<#5DADE2>⏳ Verbinden met AdvancedBan bron database..."
+  advancedban-unsupported-db: "<#FF6B6B>✘ Niet-ondersteund databasetype voor AdvancedBan import: <white><type><#FF6B6B>. Alleen MySQL/MariaDB wordt ondersteund."
+  advancedban-connection-failed: "<#FF6B6B>✘ AdvancedBan databaseverbinding configureren mislukt. Controleer je configuratie en server logs."
+  advancedban-connection-success: "<#7FFF7F>✔ Verbinding succesvol. Start import van AdvancedBan..."
+  advancedban-import-complete: "<#7FFF7F>✔ AdvancedBan import voltooid. Totaal <white><count><#7FFF7F> records geïmporteerd."
+  advancedban-import-error: "<#FF6B6B>✘ Er is een fout opgetreden tijdens de AdvancedBan import: <white><error>"
+  import-table-failed-with-error: "<#FF6B6B>✘ Import van tabel mislukt: <white><table><#FF6B6B>. Bestaat mogelijk niet. Fout: <white><error>"
+  import-table-failed: "<#FF6B6B>✘ Import van tabel mislukt: <white><table><#FF6B6B>. Bestaat mogelijk niet."
+  import-table-success: "<#7FFF7F>✔ <white><count><#7FFF7F> record(s) geïmporteerd van <white><table><#7FFF7F>."
+
+admin:
+  export:
+    not-available: "<#FF6B6B>✘ <#FF8E8E>Export-Dienst niet beschikbaar."
+    start: "<#5DADE2>⏳ Exporteer strafgegevens..."
+    success: "<#7FFF7F>✔ <#AAFFAA>Export voltooid! Bestand: <white><file> <#AAFFAA>Locatie: <white><path>"
+    failed: "<#FF6B6B>✘ <#FF8E8E>Export mislukt: <white><error>"
+  import:
+    no-files: "<#FFD93D>⚠ <#FFCC80>Geen exportbestanden gevonden in plugins/ControlBans/exports/"
+    available-files: "<#5DADE2>Beschikbare exportbestanden:"
+    file-entry: "<#B0B0B0>  • <#5DADE2><file>"
+    file-usage: "<#B0B0B0>Gebruik: <white><usage>"
+    file-not-found: "<#FF6B6B>✘ <#FF8E8E>Bestand niet gevonden: <white><file>"
+    start: "<#5DADE2>⏳ Importeren van <white><file><#5DADE2>..."
+    success: "<#7FFF7F>✔ <#AAFFAA>Import voltooid! <white><count> <#AAFFAA>records geïmporteerd."
+    failed-count: "<#FFD93D>⚠ <#FFCC80><count> records mislukt."
+    failed: "<#FF6B6B>✘ <#FF8E8E>Import mislukt: <white><error>"
+  database:
+    confirm-clear-all: "<#FF6B6B>⚠ <#FF8E8E>Weet je zeker dat je <#FFD93D>ALLE GEGEVENS<#FF8E8E> wilt wissen? Dit kan niet ongedaan gemaakt worden."
+    confirm-clear: "<#FF6B6B>⚠ <#FF8E8E>Weet je zeker dat je gegevens voor <#FFD93D><target><#FF8E8E> wilt wissen? Dit kan niet ongedaan gemaakt worden."
+    instruction: "<#B0B0B0>Typ 'yes' om te bevestigen of 'no' om te annuleren."
+    clearing: "<#5DADE2>⏳ Database opschonen verwerken..."
+    success: "<#7FFF7F>✔ <#AAFFAA>Database succesvol gewist."
+    error: "<#FF6B6B>✘ <#FF8E8E>Fout bij wissen database."
+    player-success: "<#7FFF7F>✔ <#AAFFAA>Spelergegevens succesvol gewist."
+    player-not-found: "<#FF6B6B>✘ <#FF8E8E>Speler niet gevonden of fout opgetreden."
+    cancelled: "<#FF6B6B>✘ <#FF8E8E>Database wissen geannuleerd."
+
+  rollback:
+    start: "<#FFD93D>Rollback >> <#B0B0B0>Scannen van straffen door <white><staff><#B0B0B0> van de laatste <white><duration><#B0B0B0>..."
+    error: "<#FF6B6B>Rollback >> Kan database records niet ophalen."
+    none-found: "<#FFD93D>Rollback >> <#FF8E8E>Geen actieve straffen gevonden voor dat personeelslid in de gevraagde periode."
+    found: "<#FFD93D>Rollback >> <white><count><#B0B0B0> straffen gevonden. Terugdraaien..."
+    success: "<#7FFF7F>Rollback >> <white><count><#AAFFAA> actie(s) teruggedraaid."
+
+freeze:
+  usage: "<#FF6B6B>✘ <#FF8E8E>Gebruik: <white>/freeze <speler>"
+  cannot-freeze: "<#FF6B6B>✘ <#FF8E8E>Je kunt deze speler niet bevriezen."
+  cannot-interact: "<#FF6B6B>✘ <#FF8E8E>Je kunt geen interactie hebben terwijl je bevroren bent."
+  cannot-attack: "<#FF6B6B>✘ <#FF8E8E>Je kunt niet aanvallen terwijl je bevroren bent."
+  logout-ban-reason: "Weigering SS / Uitgelogd tijdens bevriezing"
+  status: "<#5DADE2>❄ <#8BC4EA>Speler <white><player> <#8BC4EA>is nu <status><#8BC4EA>."
+  frozen: "<#FF6B6B>BEVROREN"
+  unfrozen: "<#7FFF7F>ONTDOOID"
+  frozen-title: "<red><bold>JE BENT BEVROREN!</bold></red>"
+  frozen-discord: "<yellow>Word lid van onze Discord voor ondersteuning: <white>discord.gg/jouwserver</yellow>"
+  frozen-logout-warning: "<red>Log niet uit, anders word je verbannen!</red>"
+
+chat:
+  usage: "<#FF6B6B>✘ <#FF8E8E>Gebruik: <white>/chat <lock|slow|clear> [args]"
+  slow-usage: "<#FF6B6B>✘ <#FF8E8E>Gebruik: <white>/chat slow <seconds>"
+  locked: "<#FF6B6B>🔒 <#FF8E8E>Globale chat is <bold>VERGRENDELD</bold> door <white><player><#FF8E8E>."
+  unlocked: "<#7FFF7F>🔓 <#AAFFAA>Globale chat is <bold>ONTGRENDELD</bold> door <white><player><#AAFFAA>."
+  slowed: "<#FFD93D>⏱ <#FFCC80>Chat vertraging ingesteld op <white><seconden>s <#FFCC80>door <white><player><#FFCC80>."
+  slow-disabled: "<#7FFF7F>⚡ <#AAFFAA>Chat vertraging uitgeschakeld door <white><player><#AAFFAA>."
+  cleared: "<#5DADE2>🧹 <#8BC4EA>Globale chat gewist door <white><player><#8BC4EA>."
+  invalid-number: "<#FF6B6B>✘ <#FF8E8E>Ongeldig nummer."
+  unknown-subcommand: "<#FF6B6B>✘ <#FF8E8E>Onbekend subcommando."
+
+report:
+  usage: "<#FF6B6B>✘ <#FF8E8E>Gebruik: <white>/report <player> <reason>"
+  self-report: "<#FF6B6B>✘ <#FF8E8E>Je kunt jezelf niet rapporteren."
+  submitted: "<#7FFF7F>✔ <#AAFFAA>Rapport ingediend tegen <white><player><#AAFFAA>."
+  already-reported: "<#FF6B6B>✘ <#FF8E8E>Je hebt deze speler al recent gerapporteerd."
+  cooldown: "<#FF6B6B>✘ <#FF8E8E>Wacht alsjeblieft <white><duration><#FF8E8E> voordat je opnieuw rapporteert."
+  reason-required: "<#FF6B6B>✘ <#FF8E8E>Geef een reden op voor de rapportage."
+  staff-alert: "<red>[Rapport]</red> <white><reporter></white> <gray>rapporteerde</gray> <white><player></white> <gray>voor</gray> <yellow><reason></yellow>"
+
+notes:
+  added: "<#7FFF7F>✔ <#AAFFAA>Notitie toegevoegd voor <white><player><#AAFFAA>."
+  removed: "<#7FFF7F>✔ <#AAFFAA>Notitie <white><index><#AAFFAA> verwijderd voor <white><player><#AAFFAA>."
+  no-notes: "<#FF6B6B>✘ <#FF8E8E>Geen notities gevonden voor <white><player><#FF8E8E>."
+  header: "<gradient:#FF9800:#FFB74D><bold>Notities voor <player></bold></gradient>"
+  entry: "<#B0B0B0>[<#FFD93D><index><#B0B0B0>] <white><note> <#555555>- <gray><staff> <white><date>"
+  usage-add: "<#FF6B6B>✘ <#FF8E8E>Gebruik: <white>/note add <player> <note>"
+  usage-remove: "<#FF6B6B>✘ <#FF8E8E>Gebruik: <white>/note remove <player> <index>"
+  usage-view: "<#FF6B6B>✘ <#FF8E8E>Gebruik: <white>/note <player>"
+  invalid-index: "<#FF6B6B>✘ <#FF8E8E>Ongeldige notitie-index."
+
+banlist:
+  header: "<gradient:#FF4444:#FF6666><bold>Actieve Bans</bold></gradient> <#B0B0B0>(<#FFD93D><count><#B0B0B0>)"
+  entry: "<#B0B0B0>• <white><player> <#555555>- <gray><reason> <#555555>(<white><staff><#555555>)"
+  empty: "<#7FFF7F>✔ Geen actieve bans."
+  page-info: "<#B0B0B0>Pagina <white><page><#B0B0B0>/<white><maxpage><#B0B0B0>"
+
+mutelist:
+  header: "<gradient:#3498DB:#5DADE2><bold>Actieve Mutes</bold></gradient> <#B0B0B0>(<#FFD93D><count><#B0B0B0>)"
+  entry: "<#B0B0B0>• <white><player> <#555555>- <gray><reason> <#555555>(<white><staff><#555555>)"
+  empty: "<#7FFF7F>✔ Geen actieve mutes."
+  page-info: "<#B0B0B0>Pagina <white><page><#B0B0B0>/<white><maxpage><#B0B0B0>"
+
+blame:
+  header: "<gradient:#FF9800:#FFB74D><bold>Straffen van <staff></bold></gradient> <#B0B0B0>(<#FFD93D><count><#B0B0B0>)"
+  entry: "<#B0B0B0>• <white><type> <white><player> <#555555>- <gray><reason> <#555555>(<white><date><#555555>)"
+  empty: "<#7FFF7F>✔ Geen straffen gevonden voor <white><staff><#7FFF7F>."
+  usage: "<#FF6B6B>✘ <#FF8E8E>Gebruik: <white>/blame <staff>"
+
+staff:
+  header: "<gradient:#5DADE2:#8BC4EA><bold>Online Staff</bold></gradient>"
+  entry: "<#B0B0B0>• <white><player> <#555555>- <gray><rank>"
+  empty: "<#7FFF7F>✔ Geen staff online."
+
+staff-alerts:
+  prefix: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃"
+  ban: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#FF8E8E>permanently banned <white><player> <#FF8E8E>for: <#B0B0B0><reason>"
+  tempban: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#FF8E8E>temp-banned <white><player> <#FF8E8E>for <#FFD93D><duration> <#FF8E8E>— <#B0B0B0><reason>"
+  ipban: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#FF8E8E>IP-banned <white><player> <#FF8E8E>for: <#B0B0B0><reason>"
+  mute: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#8BC4EA>permanently muted <white><player> <#8BC4EA>for: <#B0B0B0><reason>"
+  tempmute: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#8BC4EA>temp-muted <white><player> <#8BC4EA>for <#FFD93D><duration> <#8BC4EA>— <#B0B0B0><reason>"
+  voicemute: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#CE93D8>voice muted <white><player> <#CE93D8>for: <#B0B0B0><reason>"
+  tempvoicemute: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#CE93D8>temp voice muted <white><player> <#CE93D8>for <#FFD93D><duration> <#CE93D8>— <#B0B0B0><reason>"
+  warn: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#FFCC80>warned <white><player> <#FFCC80>for: <#B0B0B0><reason>"
+  kick: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#FFAB91>kicked <white><player> <#FFAB91>for: <#B0B0B0><reason>"
+  freeze: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#80DEEA>froze <white><player><#80DEEA>."
+  unfreeze: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#80DEEA>unfroze <white><player><#80DEEA>."
+  voidjail: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#FF8E8E>void jailed <white><player><#FF8E8E>."
+  unban: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#AAFFAA>unbanned <white><player><#AAFFAA>."
+  unmute: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#80DEEA>unmuted <white><player><#80DEEA>."
+update:
+  available: "<gradient:#a259ff:#ff6b6b><bold>ControlBans Update Beschikbaar!</bold></gradient> <gray>Je gebruikt <white>v<current></white>, de nieuwste is <white>v<latest></white>. <aqua><click:open_url:'https://modrinth.com/plugin/controlbans'>[Downloaden op Modrinth]</click></aqua>"

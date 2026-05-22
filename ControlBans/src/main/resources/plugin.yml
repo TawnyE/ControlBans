@@ -1,7 +1,7 @@
 name: ControlBans
-version: 3.1
+version: 5.4
 main: ret.tawny.controlbans.ControlBansPlugin
-description: Advanced punishment system with LiteBans compatibility
+description: Advanced, next-generation punishment system for Minecraft networks.
 api-version: "1.20"
 author: Tawny
 folia-supported: true
@@ -26,26 +26,31 @@ commands:
     description: Unban a player or IP
     usage: /unban [-s] <player|ip>
     permission: controlbans.unban
-    aliases: [pardon]
+    aliases: [pardon, ub]
   mute:
     description: Mute a player permanently
     usage: /mute [-s] <player> [reason]
     permission: controlbans.mute
-    aliases: [m]
+    aliases: [m, silence]
   tempmute:
     description: Temporarily mute a player
     usage: /tempmute [-s] <player> <time> [reason]
     permission: controlbans.tempmute
     aliases: [tmute, tm]
+  shadowmute:
+    description: Secretly mute a player so only they see their messages.
+    usage: /shadowmute <player> [reason]
+    permission: controlbans.shadowmute
+    aliases: [ smute ]
   unmute:
     description: Unmute a player
     usage: /unmute [-s] <player>
     permission: controlbans.unmute
+    aliases: [um]
   warn:
     description: Warn a player
     usage: /warn [-s] <player> [reason]
     permission: controlbans.warn
-    aliases: [w]
   kick:
     description: Kick a player
     usage: /kick [-s] <player> [reason]
@@ -60,7 +65,7 @@ commands:
     description: Check if a player is banned/muted
     usage: /check <player>
     permission: controlbans.check
-    aliases: [c]
+    aliases: [c, pinfo]
   alts:
     description: View alternate accounts for a player
     usage: /alts <player>
@@ -72,7 +77,7 @@ commands:
     permission: controlbans.appeal
   controlbans:
     description: Main ControlBans command for admin tasks like imports and reloads
-    usage: /controlbans <import|reload>
+    usage: /controlbans <reload|import|export|settings|database>
     permission: controlbans.admin
     aliases: [cb]
   ipban:
@@ -107,10 +112,75 @@ commands:
     description: Mute a player in voice chat.
     usage: /voicemute [-s] <player> [reason]
     permission: controlbans.voicemute
+    aliases: [vmute, vm]
+  tempvoicemute:
+    description: Temporarily mute a player in voice chat.
+    usage: /tempvoicemute [-s] <player> <time> [reason]
+    permission: controlbans.tempvoicemute
+    aliases: [tvmute, tvm]
   voiceunmute:
     description: Unmute a player in voice chat.
     usage: /voiceunmute <player>
     permission: controlbans.voiceunmute
+    aliases: [vunmute, vum]
+  freeze:
+    description: Freeze a player for screenshare/inspection
+    usage: /freeze <player>
+    permission: controlbans.freeze
+    aliases: [ss]
+  chat:
+    description: Manage chat settings (lock, slow, clear)
+    usage: /chat <lock|slow|clear> [args]
+    permission: controlbans.chat
+    aliases: [cchat]
+  punish:
+    description: Open the punishment GUI
+    usage: /punish <player>
+    permission: controlbans.punish
+    aliases: [ p, gui ]
+  unipban:
+    description: Unban an IP address
+    usage: /unipban <ip>
+    permission: controlbans.unipban
+    aliases: [ uniban, pardonip ]
+  unipmute:
+    description: Unmute an IP address
+    usage: /unipmute <ip>
+    permission: controlbans.unipmute
+    aliases: [ unimute, pardonipmute ]
+  report:
+    description: Report a player for rule violations
+    usage: /report <player> <reason>
+    permission: controlbans.report
+  reports:
+    description: View your reports or resolve them
+    usage: /reports [resolve <id> <status>]
+    permission: controlbans.report
+    aliases: [myreports]
+  banlist:
+    description: View all active bans
+    usage: /banlist [page]
+    permission: controlbans.banlist
+    aliases: [ bans ]
+  mutelist:
+    description: View all active mutes
+    usage: /mutelist [page]
+    permission: controlbans.mutelist
+    aliases: [ mutes ]
+  blame:
+    description: View punishments issued by a staff member
+    usage: /blame <staff> [page]
+    permission: controlbans.blame
+  note:
+    description: Add or view notes on players
+    usage: /note <player> [add|remove] [text|index]
+    permission: controlbans.note
+    aliases: [ notes ]
+  staff:
+    description: View online staff members
+    usage: /staff
+    permission: controlbans.staff
+    aliases: [ online, staffonline ]
 
 permissions:
   controlbans.*:
@@ -121,6 +191,8 @@ permissions:
       controlbans.unban: true
       controlbans.mute: true
       controlbans.tempmute: true
+      controlbans.shadowmute: true
+      controlbans.shadowmute.see: true
       controlbans.unmute: true
       controlbans.warn: true
       controlbans.kick: true
@@ -129,15 +201,36 @@ permissions:
       controlbans.alts: true
       controlbans.appeal: true
       controlbans.admin: true
+      controlbans.admin.rollback: true
+      controlbans.admin.export: true
+      controlbans.admin.import: true
       controlbans.import: true
+      controlbans.database: true
       controlbans.exempt: true
       controlbans.ban.ip: true
       controlbans.mute.ip: true
       controlbans.notify.silent: true
+      controlbans.alerts.receive: true
       controlbans.voidjail: true
       controlbans.banskin: true
       controlbans.voicemute: true
+      controlbans.tempvoicemute: true
       controlbans.voiceunmute: true
+      controlbans.freeze: true
+      controlbans.chat: true
+      controlbans.punish: true
+      controlbans.unipban: true
+      controlbans.unipmute: true
+      controlbans.report: true
+      controlbans.report.resolve: true
+      controlbans.banlist: true
+      controlbans.mutelist: true
+      controlbans.blame: true
+      controlbans.note: true
+      controlbans.staff: true
+      controlbans.bypass.chat: true
+      controlbans.bypass.spam: true
+      controlbans.bypass.caps: true
   controlbans.ban:
     description: Permission to ban players
     default: op
@@ -152,6 +245,12 @@ permissions:
     default: op
   controlbans.tempmute:
     description: Permission to temporarily mute players
+    default: op
+  controlbans.shadowmute:
+    description: Permission to shadow mute players.
+    default: op
+  controlbans.shadowmute.see:
+    description: See messages from shadow-muted players.
     default: op
   controlbans.unmute:
     description: Permission to unmute players
@@ -177,8 +276,25 @@ permissions:
   controlbans.admin:
     description: Permission for administrative commands (reload, etc.)
     default: op
+    children:
+      controlbans.admin.rollback: true
+      controlbans.admin.export: true
+      controlbans.admin.import: true
+      controlbans.database: true
+  controlbans.admin.rollback:
+    description: Permission to rollback staff actions.
+    default: op
+  controlbans.admin.export:
+    description: Permission to export punishment data.
+    default: op
+  controlbans.admin.import:
+    description: Permission to import punishment data from files.
+    default: op
   controlbans.import:
     description: Permission to import punishments
+    default: op
+  controlbans.database:
+    description: Permission to use database maintenance commands.
     default: op
   controlbans.exempt:
     description: Exemption from punishments
@@ -192,6 +308,9 @@ permissions:
   controlbans.notify.silent:
     description: Receives broadcast messages for silent punishments.
     default: op
+  controlbans.alerts.receive:
+    description: Receives staff-only moderation alerts.
+    default: op
   controlbans.voidjail:
     description: Permission to use the void jail commands.
     default: op
@@ -201,6 +320,54 @@ permissions:
   controlbans.voicemute:
     description: Permission to mute players in voice chat.
     default: op
+  controlbans.tempvoicemute:
+    description: Permission to temporarily mute players in voice chat.
+    default: op
   controlbans.voiceunmute:
     description: Permission to unmute players in voice chat.
+    default: op
+  controlbans.freeze:
+    description: Permission to freeze players.
+    default: op
+  controlbans.chat:
+    description: Permission to manage chat.
+    default: op
+  controlbans.punish:
+    description: Permission to open the punishment GUI.
+    default: op
+  controlbans.unipban:
+    description: Permission to unban IP addresses.
+    default: op
+  controlbans.unipmute:
+    description: Permission to unmute IP addresses.
+    default: op
+  controlbans.report:
+    description: Permission to report players.
+    default: true
+  controlbans.report.resolve:
+    description: Permission to review and resolve reports.
+    default: op
+  controlbans.banlist:
+    description: Permission to view active bans.
+    default: op
+  controlbans.mutelist:
+    description: Permission to view active mutes.
+    default: op
+  controlbans.blame:
+    description: Permission to view staff punishment history.
+    default: op
+  controlbans.note:
+    description: Permission to manage player notes.
+    default: op
+  controlbans.staff:
+    description: Permission to view online staff.
+    default: true
+  controlbans.bypass.chat:
+    description: Bypass global chat lock and slowmode.
+    default: op
+  controlbans.bypass.spam:
+    description: Bypass AutoMod anti-spam checks.
+    default: op
+  controlbans.bypass.caps:
+    description: Bypass AutoMod caps normalization.
     default: op

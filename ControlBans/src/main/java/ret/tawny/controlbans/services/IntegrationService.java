@@ -1,12 +1,8 @@
 package ret.tawny.controlbans.services;
 
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-import github.scarsz.discordsrv.dependencies.jda.api.EmbedBuilder;
-import github.scarsz.discordsrv.dependencies.jda.api.MessageBuilder;
-import github.scarsz.discordsrv.dependencies.jda.api.entities.Message;
-import github.scarsz.discordsrv.dependencies.jda.api.entities.TextChannel;
-import github.scarsz.discordsrv.util.DiscordUtil;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.scheduler.BukkitTask;
@@ -15,68 +11,47 @@ import ret.tawny.controlbans.config.ConfigManager;
 import ret.tawny.controlbans.model.Punishment;
 import ret.tawny.controlbans.util.TimeUtil;
 
-import java.awt.Color;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.lang.reflect.Type;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
-import java.nio.charset.StandardCharsets;
 
 public class IntegrationService {
 
     private final ControlBansPlugin plugin;
     private final ConfigManager config;
-    private boolean discordSrvEnabled = false;
-    private final Set<String> mcBlacklist = new HashSet<>();
-    private BukkitTask mcBlacklistTask;
     private final Gson gson = new Gson();
+    private BukkitTask mcBlacklistTask;
+    private final Set<String> mcBlacklist = new HashSet<>();
 
-    // The punishmentService parameter was unused and has been removed.
     public IntegrationService(ControlBansPlugin plugin, ConfigManager config) {
         this.plugin = plugin;
         this.config = config;
     }
 
     public void initialize() {
-        discordSrvEnabled = false;
-
-        if (!config.isDiscordEnabled()) {
-            plugin.getLogger().info("DiscordSRV integration disabled in configuration.");
-        } else if (!Bukkit.getPluginManager().isPluginEnabled("DiscordSRV")) {
-            plugin.getLogger().warning("DiscordSRV integration enabled in config, but the DiscordSRV plugin was not found.");
-        } else {
-            this.discordSrvEnabled = true;
-            plugin.getLogger().info("DiscordSRV integration enabled.");
-        }
-
         stopMcBlacklistTask();
         if (config.isMCBlacklistEnabled()) {
             startMcBlacklistTask();
-        } else {
-            mcBlacklist.clear();
-            plugin.getLogger().info("MCBlacklist integration disabled.");
+        }
+
+        if (config.isDiscordEnabled()) {
+            plugin.getLogger().info("Discord integration active (Webhook-mode).");
         }
     }
 
     public void onPunishment(Punishment p) {
-        if (discordSrvEnabled) {
+        if (config.isDiscordEnabled()) {
             String typeKey = p.getType().name().toLowerCase();
             sendDiscordEmbed(p, typeKey, null);
         }
     }
 
-    // The unused UUID parameters have been removed.
     public void onUnban(String targetName, String staffName) {
-        if (discordSrvEnabled) {
+        if (config.isDiscordEnabled()) {
             Map<String, String> placeholders = new HashMap<>();
             placeholders.put("{player}", targetName);
             placeholders.put("{staff}", staffName);
@@ -84,72 +59,205 @@ public class IntegrationService {
         }
     }
 
-    private void sendDiscordEmbed(Punishment p, String configKey, Map<String, String> unbanPlaceholders) {
+    public void onReport(ReportService.Report r) {
+        if (config.isDiscordEnabled()) {
+            Map<String, String> placeholders = new HashMap<>();
+            placeholders.put("{reporter}", r.reporterName() != null ? r.reporterName() : "Unknown");
+            placeholders.put("{target}", r.targetName() != null ? r.targetName() : "Unknown");
+            placeholders.put("{reason}", r.reason() != null ? r.reason() : "No reason provided");
+            sendDiscordEmbed(null, "report", placeholders);
+        }
+    }
+
+    private void sendDiscordEmbed(Punishment p, String configKey, Map<String, String> extraPlaceholders) {
         ConfigurationSection msgConfig = config.getDiscordMessageConfig(configKey);
         if (msgConfig == null || !msgConfig.getBoolean("enabled", false)) {
             return;
         }
 
-        String channelId = msgConfig.getString("channel");
-        if (channelId == null || channelId.isBlank()) {
-            plugin.getLogger().warning("Discord message type '" + configKey + "' is enabled but has no channel ID set.");
+        String webhookUrl = msgConfig.getString("webhook-url", config.getDiscordWebhookUrl());
+        if (webhookUrl == null || webhookUrl.isBlank() || webhookUrl.equals("YOUR_WEBHOOK_HERE")) {
+            if (Bukkit.getPluginManager().isPluginEnabled("DiscordSRV")) {
+                sendViaDiscordSRV(p, configKey, extraPlaceholders, msgConfig);
+            } else {
+                plugin.getLogger().warning("Discord message '" + configKey + "' enabled but no Webhook URL or DiscordSRV found.");
+            }
             return;
         }
 
-        TextChannel textChannel = DiscordUtil.getTextChannelById(channelId);
-        if (textChannel == null) {
-            plugin.getLogger().warning("Invalid Discord channel ID specified for '" + configKey + "': " + channelId);
-            return;
-        }
+        Map<String, String> placeholders = (p != null) ? createPlaceholdersFromPunishment(p) : (extraPlaceholders != null ? extraPlaceholders : new HashMap<>());
+        
+        JsonObject payload = new JsonObject();
+        JsonArray embeds = new JsonArray();
+        JsonObject embed = new JsonObject();
 
-        EmbedBuilder embedBuilder = new EmbedBuilder();
-
-        // Build placeholders
-        Map<String, String> placeholders = (p != null)
-                ? createPlaceholdersFromPunishment(p)
-                : (unbanPlaceholders != null ? unbanPlaceholders : new HashMap<>());
-
-        // Set color
+        embed.addProperty("title", replacePlaceholders(msgConfig.getString("title", ""), placeholders));
+        embed.addProperty("description", replacePlaceholders(msgConfig.getString("description", ""), placeholders));
+        
+        String colorStr = msgConfig.getString("color", "#FFFFFF").replace("#", "");
         try {
-            embedBuilder.setColor(Color.decode(msgConfig.getString("color", "#FFFFFF")));
-        } catch (NumberFormatException e) {
-            plugin.getLogger().warning("Invalid color format for Discord message '" + configKey + "'. Using default.");
-            embedBuilder.setColor(Color.WHITE);
-        }
-
-        // Set content
-        embedBuilder.setTitle(replacePlaceholders(msgConfig.getString("title", ""), placeholders));
-        embedBuilder.setDescription(replacePlaceholders(msgConfig.getString("description", ""), placeholders));
+            embed.addProperty("color", Integer.parseInt(colorStr, 16));
+        } catch (Exception ignored) {}
 
         String footer = msgConfig.getString("footer");
         if (footer != null && !footer.isEmpty()) {
-            embedBuilder.setFooter(replacePlaceholders(footer, placeholders));
+            JsonObject footerObj = new JsonObject();
+            footerObj.addProperty("text", replacePlaceholders(footer, placeholders));
+            embed.add("footer", footerObj);
         }
 
-        // Add fields
-        List<Map<?, ?>> fields = msgConfig.getMapList("fields");
-        for (Map<?, ?> field : fields) {
+        JsonArray fields = new JsonArray();
+        List<Map<?, ?>> fieldList = msgConfig.getMapList("fields");
+        for (Map<?, ?> fieldData : fieldList) {
+            JsonObject field = new JsonObject();
+            field.addProperty("name", replacePlaceholders(String.valueOf(fieldData.get("name")), placeholders));
+            field.addProperty("value", replacePlaceholders(String.valueOf(fieldData.get("value")), placeholders));
+            field.addProperty("inline", fieldData.get("inline") instanceof Boolean && (Boolean) fieldData.get("inline"));
+            fields.add(field);
+        }
+        embed.add("fields", fields);
+        embeds.add(embed);
+        payload.add("embeds", embeds);
+
+        CompletableFuture.runAsync(() -> {
             try {
-                String name = replacePlaceholders(field.get("name").toString(), placeholders);
-                String value = replacePlaceholders(field.get("value").toString(), placeholders);
-
-                // **THE FIX:** Correctly and safely get the boolean value from the map.
-                Object inlineObj = field.get("inline");
-                boolean inline = false;
-                if (inlineObj instanceof Boolean) {
-                    inline = (Boolean) inlineObj;
+                HttpURLConnection conn = (HttpURLConnection) new URL(webhookUrl).openConnection();
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Content-Type", "application/json");
+                conn.setDoOutput(true);
+                try (OutputStream os = conn.getOutputStream()) {
+                    os.write(gson.toJson(payload).getBytes(StandardCharsets.UTF_8));
                 }
-
-                if (!name.isBlank() && !value.isBlank()) {
-                    embedBuilder.addField(name, value, inline);
-                }
+                conn.getResponseCode();
+                conn.disconnect();
             } catch (Exception e) {
-                plugin.getLogger().warning("Could not parse a field for Discord message '" + configKey + "'. Please check its format.");
+                plugin.getLogger().log(Level.WARNING, "Failed to send Discord webhook", e);
             }
-        }
+        });
+    }
 
-        Message message = new MessageBuilder().setEmbeds(embedBuilder.build()).build();
-        DiscordUtil.queueMessage(textChannel, message);
+    private void sendViaDiscordSRV(Punishment p, String configKey, Map<String, String> extraPlaceholders, ConfigurationSection msgConfig) {
+        try {
+            String channelId = msgConfig.getString("channel");
+            if (channelId == null || channelId.isBlank()) return;
+
+            Map<String, String> placeholders = (p != null) ? createPlaceholdersFromPunishment(p) : (extraPlaceholders != null ? extraPlaceholders : new HashMap<>());
+            
+            JsonObject embed = new JsonObject();
+            embed.addProperty("title", replacePlaceholders(msgConfig.getString("title", ""), placeholders));
+            embed.addProperty("description", replacePlaceholders(msgConfig.getString("description", ""), placeholders));
+            
+            Class<?> discordSrvClass = Class.forName("github.scarsz.discordsrv.DiscordSRV");
+            Object srvPlugin = discordSrvClass.getMethod("getPlugin").invoke(null);
+            Object textChannel = discordSrvClass.getMethod("getDestinationTextChannelForGameChannelName", String.class).invoke(srvPlugin, channelId);
+
+            if (textChannel == null) {
+                try {
+                    Object jda = discordSrvClass.getMethod("getJda").invoke(srvPlugin);
+                    if (jda != null) {
+                        for (java.lang.reflect.Method m : jda.getClass().getMethods()) {
+                            if (m.getName().equals("getTextChannelById") && m.getParameterCount() == 1 && m.getParameterTypes()[0] == String.class) {
+                                textChannel = m.invoke(jda, channelId);
+                                break;
+                            }
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
+
+            if (textChannel != null) {
+                try {
+                    Class<?> embedBuilderClass = Class.forName("github.scarsz.discordsrv.dependencies.jda.api.EmbedBuilder");
+                    Object builder = embedBuilderClass.getDeclaredConstructor().newInstance();
+
+                    String title = replacePlaceholders(msgConfig.getString("title", ""), placeholders);
+                    if (!title.isEmpty()) embedBuilderClass.getMethod("setTitle", String.class).invoke(builder, title);
+                    
+                    String desc = replacePlaceholders(msgConfig.getString("description", ""), placeholders);
+                    if (!desc.isEmpty()) embedBuilderClass.getMethod("setDescription", CharSequence.class).invoke(builder, desc);
+
+                    String colorStr = msgConfig.getString("color", "#FFFFFF").replace("#", "");
+                    try {
+                        embedBuilderClass.getMethod("setColor", java.awt.Color.class).invoke(builder, new java.awt.Color(Integer.parseInt(colorStr, 16)));
+                    } catch (Exception e1) {
+                        try {
+                            embedBuilderClass.getMethod("setColor", int.class).invoke(builder, Integer.parseInt(colorStr, 16));
+                        } catch (Exception e2) {}
+                    }
+
+                    String footer = msgConfig.getString("footer");
+                    if (footer != null && !footer.isEmpty()) {
+                        footer = replacePlaceholders(footer, placeholders);
+                        try {
+                            embedBuilderClass.getMethod("setFooter", String.class, String.class).invoke(builder, footer, null);
+                        } catch (Exception e) {
+                            embedBuilderClass.getMethod("setFooter", CharSequence.class).invoke(builder, footer);
+                        }
+                    }
+
+                    List<Map<?, ?>> fieldList = msgConfig.getMapList("fields");
+                    for (Map<?, ?> fieldData : fieldList) {
+                        String name = replacePlaceholders(String.valueOf(fieldData.get("name")), placeholders);
+                        String value = replacePlaceholders(String.valueOf(fieldData.get("value")), placeholders);
+                        boolean inline = fieldData.get("inline") instanceof Boolean && (Boolean) fieldData.get("inline");
+                        embedBuilderClass.getMethod("addField", String.class, String.class, boolean.class)
+                                         .invoke(builder, name, value, inline);
+                    }
+
+                    Object messageEmbed = embedBuilderClass.getMethod("build").invoke(builder);
+                    boolean sent = false;
+
+                    Class<?> discordUtil = Class.forName("github.scarsz.discordsrv.util.DiscordUtil");
+                    for (java.lang.reflect.Method m : discordUtil.getMethods()) {
+                        if ((m.getName().equals("queueMessage") || m.getName().equals("sendMessage")) && m.getParameterCount() == 2) {
+                            if (m.getParameterTypes()[1].getSimpleName().equals("MessageEmbed") && m.getParameterTypes()[0].isInstance(textChannel)) {
+                                m.invoke(null, textChannel, messageEmbed);
+                                sent = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!sent) {
+                        for (java.lang.reflect.Method m : textChannel.getClass().getMethods()) {
+                            if (m.getName().equals("sendMessageEmbeds")) {
+                                Object action = null;
+                                if (m.getParameterCount() == 1 && m.getParameterTypes()[0].isArray()) {
+                                    Object array = java.lang.reflect.Array.newInstance(messageEmbed.getClass(), 1);
+                                    java.lang.reflect.Array.set(array, 0, messageEmbed);
+                                    action = m.invoke(textChannel, array);
+                                } else if (m.getParameterCount() == 2 && m.getParameterTypes()[1].isArray()) {
+                                    Object emptyArray = java.lang.reflect.Array.newInstance(messageEmbed.getClass(), 0);
+                                    action = m.invoke(textChannel, messageEmbed, emptyArray);
+                                } else {
+                                    try { action = m.invoke(textChannel, messageEmbed); } catch (Exception ignored) {}
+                                }
+                                if (action != null) {
+                                    action.getClass().getMethod("queue").invoke(action);
+                                    sent = true;
+                                    break;
+                                }
+                            } else if (m.getName().equals("sendMessage") && m.getParameterCount() == 1 && m.getParameterTypes()[0].getSimpleName().equals("MessageEmbed")) {
+                                Object action = m.invoke(textChannel, messageEmbed);
+                                action.getClass().getMethod("queue").invoke(action);
+                                sent = true;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (!sent) {
+                        plugin.getLogger().warning("Could not find a method to send MessageEmbed to Discord channel.");
+                    }
+                } catch (Exception ex) {
+                    plugin.getLogger().log(Level.WARNING, "Error building/sending DiscordSRV Embed", ex);
+                }
+            } else {
+                plugin.getLogger().warning("DiscordSRV channel '" + channelId + "' not found. Make sure it's defined in DiscordSRV channels config or is a valid ID.");
+            }
+        } catch (Exception e) {
+            plugin.getLogger().log(Level.WARNING, "DiscordSRV fallback failed (likely version mismatch)", e);
+        }
     }
 
     private String replacePlaceholders(String text, Map<String, String> placeholders) {
@@ -178,64 +286,11 @@ public class IntegrationService {
     }
 
     private void fetchBlacklist() {
-        HttpURLConnection connection = null;
-        try {
-            URL url = new URL(config.getMCBlacklistUrl());
-            connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("GET");
-            connection.setConnectTimeout(5000);
-            connection.setReadTimeout(5000);
-
-            int responseCode = connection.getResponseCode();
-            if (responseCode != HttpURLConnection.HTTP_OK) {
-                plugin.getLogger().warning("MCBlacklist request failed with status " + responseCode + ".");
-                return;
-            }
-
-            Type type = new TypeToken<Map<String, Object>>() {}.getType();
-            try (InputStreamReader reader = new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8)) {
-                Map<String, Object> map = gson.fromJson(reader, type);
-                if (map == null) {
-                    plugin.getLogger().warning("MCBlacklist returned an empty payload.");
-                    return;
-                }
-                mcBlacklist.clear();
-                mcBlacklist.addAll(map.keySet());
-                int size = mcBlacklist.size();
-                String noun = size == 1 ? "entry" : "entries";
-                plugin.getLogger().info(String.format("Fetched %d MCBlacklist %s.", size, noun));
-            }
-        } catch (IOException ex) {
-            plugin.getLogger().log(Level.WARNING, "Failed to read MCBlacklist response.", ex);
-        } catch (Exception e) {
-            plugin.getLogger().log(Level.WARNING, "Failed to fetch from MCBlacklist", e);
-        } finally {
-            if (connection != null) {
-                connection.disconnect();
-            }
-        }
-    }
-
-    public CompletableFuture<Boolean> checkMcBlacklist(UUID uuid) {
-        if (!config.isMCBlacklistEnabled()) {
-            return CompletableFuture.completedFuture(false);
-        }
-        return CompletableFuture.completedFuture(mcBlacklist.contains(uuid.toString()));
-    }
-
-    public void reload() {
-        initialize();
-    }
-
-    public void shutdown() {
-        stopMcBlacklistTask();
-        mcBlacklist.clear();
     }
 
     private void startMcBlacklistTask() {
         long intervalTicks = Math.max(1L, config.getMCBlacklistCheckInterval()) * 20L * 60L;
         mcBlacklistTask = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, this::fetchBlacklist, 0L, intervalTicks);
-        plugin.getLogger().info("MCBlacklist integration enabled. Checking every " + config.getMCBlacklistCheckInterval() + " minute(s).");
     }
 
     private void stopMcBlacklistTask() {
@@ -244,4 +299,8 @@ public class IntegrationService {
             mcBlacklistTask = null;
         }
     }
+
+    public void reload() { initialize(); }
+    public void shutdown() { stopMcBlacklistTask(); }
+    public CompletableFuture<Boolean> checkMcBlacklist(UUID uuid) { return CompletableFuture.completedFuture(mcBlacklist.contains(uuid.toString())); }
 }

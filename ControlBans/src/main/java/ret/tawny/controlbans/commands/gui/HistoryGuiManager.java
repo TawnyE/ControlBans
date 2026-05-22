@@ -15,19 +15,20 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import ret.tawny.controlbans.ControlBansPlugin;
 import ret.tawny.controlbans.locale.LocaleManager;
+import ret.tawny.controlbans.menus.ControlBansHolder;
 import ret.tawny.controlbans.model.Punishment;
+import ret.tawny.controlbans.model.PunishmentType;
 import ret.tawny.controlbans.services.PunishmentService;
 import ret.tawny.controlbans.util.TimeUtil;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CompletableFuture;
 
 public class HistoryGuiManager {
 
     private final ControlBansPlugin plugin;
     private final PunishmentService punishmentService;
     private final LocaleManager locale;
-    private final Map<UUID, Integer> openInventories = new ConcurrentHashMap<>();
     private static final int ITEMS_PER_PAGE = 45;
 
     public HistoryGuiManager(ControlBansPlugin plugin) {
@@ -36,34 +37,54 @@ public class HistoryGuiManager {
         this.locale = plugin.getLocaleManager();
     }
 
+    public static class HistoryHolder extends ControlBansHolder {
+        private final OfflinePlayer target;
+        private final int page;
+        public HistoryHolder(OfflinePlayer target, int page) { this.target = target; this.page = page; }
+        public OfflinePlayer getTarget() { return target; }
+        public int getPage() { return page; }
+    }
+
     public void openHistoryGui(Player viewer, OfflinePlayer target, int page) {
+        int startPage = Math.max(1, page);
         punishmentService.getPunishmentHistory(target.getUniqueId(), 200).thenAccept(punishments -> {
             punishments.sort(Comparator.comparingLong(Punishment::getCreatedTime).reversed());
 
-            plugin.getSchedulerAdapter().runTask(() -> {
-                int maxPage = (int) Math.ceil((double) punishments.size() / ITEMS_PER_PAGE);
-                if (maxPage == 0) maxPage = 1;
+            CompletableFuture.supplyAsync(() -> {
+                int maxPage = Math.max(1, (int) Math.ceil((double) punishments.size() / ITEMS_PER_PAGE));
+                int currentPage = startPage > maxPage ? maxPage : startPage;
 
-                Component title = locale.getMessage("gui.history.title",
-                        Placeholder.unparsed("player", Objects.requireNonNull(target.getName())),
-                        Placeholder.unparsed("page", String.valueOf(page)),
-                        Placeholder.unparsed("maxpage", String.valueOf(maxPage))
-                );
-                Inventory inv = Bukkit.createInventory(null, 54, title);
-
-                int startIndex = (page - 1) * ITEMS_PER_PAGE;
+                List<ItemStack> items = new ArrayList<>();
+                int startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
                 int endIndex = Math.min(startIndex + ITEMS_PER_PAGE, punishments.size());
+
                 for (int i = startIndex; i < endIndex; i++) {
-                    inv.setItem(i - startIndex, createPunishmentItem(punishments.get(i)));
+                    items.add(createPunishmentItem(punishments.get(i)));
                 }
 
-                inv.setItem(45, (page > 1) ? createNavItem("gui.nav-previous") : createFillerGlass());
-                inv.setItem(49, createPlayerHeadItem(target, punishments.size()));
-                inv.setItem(53, (page < maxPage) ? createNavItem("gui.nav-next") : createFillerGlass());
+                ItemStack headItem = createPlayerHeadItem(target, punishments);
+                return new GuiData(items, headItem, maxPage, currentPage);
+            }).thenAccept(data -> {
+                plugin.getSchedulerAdapter().runTaskForPlayer(viewer, () -> {
+                    Component title = locale.getMessage("gui.history.title",
+                            Placeholder.unparsed("player", target.getName() != null ? target.getName() : locale.getRawMessage("gui.history.unknown-player")),
+                            Placeholder.unparsed("page", String.valueOf(data.currentPage)),
+                            Placeholder.unparsed("maxpage", String.valueOf(data.maxPage)));
 
-                viewer.openInventory(inv);
-                openInventories.put(viewer.getUniqueId(), page);
+                    Inventory inv = Bukkit.createInventory(new HistoryHolder(target, data.currentPage), 54, title);
+
+                    for (int i = 0; i < data.items.size(); i++) {
+                        inv.setItem(i, data.items.get(i));
+                    }
+
+                    inv.setItem(45, (data.currentPage > 1) ? createNavItem("gui.nav-previous") : createFillerGlass());
+                    inv.setItem(49, data.headItem);
+                    inv.setItem(53, (data.currentPage < data.maxPage) ? createNavItem("gui.nav-next") : createFillerGlass());
+
+                    viewer.openInventory(inv);
+                });
             });
+
         }).exceptionally(ex -> {
             viewer.sendMessage(locale.getMessage("errors.database-error"));
             plugin.getLogger().warning("Failed to fetch history for GUI: " + ex.getMessage());
@@ -71,11 +92,13 @@ public class HistoryGuiManager {
         });
     }
 
+    private record GuiData(List<ItemStack> items, ItemStack headItem, int maxPage, int currentPage) {}
+
     private ItemStack createPunishmentItem(Punishment p) {
         Material material = switch (p.getType()) {
-            case BAN, TEMPBAN, IPBAN -> Material.RED_WOOL;
-            case MUTE, TEMPMUTE -> Material.BLUE_WOOL;
-            case VOICEMUTE -> Material.CYAN_WOOL;
+            case BAN, TEMPBAN, IPBAN, TEMPIPBAN -> Material.RED_WOOL;
+            case MUTE, TEMPMUTE, IPMUTE, TEMPIPMUTE -> Material.BLUE_WOOL;
+            case VOICEMUTE, TEMPVOICEMUTE -> Material.CYAN_WOOL;
             case WARN -> Material.YELLOW_WOOL;
             case KICK -> Material.ORANGE_WOOL;
         };
@@ -85,18 +108,18 @@ public class HistoryGuiManager {
         boolean isActive = p.isActive() && !p.isExpired();
 
         meta.displayName(locale.getMessage("gui.history.item-name",
-                Placeholder.unparsed("type", p.getType().getDisplayName()))
-        );
+                Placeholder.unparsed("type", p.getType().getDisplayName())));
 
         String statusKey = isActive ? "check.status-active" : "check.status-inactive";
         String statusString = locale.getRawMessage(statusKey);
 
         TagResolver placeholders = TagResolver.builder()
-                .resolver(Placeholder.unparsed("reason", p.getReason()))
-                .resolver(Placeholder.unparsed("staff", p.getStaffName()))
+                .resolver(Placeholder.unparsed("reason", p.getReason() != null ? p.getReason() : "Unspecified"))
+                .resolver(Placeholder.unparsed("staff", p.getStaffName() != null ? p.getStaffName() : "Console"))
                 .resolver(Placeholder.unparsed("date", TimeUtil.formatDate(p.getCreatedTime())))
-                .resolver(Placeholder.unparsed("duration", p.isPermanent() ? "Permanent" : TimeUtil.formatDuration((p.getExpiryTime() - p.getCreatedTime()) / 1000)))
-                // **THE FIX:** Changed from .unparsed to .parsed to process MiniMessage tags in the status string.
+                .resolver(Placeholder.unparsed("duration",
+                        p.isPermanent() ? "Permanent"
+                                : TimeUtil.formatDuration((p.getExpiryTime() - p.getCreatedTime()) / 1000)))
                 .resolver(Placeholder.parsed("status", statusString))
                 .resolver(Placeholder.unparsed("id", p.getPunishmentId()))
                 .build();
@@ -112,17 +135,31 @@ public class HistoryGuiManager {
         return item;
     }
 
-    private ItemStack createPlayerHeadItem(OfflinePlayer target, int totalPunishments) {
+    private ItemStack createPlayerHeadItem(OfflinePlayer target, List<Punishment> history) {
         ItemStack head = new ItemStack(Material.PLAYER_HEAD);
         SkullMeta meta = (SkullMeta) head.getItemMeta();
         if (meta != null) {
-            meta.setOwningPlayer(target);
+            try { meta.setOwningPlayer(target); } catch (Exception ignored) {}
+
             meta.displayName(locale.getMessage("gui.history.player-head-name",
-                    Placeholder.unparsed("player", Objects.requireNonNull(target.getName())))
-            );
-            meta.lore(Collections.singletonList(locale.getMessage("gui.history.player-head-lore",
-                    Placeholder.unparsed("count", String.valueOf(totalPunishments))))
-            );
+                    Placeholder.unparsed("player", target.getName() != null ? target.getName() : locale.getRawMessage("gui.history.unknown-player"))));
+
+            long bans = history.stream().filter(p -> p.getType().isBan()).count();
+            long mutes = history.stream().filter(p -> p.getType().isMute()).count();
+            long warns = history.stream().filter(p -> p.getType() == PunishmentType.WARN).count();
+            long kicks = history.stream().filter(p -> p.getType() == PunishmentType.KICK).count();
+            long voiceMutes = history.stream().filter(p -> p.getType() == PunishmentType.VOICEMUTE || p.getType() == PunishmentType.TEMPVOICEMUTE).count();
+
+            List<Component> lore = new ArrayList<>();
+            lore.add(locale.getMessage("gui.history.summary-total", Placeholder.unparsed("count", String.valueOf(history.size()))));
+            lore.add(Component.empty());
+            lore.add(locale.getMessage("gui.history.summary-bans", Placeholder.unparsed("count", String.valueOf(bans))));
+            lore.add(locale.getMessage("gui.history.summary-mutes", Placeholder.unparsed("count", String.valueOf(mutes))));
+            lore.add(locale.getMessage("gui.history.summary-voice-mutes", Placeholder.unparsed("count", String.valueOf(voiceMutes))));
+            lore.add(locale.getMessage("gui.history.summary-warnings", Placeholder.unparsed("count", String.valueOf(warns))));
+            lore.add(locale.getMessage("gui.history.summary-kicks", Placeholder.unparsed("count", String.valueOf(kicks))));
+
+            meta.lore(lore);
             head.setItemMeta(meta);
         }
         return head;
@@ -146,9 +183,5 @@ public class HistoryGuiManager {
             item.setItemMeta(meta);
         }
         return item;
-    }
-
-    public Map<UUID, Integer> getOpenInventories() {
-        return openInventories;
     }
 }

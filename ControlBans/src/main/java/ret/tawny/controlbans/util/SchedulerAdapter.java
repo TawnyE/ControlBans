@@ -30,11 +30,6 @@ public class SchedulerAdapter {
         }
     }
 
-    /**
-     * Executes a task on the next tick for the entire server.
-     * On Folia, this uses the Global Region Scheduler.
-     * On Paper/Spigot, this uses the Bukkit Scheduler.
-     */
     public void runTask(Runnable task) {
         if (!isFolia && Bukkit.isPrimaryThread()) {
             task.run();
@@ -48,11 +43,22 @@ public class SchedulerAdapter {
         }
     }
 
-    /**
-     * Executes a task related to a specific player.
-     * On Folia, this uses the Player's Entity Scheduler.
-     * On Paper/Spigot, this uses the Bukkit Scheduler.
-     */
+    public void runTaskLater(Runnable task, long delayTicks) {
+        if (isFolia) {
+            Bukkit.getGlobalRegionScheduler().runDelayed(plugin, t -> task.run(), delayTicks);
+        } else {
+            Bukkit.getScheduler().runTaskLater(plugin, task, delayTicks);
+        }
+    }
+
+    public void runTaskLaterAsync(Runnable task, long delayTicks) {
+        if (isFolia) {
+            Bukkit.getGlobalRegionScheduler().runDelayed(plugin, t -> task.run(), delayTicks);
+        } else {
+            Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, task, delayTicks);
+        }
+    }
+
     public void runTaskForPlayer(Player player, Runnable task) {
         if (player == null) {
             runTask(task);
@@ -71,9 +77,6 @@ public class SchedulerAdapter {
         }
     }
 
-    /**
-     * Executes a task asynchronously. This is safe for both platforms.
-     */
     public void runTaskAsynchronously(Runnable task) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, task);
     }

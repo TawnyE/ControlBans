@@ -1,79 +1,581 @@
-# ControlBans Italian Locale
-# Placeholders: <player>, <staff>, <reason>, <duration>, <id>, <server>, <usage>, <count>, <error>, <page>, <maxpage>, <alts>, <ips>
-# You can use MiniMessage formatting: https://docs.adventure.kyori.net/minimessage/format.html
+# Localizzazione italiana di ControlBans
+# Segnaposto: <player>, <staff>, <reason>, <duration>, <id>, <server>, <usage>, <count>, <error>, <page>, <maxpage>, <alts>, <ips>
+# Puoi usare la formattazione MiniMessage: https://docs.adventure.kyori.net/minimessage/format.html
+# Palette colori premium con gradienti e colori hex
 
-prefix: "<gray>[<red>ControlBans<gray>]<white>"
+prefix: "<gradient:#009246:#FFFFFF:#CE2B37>ᴄᴏɴᴛʀᴏʟʙᴀɴꜱ</gradient> <dark_gray>»"
 
 errors:
-  no-permission: "<red>Non hai il permesso di usare questo comando."
-  player-not-found: "<red>Giocatore '<player>' non trovato."
-  player-not-found-typo: "<red>Impossibile trovare il giocatore '<player>'. Potrebbe essere un errore di battitura, controlla il nome e riprova."
-  floodgate-cache-error: "<red>Impossibile trovare il giocatore Bedrock '<player>'. Potrebbe essere necessario che si unisca al server almeno una volta prima di poter essere bannato per nome."
-  player-not-banned: "<red>Il giocatore '<player>' non è bannato."
-  player-not-muted: "<red>Il giocatore '<player>' non è silenziato."
-  player-not-voice-muted: "<red>Il giocatore '<player>' non ha il microfono silenziato."
-  player-offline: "<red>Il giocatore '<player>' non è online."
-  invalid-duration: "<red>Formato durata non valido. Usa: 1g2h3m4s"
-  invalid-arguments: "<red>Argomenti non validi. Uso: <usage>"
-  database-error: "<red>Si è verificato un errore del database. Controlla la console."
-  import-failed: "<red>Importazione fallita: <error>"
-  cannot-punish-self: "<red>Non puoi punire te stesso."
-  cannot-punish-exempt: "<red>Non puoi punire questo giocatore perché è esente."
+  no-permission: "<#FF6B6B>✘ <#FF8E8E>Non hai il permesso di usare questo comando."
+  player-not-found: "<#FF6B6B>✘ <#FF8E8E>Giocatore '<white><player><#FF8E8E>' non trovato."
+  player-not-found-typo: "<#FF6B6B>✘ <#FF8E8E>Impossibile trovare il giocatore '<white><player><#FF8E8E>'. Potrebbe essere un errore di battitura, controlla il nome e riprova."
+  floodgate-cache-error: "<#FF6B6B>✘ <#FF8E8E>Impossibile trovare il giocatore Bedrock '<white><player><#FF8E8E>'. Potrebbe dover entrare nel server almeno una volta prima di poter essere bannato per nome."
+  player-not-banned: "<#FF6B6B>✘ <#FF8E8E>Il giocatore '<white><player><#FF8E8E>' non è bannato."
+  player-not-muted: "<#FF6B6B>✘ <#FF8E8E>Il giocatore '<white><player><#FF8E8E>' non è silenziato."
+  player-not-voice-muted: "<#FF6B6B>✘ <#FF8E8E>Il giocatore '<white><player><#FF8E8E>' non ha il microfono silenziato."
+  player-offline: "<#FF6B6B>✘ <#FF8E8E>Il giocatore '<white><player><#FF8E8E>' non è online."
+  invalid-duration: "<#FF6B6B>✘ <#FF8E8E>Formato durata non valido. Usa: <white>1d2h3m4s"
+  invalid-arguments: "<#FF6B6B>✘ <#FF8E8E>Argomenti non validi. Uso: <white><usage>"
+  database-error: "<#FF6B6B>✘ <#FF8E8E>Si è verificato un errore del database. Controlla la console."
+  import-failed: "<#FF6B6B>✘ <#FF8E8E>Importazione fallita: <white><error>"
+  cannot-punish-self: "<#FF6B6B>✘ <#FF8E8E>Non puoi punire te stesso."
+  cannot-punish-exempt: "<#FF6B6B>✘ <#FF8E8E>Non puoi punire questo giocatore perché è esente."
   command-from-console-error: "Questo comando può essere eseguito solo da un giocatore."
-  id-not-found: "<red>Nessuna punizione trovata con questo ID."
-  voidjail-not-set: "<red>La prigione del vuoto non è stata impostata correttamente. Contatta un amministratore."
+  id-not-found: "<#FF6B6B>✘ <#FF8E8E>Nessuna punizione trovata con questo ID."
+  voidjail-not-set: "<#FF6B6B>✘ <#FF8E8E>La prigione del vuoto non è stata impostata correttamente. Contatta un amministratore."
+  blacklisted: "<#FF6B6B>✘ <#FF8E8E>Accesso negato: <white><reason>"
+  ip-not-banned: "<red>L'IP '<white><ip><red>' non è bannato."
+  ip-not-muted: "<red>L'IP '<white><ip><red>' non è mutato."
+  no-ip-on-record: "<red>Nessun IP registrato per '<white><target><red>'."
 
 appeals:
-  disabled: "<red>Gli appelli non sono attualmente disponibili."
-  message-required: "<red>Includi un breve messaggio con il tuo appello."
-  not-muted: "<red>Non hai un silenziamento attivo da appellare."
-  submitted: "<green>Il tuo appello per la punizione <id> è stato inviato."
-  cooldown: "<red>Devi aspettare <duration> prima di inviare un altro appello."
-  limit: "<red>Hai raggiunto il limite di appelli. Riprova tra <duration>."
-  error: "<red>Qualcosa è andato storto durante l'invio del tuo appello. Contatta lo staff."
+  disabled: "<#FF6B6B>✘ <#FF8E8E>Gli appelli non sono attualmente disponibili."
+  message-required: "<#FF6B6B>✘ <#FF8E8E>Includi un breve messaggio con il tuo appello."
+  not-muted: "<#FF6B6B>✘ <#FF8E8E>Non hai un silenziamento attivo da appellare."
+  submitted: "<#7FFF7F>✔ <#AAFFAA>Il tuo appello per la punizione <white><id><#AAFFAA> è stato inviato."
+  cooldown: "<#FF6B6B>✘ <#FF8E8E>Devi aspettare <white><duration><#FF8E8E> prima di inviare un altro appello."
+  limit: "<#FF6B6B>✘ <#FF8E8E>Hai raggiunto il limite di appelli. Riprova tra <white><duration><#FF8E8E>."
+  error: "<#FF6B6B>✘ <#FF8E8E>Qualcosa è andato storto durante l'invio del tuo appello. Contatta lo staff."
 
 success:
-  ban: "<green>Bannato con successo <red><player><green>."
-  tempban: "<green>Bannato temporaneamente con successo <red><player><green> per <red><duration><green>."
-  unban: "<green>Sbannato con successo <red><player><green>."
-  mute: "<green>Silenziato con successo <red><player><green>."
-  tempmute: "<green>Silenziato temporaneamente con successo <red><player><green> per <red><duration><green>."
-  unmute: "<green>Riattivato con successo <red><player><green>."
-  voicemute: "<green>Microfono di <red><player><green> silenziato con successo."
-  voiceunmute: "<green>Microfono di <red><player><green> riattivato con successo."
-  warn: "<green>Avvertito con successo <red><player><green>."
-  kick: "<green>Espulso con successo <red><player><green>."
-  ipban: "<green>Ban IP applicato con successo."
-  ipmute: "<green>Mute IP applicato con successo."
-  import-complete: "<green>Importazione completata con successo. Importati <red><count><green> record."
-  reload: "<green>Configurazione di ControlBans ricaricata."
+  ban: "<#7FFF7F>✔ <#AAFFAA>Bannato con successo <white><player><#AAFFAA>."
+  tempban: "<#7FFF7F>✔ <#AAFFAA>Bannato temporaneamente <white><player><#AAFFAA> per <#FFD93D><duration><#AAFFAA>."
+  unban: "<#7FFF7F>✔ <#AAFFAA>Sbannato con successo <white><player><#AAFFAA>."
+  unban_ip: "<#7FFF7F>✔ <#AAFFAA>IP sbannato con successo."
+  mute: "<#7FFF7F>✔ <#AAFFAA>Silenziato con successo <white><player><#AAFFAA>."
+  tempmute: "<#7FFF7F>✔ <#AAFFAA>Silenziato temporaneamente <white><player><#AAFFAA> per <#FFD93D><duration><#AAFFAA>."
+  unmute: "<#7FFF7F>✔ <#AAFFAA>Riattivato con successo <white><player><#AAFFAA>."
+  unmute_ip: "<#7FFF7F>✔ <#AAFFAA>IP riattivato con successo."
+  voicemute: "<#7FFF7F>✔ <#AAFFAA>Microfono di <white><player><#AAFFAA> silenziato con successo."
+  voiceunmute: "<#7FFF7F>✔ <#AAFFAA>Microfono di <white><player><#AAFFAA> riattivato con successo."
+  warn: "<#7FFF7F>✔ <#AAFFAA>Avvertito con successo <white><player><#AAFFAA>."
+  kick: "<#7FFF7F>✔ <#AAFFAA>Espulso con successo <white><player><#AAFFAA>."
+  ipban: "<#7FFF7F>✔ <#AAFFAA>Ban IP applicato con successo."
+  ipmute: "<#7FFF7F>✔ <#AAFFAA>Mute IP applicato con successo."
+  import-complete: "<#7FFF7F>✔ <#AAFFAA>Importazione completata. Importati <white><count><#AAFFAA> record."
+  reload: "<#7FFF7F>✔ <#AAFFAA>Configurazione di ControlBans ricaricata."
+
+  shadowmute-secret: "<gray>[<white>Mute ombra applicato segretamente<gray>]"
+  tempvoicemute: "<#7FFF7F>✔ <#AAFFAA>Voce mutata <white><player><#AAFFAA> per <#FFD93D><duration><#AAFFAA>."
+
+actionbar:
+  voice-muted: "<gradient:#FF4444:#FF6666><bold>🔇 SEI STATO MUTATO NELLA CHAT VOCALE</bold></gradient>"
+
+bossbar:
+  voice-mute:
+    title: "<red><bold>🔇 VOCE MUTATA:</bold> <yellow><time_remaining>"
+    color: "RED"
+    style: "SOLID"
 
 actions:
-  banning: "<yellow>Bannando <player>..."
-  temp-banning: "<yellow>Bannando temporaneamente <player>..."
-  unbanning: "<yellow>Sbannando <player>..."
-  muting: "<yellow>Silenziando <player>..."
-  temp-muting: "<yellow>Silenziando temporaneamente <player>..."
-  unmuting: "<yellow>Riattivando <player>..."
-  voice-muting: "<yellow>Silenziando il microfono di <player>..."
-  voice-unmuting: "<yellow>Riattivando il microfono di <player>..."
-  warning: "<yellow>Avvertendo <player>..."
-  kicking: "<yellow>Espellendo <player>..."
-  ip-banning: "<yellow>Applicando ban IP per il bersaglio: <player>..."
-  ip-muting: "<yellow>Applicando mute IP per il bersaglio: <player>..."
-  checking-id: "<yellow>Controllo ID punizione: <id>..."
-  checking-player: "<yellow>Controllo stato punizione per <player>..."
-  finding-alts: "<yellow>Ricerca di account alternativi per <player>..."
+  banning: "<#5DADE2>⏳ <#8BC4EA>Bannando <white><player><#8BC4EA>..."
+  temp-banning: "<#5DADE2>⏳ <#8BC4EA>Bannando temporaneamente <white><player><#8BC4EA>..."
+  unbanning: "<#5DADE2>⏳ <#8BC4EA>Sbannando <white><player><#8BC4EA>..."
+  muting: "<#5DADE2>⏳ <#8BC4EA>Silenziando <white><player><#8BC4EA>..."
+  temp-muting: "<#5DADE2>⏳ <#8BC4EA>Silenziando temporaneamente <white><player><#8BC4EA>..."
+  unmuting: "<#5DADE2>⏳ <#8BC4EA>Riattivando <white><player><#8BC4EA>..."
+  voice-muting: "<#5DADE2>⏳ <#8BC4EA>Silenziando il microfono di <white><player><#8BC4EA>..."
+  voice-unmuting: "<#5DADE2>⏳ <#8BC4EA>Riattivando il microfono di <white><player><#8BC4EA>..."
+  warning: "<#5DADE2>⏳ <#8BC4EA>Avvertendo <white><player><#8BC4EA>..."
+  kicking: "<#5DADE2>⏳ <#8BC4EA>Espellendo <white><player><#8BC4EA>..."
+  ip-banning: "<#5DADE2>⏳ <#8BC4EA>Applicando ban IP per il bersaglio: <white><player><#8BC4EA>..."
+  ip-muting: "<#5DADE2>⏳ <#8BC4EA>Applicando mute IP per il bersaglio: <white><player><#8BC4EA>..."
+  checking-id: "<#5DADE2>⏳ <#8BC4EA>Controllo ID punizione: <white><id><#8BC4EA>..."
+  checking-player: "<#5DADE2>⏳ <#8BC4EA>Controllo stato punizione per <white><player><#8BC4EA>..."
+  finding-alts: "<#5DADE2>⏳ <#8BC4EA>Ricerca di account alternativi per <white><player><#8BC4EA>..."
+  unbanning_ip: "<aqua>Sbannando IP <white><ip><aqua>..."
+  temp-voice-muting: "<#5DADE2>⏳ <#8BC4EA>Silenziando temporaneamente la voce di <white><player><#8BC4EA>..."
+
+voidjail:
+  jailed-message: "<gradient:#8B0000:#B22222><bold>⛓ SEI STATO MANDATO NELLA PRIGIONE DEL VUOTO ⛓</bold></gradient>"
+  unjailed-message: "<#7FFF7F>✔ <#AAFFAA>Sei stato rilasciato dalla prigione del vuoto."
+  command-blocked: "<#FF6B6B>✘ <#FF8E8E>Non puoi usare questo comando nella prigione del vuoto."
+  chat-blocked: "<#666666>Hai restrizioni intorno alla bocca e non puoi parlare."
+  success-jail: "<#7FFF7F>✔ <#AAFFAA>Mandato con successo <white><player><#AAFFAA> nella prigione del vuoto."
+  success-unjail: "<#7FFF7F>✔ <#AAFFAA>Rilasciato con successo <white><player><#AAFFAA> dalla prigione del vuoto."
+  not-jailed: "<#FF6B6B>✘ <#FF8E8E>Il giocatore <white><player><#FF8E8E> non è attualmente nella prigione del vuoto."
+
+skinban:
+  success-ban: "<#7FFF7F>✔ <#AAFFAA>Skin di <white><player><#AAFFAA> bannata con successo."
+  success-unban: "<#7FFF7F>✔ <#AAFFAA>Skin di <white><player><#AAFFAA> ripristinata con successo."
+  already-banned: "<#FF6B6B>✘ <#FF8E8E>La skin del giocatore <white><player><#FF8E8E> è già bannata."
+  not-banned: "<#FF6B6B>✘ <#FF8E8E>La skin del giocatore <white><player><#FF8E8E> non è bannata."
+  player-notification: "<#FF6B6B>La tua skin è stata rimossa da un membro dello staff. Verrà ripristinata al riaccesso se il ban è revocato."
+  unban-kick: "<#7FFF7F>La tua skin è stata ripristinata. Per favore rientra nel server per vedere i cambiamenti."
 
 broadcasts:
-  ban: "<dark_red><bold>BAN <gray>│ <white><player> <red>è stato bannato permanentemente da <white><staff><red> per: <white><reason>"
-  tempban: "<dark_red><bold>BAN <gray>│ <white><player> <red>è stato bannato temporaneamente da <white><staff><red> per: <white><reason>"
-  unban: "<dark_green><bold>UNBAN <gray>│ <white><player> <green>è stato sbannato da <white><staff><green>."
-  mute: "<dark_blue><bold>MUTE <gray>│ <white><player> <blue>è stato silenziato permanentemente da <white><staff><blue> per: <white><reason>"
-  tempmute: "<dark_blue><bold>MUTE <gray>│ <white><player> <blue>è stato silenziato temporaneamente da <white><staff><blue> per: <white><reason>"
-  unmute: "<dark_aqua><bold>UNMUTE <gray>│ <white><player> <aqua>è stato riattivato da <white><staff><aqua>."
-  voicemute: "<dark_blue><bold>VOICE MUTE <gray>│ <white><player> <blue>ha avuto il microfono silenziato da <white><staff><blue> per: <white><reason>"
-  voiceunmute: "<dark_aqua><bold>VOICE UNMUTE <gray>│ <white><player> <aqua>ha avuto il microfono riattivato da <white><staff><aqua>."
-  warn: "<gold><bold>WARN <gray>│ <white><player> <yellow>è stato avvertito da <white><staff><yellow> per: <white><reason>"
-  kick: "<red><bold>KICK <gray>│ <white><player> <red>è stato espulso da <white><staff><red> per: <white><reason>"
-  ipban: "<dark_red><bold>IP-BAN <gray>│ <red>Un indirizzo IP è stato bannato permanentemente da <white><staff><red> per: <white><reason>"
+  ban: "<gradient:#FF4444:#FF6666><bold>BAN</bold></gradient> <dark_gray>┃ <white><player> <#FF8E8E>è stato bannato permanentemente da <white><staff> <#FF8E8E>per: <#B0B0B0><reason>"
+  tempban: "<gradient:#FF4444:#FF6666><bold>BAN</bold></gradient> <dark_gray>┃ <white><player> <#FF8E8E>è stato bannato temporaneamente da <white><staff> <#FF8E8E>per: <#B0B0B0><reason>"
+  unban: "<gradient:#4CAF50:#8BC34A><bold>UNBAN</bold></gradient> <dark_gray>┃ <white><player> <#AAFFAA>è stato sbannato da <white><staff><#AAFFAA>."
+  mute: "<gradient:#3498DB:#5DADE2><bold>MUTE</bold></gradient> <dark_gray>┃ <white><player> <#8BC4EA>è stato silenziato permanentemente da <white><staff> <#8BC4EA>per: <#B0B0B0><reason>"
+  tempmute: "<gradient:#3498DB:#5DADE2><bold>MUTE</bold></gradient> <dark_gray>┃ <white><player> <#8BC4EA>è stato silenziato temporaneamente da <white><staff> <#8BC4EA>per: <#B0B0B0><reason>"
+  unmute: "<gradient:#00BCD4:#4DD0E1><bold>UNMUTE</bold></gradient> <dark_gray>┃ <white><player> <#80DEEA>è stato riattivato da <white><staff><#80DEEA>."
+  voicemute: "<gradient:#9C27B0:#BA68C8><bold>VOICE MUTE</bold></gradient> <dark_gray>┃ <white><player> <#CE93D8>ha avuto il microfono silenziato da <white><staff> <#CE93D8>per: <#B0B0B0><reason>"
+  voiceunmute: "<gradient:#00BCD4:#4DD0E1><bold>VOICE UNMUTE</bold></gradient> <dark_gray>┃ <white><player> <#80DEEA>ha avuto il microfono riattivato da <white><staff><#80DEEA>."
+  tempvoicemute: "<gradient:#9C27B0:#BA68C8><bold>TEMP VOICE MUTE</bold></gradient> <dark_gray>┃ <white><player> <#CE93D8>ha avuto il microfono silenziato temporaneamente da <white><staff> <#CE93D8>per: <#B0B0B0><reason>"
+  warn: "<gradient:#FF9800:#FFB74D><bold>WARN</bold></gradient> <dark_gray>┃ <white><player> <#FFCC80>è stato avvertito da <white><staff> <#FFCC80>per: <#B0B0B0><reason>"
+  kick: "<gradient:#FF5722:#FF8A65><bold>KICK</bold></gradient> <dark_gray>┃ <white><player> <#FFAB91>è stato espulso da <white><staff> <#FFAB91>per: <#B0B0B0><reason>"
+  ipban: "<gradient:#8B0000:#B22222><bold>IP-BAN</bold></gradient> <dark_gray>┃ <#FF8E8E>Un indirizzo IP è stato bannato permanentemente da <white><staff> <#FF8E8E>per: <#B0B0B0><reason>"
+
+screens:
+  ban:
+    - ""
+    - "<gradient:#FF4444:#FF8E53><bold>⚡ CONTROLBANS ⚡</bold></gradient>"
+    - ""
+    - "<gradient:#FF6B6B:#FF8E8E>§ SEI BANNATO DA QUESTO SERVER §</gradient>"
+    - ""
+    - "<#555555><strikethrough>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</strikethrough>"
+    - "<#B0B0B0>👤 <#5DADE2>NOME UTENTE <dark_gray>» <white><player>"
+    - "<#B0B0B0>📅 <#5DADE2>PUNITO IL <dark_gray>» <white><date>"
+    - "<#B0B0B0>🛡️ <#5DADE2>PUNITO DA <dark_gray>» <white><staff>"
+    - "<#B0B0B0>⚖ <#5DADE2>MOTIVO <dark_gray>» <white><reason>"
+    - ""
+    - "<#B0B0B0>⌛ <#5DADE2>DATA SCADENZA <dark_gray>» <#FF6B6B>Mai"
+    - "<#B0B0B0>🆔 <#5DADE2>ID PUNIZIONE <dark_gray>» <#FFD93D><id>"
+    - "<#B0B0B0>✉ <#5DADE2>APPELLO <dark_gray>» <#7FFF7F>appeal.yourserver.net"
+    - "<#555555><strikethrough>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</strikethrough>"
+    - ""
+  tempban:
+    - ""
+    - "<gradient:#FF4444:#FF8E53><bold>⚡ CONTROLBANS ⚡</bold></gradient>"
+    - ""
+    - "<gradient:#FF6B6B:#FF8E8E>§ SEI BANNATO DA QUESTO SERVER §</gradient>"
+    - ""
+    - "<#555555><strikethrough>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</strikethrough>"
+    - "<#B0B0B0>👤 <#5DADE2>NOME UTENTE <dark_gray>» <white><player>"
+    - "<#B0B0B0>📅 <#5DADE2>PUNITO IL <dark_gray>» <white><date>"
+    - "<#B0B0B0>🛡️ <#5DADE2>PUNITO DA <dark_gray>» <white><staff>"
+    - "<#B0B0B0>⚖ <#5DADE2>MOTIVO <dark_gray>» <white><reason>"
+    - ""
+    - "<#B0B0B0>⏳ <#5DADE2>SCADE TRA <dark_gray>» <#FFD93D><duration>"
+    - "<#B0B0B0>🆔 <#5DADE2>ID PUNIZIONE <dark_gray>» <#FFD93D><id>"
+    - "<#B0B0B0>✉ <#5DADE2>APPELLO <dark_gray>» <#7FFF7F>appeal.yourserver.net"
+    - "<#555555><strikethrough>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</strikethrough>"
+    - ""
+  ip_ban:
+    - ""
+    - "<gradient:#FF4444:#FF8E53><bold>⚡ CONTROLBANS ⚡</bold></gradient>"
+    - ""
+    - "<gradient:#8B0000:#B22222>§ IL TUO IP È BANNATO DA QUESTO SERVER §</gradient>"
+    - ""
+    - "<#555555><strikethrough>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</strikethrough>"
+    - "<#B0B0B0>🛡️ <#5DADE2>PUNITO DA <dark_gray>» <white><staff>"
+    - "<#B0B0B0>⚖ <#5DADE2>MOTIVO <dark_gray>» <white><reason>"
+    - ""
+    - "<#B0B0B0>⌛ <#5DADE2>DATA SCADENZA <dark_gray>» <#FF6B6B>Mai"
+    - "<#B0B0B0>🆔 <#5DADE2>ID PUNIZIONE <dark_gray>» <#FFD93D><id>"
+    - "<#B0B0B0>✉ <#5DADE2>APPELLO <dark_gray>» <#7FFF7F>appeal.yourserver.net"
+    - "<#555555><strikethrough>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</strikethrough>"
+    - ""
+  ip_tempban:
+    - ""
+    - "<gradient:#FF4444:#FF8E53><bold>⚡ CONTROLBANS ⚡</bold></gradient>"
+    - ""
+    - "<gradient:#8B0000:#B22222>§ IL TUO IP È BANNATO DA QUESTO SERVER §</gradient>"
+    - ""
+    - "<#555555><strikethrough>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</strikethrough>"
+    - "<#B0B0B0>🛡️ <#5DADE2>PUNITO DA <dark_gray>» <white><staff>"
+    - "<#B0B0B0>⚖ <#5DADE2>MOTIVO <dark_gray>» <white><reason>"
+    - ""
+    - "<#B0B0B0>⏳ <#5DADE2>SCADE TRA <dark_gray>» <#FFD93D><duration>"
+    - "<#B0B0B0>🆔 <#5DADE2>ID PUNIZIONE <dark_gray>» <#FFD93D><id>"
+    - "<#B0B0B0>✉ <#5DADE2>APPELLO <dark_gray>» <#7FFF7F>appeal.yourserver.net"
+    - "<#555555><strikethrough>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</strikethrough>"
+    - ""
+  kick:
+    - ""
+    - "<gradient:#FF4444:#FF8E53><bold>⚡ CONTROLBANS ⚡</bold></gradient>"
+    - ""
+    - "<gradient:#FF5722:#FF8A65>§ SEI STATO ESPULSO DAL SERVER §</gradient>"
+    - ""
+    - "<#555555><strikethrough>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</strikethrough>"
+    - "<#B0B0B0>🛡️ <#5DADE2>ESPULSO DA <dark_gray>» <white><staff>"
+    - "<#B0B0B0>⚖ <#5DADE2>MOTIVO <dark_gray>» <white><reason>"
+    - "<#555555><strikethrough>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</strikethrough>"
+    - ""
+  mute:
+    - "<gradient:#3498DB:#5DADE2><bold>CONTROLBANS</bold></gradient> <dark_gray>» <#FF6B6B>SEI STATO SILENZIATO"
+    - "<#B0B0B0>Sei stato silenziato da <white><staff><#B0B0B0>."
+    - "<#B0B0B0>Motivo : <white><reason>"
+    - "<#B0B0B0>Questa punizione è <#FF6B6B>permanente<#B0B0B0>."
+  tempmute:
+    - "<gradient:#3498DB:#5DADE2><bold>CONTROLBANS</bold></gradient> <dark_gray>» <#FF6B6B>SEI STATO SILENZIATO"
+    - "<#B0B0B0>Sei stato silenziato da <white><staff><#B0B0B0>."
+    - "<#B0B0B0>Motivo : <white><reason>"
+    - "<#B0B0B0>Questa punizione scade tra <#FFD93D><duration><#B0B0B0>."
+  voicemute:
+    - "<gradient:#9C27B0:#BA68C8><bold>CONTROLBANS</bold></gradient> <dark_gray>» <#FF6B6B>IL TUO MICROFONO È STATO SILENZIATO"
+    - "<#B0B0B0>Il tuo microfono è stato silenziato da <white><staff><#B0B0B0>."
+    - "<#B0B0B0>Motivo : <white><reason>"
+    - "<#B0B0B0>Non puoi parlare nella chat vocale."
+  ip_mute:
+    - "<gradient:#3498DB:#5DADE2><bold>CONTROLBANS</bold></gradient> <dark_gray>» <#FF6B6B>IL TUO IP È STATO SILENZIATO"
+    - "<#B0B0B0>Il tuo IP è stato silenziato da <white><staff><#B0B0B0>."
+    - "<#B0B0B0>Motivo : <white><reason>"
+    - "<#B0B0B0>Questa punizione è <#FF6B6B>permanente<#B0B0B0>."
+  ip_tempmute:
+    - "<gradient:#3498DB:#5DADE2><bold>CONTROLBANS</bold></gradient> <dark_gray>» <#FF6B6B>IL TUO IP È STATO SILENZIATO"
+    - "<#B0B0B0>Il tuo IP è stato silenziato da <white><staff><#B0B0B0>."
+    - "<#B0B0B0>Motivo : <white><reason>"
+    - "<#B0B0B0>Questa punizione scade tra <#FFD93D><duration><#B0B0B0>."
+  warn:
+    - "<gradient:#FF9800:#FFB74D><bold>CONTROLBANS</bold></gradient> <dark_gray>» <#FFD93D>SEI STATO AVVERTITO"
+    - "<#B0B0B0>Sei stato avvertito da <white><staff><#B0B0B0>."
+    - "<#B0B0B0>Motivo : <white><reason>"
+    - "<#B0B0B0>Assicurati di non ripetere le tue azioni!"
+
+check:
+  banned: "<#FF6B6B>BANNATO : <white><reason> <#B0B0B0>(ID : <#FFD93D><id><#B0B0B0>)"
+  not-banned: "<#7FFF7F>✔ Non bannato."
+  muted: "<#FFD93D>SILENZIATO : <white><reason> <#B0B0B0>(ID : <#FFD93D><id><#B0B0B0>)"
+  not-muted: "<#7FFF7F>✔ Non silenziato."
+  info-header: "<gradient:#FF9800:#FFB74D><bold>Info Punizione</bold></gradient> <#B0B0B0>(<#FFD93D><id><#B0B0B0>)"
+  info-type: "<#B0B0B0>  » <#5DADE2>Tipo : <white><type>"
+  info-player: "<#B0B0B0>  » <#5DADE2>Giocatore : <white><player>"
+  info-staff: "<#B0B0B0>  » <#5DADE2>Staff : <white><staff>"
+  info-reason: "<#B0B0B0>  » <#5DADE2>Motivo : <white><reason>"
+  info-date: "<#B0B0B0>  » <#5DADE2>Data : <white><date>"
+  info-duration: "<#B0B0B0>  » <#5DADE2>Durata : <white><duration>"
+  info-status: "<#B0B0B0>  » <#5DADE2>Stato : <status>"
+  status-active: "<#7FFF7F>Attivo"
+  status-inactive: "<#FF6B6B>Inattivo"
+
+alts:
+  no-alts: "<#7FFF7F>✔ Nessun account alternativo trovato per <white><player><#B0B0B0>."
+  header: "<gradient:#FF9800:#FFB74D><bold>Account Alternativi</bold></gradient> <#B0B0B0>per <#FFD93D><player><#B0B0B0>:"
+  shared-ips: "<#B0B0B0>IP condivisi : <#FFD93D><ips>"
+  status-banned: "<#FF6B6B> [BANNATO]"
+  status-muted: "<#5DADE2> [SILENZIATO]"
+  join-alert: "<red>[Alts]</red> <white><player> <gray>è entrato. Possibile alt di</gray> <white><banned_player></white> <gray>(<#FFD93D><confidence>%<gray> corrispondenza)"
+
+automod:
+  spam-warning: "<red>AutoMod >> </red><gray>Per favore rallenta i tuoi messaggi o evita di ripeterti.</gray>"
+  rule-denied: "<red>AutoMod >> </red><gray><message></gray>"
+  staff-alert: "<red>[AutoMod]</red> <white><player></white> <gray>ha attivato</gray> <yellow><rule></yellow> <gray>in</gray> <aqua><type></aqua>"
+
+config-editor:
+  prompt: "<#FFD93D>Digita il nuovo valore per <white><path><#FFD93D> in chat, o digita 'cancel'."
+  cancelled: "<#FF6B6B>Modifica annullata."
+  updating: "<#FFD93D>Aggiornamento della configurazione..."
+  updated: "<#7FFF7F>Aggiornato <white><path><#7FFF7F> a <white><value><#7FFF7F>."
+  save-failed: "<#FF6B6B>Salvataggio della configurazione fallito: <white><error>"
+
+gui:
+  history:
+    title: "Cronologia : <player> (<page>/<maxpage>)"
+    item-name: "<#FFD93D><type>"
+    item-lore:
+      - "<#B0B0B0>Motivo : <white><reason>"
+      - "<#B0B0B0>Da : <white><staff>"
+      - "<#B0B0B0>Data : <white><date>"
+      - " "
+      - "<#B0B0B0>Durata : <white><duration>"
+      - "<#B0B0B0>Stato : <status>"
+      - "<#B0B0B0>ID : <#FFD93D><id>"
+    player-head-name: "<#7FFF7F>Cronologia di : <white><player>"
+    player-head-lore: "<#B0B0B0>Punizioni totali : <#FFD93D><count>"
+    summary-total: "<#FFD93D>Punizioni Totali: <count>"
+    summary-bans: "<#B0B0B0>Ban: <red><count></red>"
+    summary-mutes: "<#B0B0B0>Mute: <blue><count></blue>"
+    summary-voice-mutes: "<#B0B0B0>Mute Vocali: <aqua><count></aqua>"
+    summary-warnings: "<#B0B0B0>Avvertimenti: <yellow><count></yellow>"
+    summary-kicks: "<#B0B0B0>Kick: <gold><count></gold>"
+    unknown-player: "Sconosciuto"
+  alts:
+    title: "Alt : <player> (<page>/<maxpage>)"
+    no-alts-item-name: "<#FF6B6B>Nessun Account Alternativo Trovato"
+    player-head-name: "<#7FFF7F>Controllo Alt per : <white><player>"
+    player-head-lore:
+      - "<#B0B0B0>Trovati <#FFD93D><alts><#B0B0B0> alt."
+      - " "
+      - "<#B0B0B0>IP condivisi :"
+    no-ips: "<white>- Nessuno trovato"
+    ip-entry: "<white>- <ip>"
+    alt-item-lore:
+      - "<#B0B0B0>Stato :"
+      - " <status_ban>"
+      - " <status_mute>"
+      - " <#FFD93D>- Avvertimenti : <warnings>"
+      - " "
+      - "<#B0B0B0>UUID : <white><uuid>"
+    status-label: "<#B0B0B0>Stato :"
+    warnings-entry: "<#FFD93D>- Avvertimenti : <warnings>"
+    uuid-entry: "<#B0B0B0>UUID : <white><uuid>"
+    alt-banned: "<#FF6B6B>- Bannato : Sì (<white><reason><#FF6B6B>)"
+    alt-not-banned: "<#7FFF7F>- Bannato : No"
+    alt-muted: "<#5DADE2>- Silenziato : Sì (<white><reason><#5DADE2>)"
+    alt-not-muted: "<#7FFF7F>- Silenziato : No"
+    alt-voice-muted: "<#5DADE2>- Mute Vocale: Sì (<white><reason><#5DADE2>)"
+    alt-not-voice-muted: "<#7FFF7F>- Mute Vocale: No"
+    unknown-player: "Sconosciuto"
+    settings:
+      title: "Impostazioni ControlBans"
+      value-label: "<#B0B0B0>Valore: <value>"
+      current-label: "<#B0B0B0>Attuale: <#5DADE2><value>"
+      click-toggle: "<#FFD93D>Clicca per alternare"
+      click-edit: "<#FFD93D>Clicca per modificare in chat"
+      prompt-bedrock-prefix: "<#FFD93D>Digita il nuovo prefisso Bedrock in chat, o digita 'cancel'."
+      items:
+        silent-bans:
+          name: "<#FFD93D>Ban Silenziosi di Default"
+        broadcast-bans:
+          name: "<#FFD93D>Trasmettere Punizioni"
+        bedrock-prefix:
+          name: "<#FFD93D>Prefisso Bedrock"
+        alts-punishment:
+          name: "<#FFD93D>Punizione Alt"
+
+  report:
+    title: "🚨 Report <player>"
+    head:
+      name: "<#8BC4EA><bold><player>"
+      lore:
+        - " "
+        - "<white>Carefully select the reason"
+        - "<white>you are reporting this player."
+    click-to-select:
+      - "<#8BC4EA>▶ Click to select</#8BC4EA>"
+    items:
+      hacking:
+        name: "<#E74C3C>⚔ Hacking / Cheating"
+        lore:
+          - "<gray>Unfair modifications, killaura,"
+          - "<gray>x-ray, reach, fly, etc."
+      chat:
+        name: "<#F1C40F>💬 Chat Abuse"
+        lore:
+          - "<gray>Spam, toxicity, swearing,"
+          - "<gray>or bypassing chat filters."
+      griefing:
+        name: "<#E67E22>💥 Griefing"
+        lore:
+          - "<gray>Trolling, team-killing,"
+          - "<gray>or destroying builds."
+      other:
+        name: "<#BFC9CA>❓ Other"
+        lore:
+          - "<gray>Other rule-breaking behavior"
+          - "<gray>not listed here."
+  my-reports:
+    title: "My Reports (<page>/<maxpage>)"
+    item-name: "<#8BC4EA>Report: <white><target>"
+    item-lore:
+      - "<#B0B0B0>Reason: <white><reason>"
+      - "<#B0B0B0>Date: <white><date>"
+      - " "
+      - "<status>"
+      - " "
+      - "<#B0B0B0>ID: <#FFD93D><id>"
+    status-pending: "<#F1C40F>⌛ Pending Review"
+    status-resolved: "<#2ECC71>✔ Resolved"
+    status-rejected: "<#E74C3C>✘ Rejected"
+    summary-title: "<#8BC4EA>Reports Summary"
+    summary-total: "<#B0B0B0>Total Submitted: <white><count>"
+    summary-resolved: "<#B0B0B0>Resolved: <#2ECC71><count>"
+    summary-pending: "<#B0B0B0>Pending: <#F1C40F><count>"
+  punish:
+    title: "Punish: <player>" # Prefix must match English for code detection
+    unknown-player: "Sconosciuto"
+    permission-node: "<dark_gray>Node: <node>"
+    no-permission-action: "<#FF6B6B>Non hai il permesso per questa azione."
+    prompt-duration-reason: "<#FFD93D><bold>Punish</bold> <dark_gray>>> <white>Digita la <yellow>durata</yellow> e il <yellow>motivo</yellow> in chat."
+    prompt-reason: "<#FFD93D><bold>Punish</bold> <dark_gray>>> <white>Digita il <yellow>motivo</yellow> in chat."
+    prompt-example-duration: "<#B0B0B0>Esempio: 1d Hacking"
+    prompt-cancel: "<#B0B0B0>Digita 'cancel' per annullare."
+    prompt-cancelled: "<#FF6B6B>Annullato."
+    no-permission:
+      - "<#FF6B6B>Non hai il permesso"
+      - "<#FF6B6B>di usare questa punizione."
+    click-to-select:
+      - "<#FFD93D>Clicca per selezionare"
+    head:
+      name: "<#FFD93D><player>"
+      lore:
+        - "<#B0B0B0>Seleziona una punizione qui sotto."
+    items:
+      ban:
+        name: "<#FF6B6B>Ban Perm"
+        lore:
+          - "<#B0B0B0>Rimuovi permanentemente questo giocatore."
+      tempban:
+        name: "<#FF6B6B>Ban Temp"
+        lore:
+          - "<#B0B0B0>Rimuovi temporaneamente questo giocatore."
+          - "<#B0B0B0>(Richiede Durata)"
+      ipban:
+        name: "<#FF6B6B>Ban IP"
+        lore:
+          - "<#B0B0B0>Banna l'indirizzo IP di questo giocatore."
+      mute:
+        name: "<#5DADE2>Mute Perm"
+        lore:
+          - "<#B0B0B0>Silenzia permanentemente questo giocatore."
+      tempmute:
+        name: "<#5DADE2>Mute Temp"
+        lore:
+          - "<#B0B0B0>Silenzia temporaneamente questo giocatore."
+          - "<#B0B0B0>(Richiede Durata)"
+      voicemute:
+        name: "<#BA68C8>Mute Vocale"
+        lore:
+          - "<#B0B0B0>Silenzia questo giocatore nella Chat Vocale."
+      kick:
+        name: "<#FFAB91>Kick"
+        lore:
+          - "<#B0B0B0>Disconnetti il giocatore."
+      warn:
+        name: "<#FFCC80>Avverti"
+        lore:
+          - "<#B0B0B0>Invia un avvertimento formale."
+      freeze:
+        name: "<#80DEEA>Congela"
+        lore:
+          - "<#B0B0B0>Congela il giocatore per un controllo."
+
+  nav-previous: "<#7FFF7F>« Pagina Precedente"
+  nav-next: "<#7FFF7F>Pagina Successiva »"
+
+import:
+  essentials-not-installed: "<#FF6B6B>✘ Essentials non è installato su questo server."
+  essentials-userdata-not-found: "<#FF6B6B>✘ Cartella userdata di Essentials non trovata!"
+  essentials-looked-in: "<#FF6B6B>✘ Cercato in: <white><path>"
+  essentials-starting: "<#5DADE2>⏳ Avvio importazione Essentials... Potrebbe richiedere del tempo."
+  essentials-no-user-files: "<#FFD93D>ℹ Nessun file utente trovato nella cartella Essentials."
+  essentials-success: "<#7FFF7F>✔ Importati con successo <white><count><#7FFF7F> silenziamenti da Essentials."
+  litebans-connecting: "<#5DADE2>⏳ Connessione al database LiteBans di origine..."
+  litebans-sqlite-not-found: "<#FF6B6B>✘ File SQLite di LiteBans non trovato in: <white><path>"
+  litebans-sqlite-check-path: "<#FF6B6B>✘ Per favore controlla il percorso in config.yml per 'import.sources.litebans.sqlite-file'"
+  litebans-unsupported-db: "<#FF6B6B>✘ Tipo di database non supportato per l'importazione LiteBans: <white><type>"
+  litebans-connection-failed: "<#FF6B6B>✘ Configurazione della connessione al database LiteBans fallita. Controlla la tua configurazione e i log del server."
+  litebans-connection-success: "<#7FFF7F>✔ Connessione riuscita. Avvio importazione da LiteBans..."
+  litebans-import-complete: "<#7FFF7F>✔ Importazione LiteBans completata. Importati un totale di <white><count><#7FFF7F> record."
+  litebans-import-error: "<#FF6B6B>✘ Si è verificato un errore durante l'importazione LiteBans: <white><error>"
+  advancedban-connecting: "<#5DADE2>⏳ Connessione al database AdvancedBan di origine..."
+  advancedban-unsupported-db: "<#FF6B6B>✘ Tipo di database non supportato per l'importazione AdvancedBan: <white><type><#FF6B6B>. Solo MySQL/MariaDB è supportato."
+  advancedban-connection-failed: "<#FF6B6B>✘ Configurazione della connessione al database AdvancedBan fallita. Controlla la tua configurazione e i log del server."
+  advancedban-connection-success: "<#7FFF7F>✔ Connessione riuscita. Avvio importazione da AdvancedBan..."
+  advancedban-import-complete: "<#7FFF7F>✔ Importazione AdvancedBan completata. Importati un totale di <white><count><#7FFF7F> record."
+  advancedban-import-error: "<#FF6B6B>✘ Si è verificato un errore durante l'importazione AdvancedBan: <white><error>"
+  import-table-failed-with-error: "<#FF6B6B>✘ Importazione dalla tabella fallita: <white><table><#FF6B6B>. Potrebbe non esistere. Errore: <white><error>"
+  import-table-failed: "<#FF6B6B>✘ Importazione dalla tabella fallita: <white><table><#FF6B6B>. Potrebbe non esistere."
+  import-table-success: "<#7FFF7F>✔ Importati <white><count><#7FFF7F> record da <white><table><#7FFF7F>."
+
+admin:
+  export:
+    not-available: "<#FF6B6B>✘ <#FF8E8E>Servizio di esportazione non disponibile."
+    start: "<#5DADE2>⏳ Esportazione dei dati delle punizioni..."
+    success: "<#7FFF7F>✔ <#AAFFAA>Esportazione completata! File: <white><file> <#AAFFAA>Percorso: <white><path>"
+    failed: "<#FF6B6B>✘ <#FF8E8E>Esportazione fallita: <white><error>"
+  import:
+    no-files: "<#FFD93D>⚠ <#FFCC80>Nessun file di esportazione trovato in plugins/ControlBans/exports/"
+    available-files: "<#5DADE2>File di esportazione disponibili:"
+    file-entry: "<#B0B0B0>  • <#5DADE2><file>"
+    file-usage: "<#B0B0B0>Uso: <white><usage>"
+    file-not-found: "<#FF6B6B>✘ <#FF8E8E>File non trovato: <white><file>"
+    start: "<#5DADE2>⏳ Importazione da <white><file><#5DADE2>..."
+    success: "<#7FFF7F>✔ <#AAFFAA>Importazione completata! <white><count> <#AAFFAA>record importati."
+    failed-count: "<#FFD93D>⚠ <#FFCC80><count> record falliti."
+    failed: "<#FF6B6B>✘ <#FF8E8E>Importazione fallita: <white><error>"
+  database:
+    confirm-clear-all: "<#FF6B6B>⚠ <#FF8E8E>Sei sicuro di voler cancellare <#FFD93D>TUTTI I DATI<#FF8E8E>? Questa operazione non può essere annullata."
+    confirm-clear: "<#FF6B6B>⚠ <#FF8E8E>Sei sicuro di voler cancellare i dati per <#FFD93D><target><#FF8E8E>? Questa operazione non può essere annullata."
+    instruction: "<#B0B0B0>Digita 'yes' per confermare o 'no' per annullare."
+    clearing: "<#5DADE2>⏳ Elaborazione pulizia database..."
+    success: "<#7FFF7F>✔ <#AAFFAA>Database pulito con successo."
+    error: "<#FF6B6B>✘ <#FF8E8E>Errore durante la pulizia del database."
+    player-success: "<#7FFF7F>✔ <#AAFFAA>Dati del giocatore puliti con successo."
+    player-not-found: "<#FF6B6B>✘ <#FF8E8E>Giocatore non trovato o errore."
+    cancelled: "<#FF6B6B>✘ <#FF8E8E>Pulizia del database annullata."
+
+  rollback:
+    start: "<#FFD93D>Rollback >> <#B0B0B0>Scansione punizioni di <white><staff><#B0B0B0> dalle ultime <white><duration><#B0B0B0>..."
+    error: "<#FF6B6B>Rollback >> Impossibile recuperare i record dal database."
+    none-found: "<#FFD93D>Rollback >> <#FF8E8E>Nessuna punizione attiva trovata per questo membro dello staff nel periodo richiesto."
+    found: "<#FFD93D>Rollback >> <white><count><#B0B0B0> punizioni trovate. Reversione in corso..."
+    success: "<#7FFF7F>Rollback >> <white><count><#AAFFAA> azione(i) revertite."
+
+freeze:
+  usage: "<#FF6B6B>✘ <#FF8E8E>Uso : <white>/freeze <player>"
+  cannot-freeze: "<#FF6B6B>✘ <#FF8E8E>Non puoi congelare questo giocatore."
+  cannot-interact: "<#FF6B6B>✘ <#FF8E8E>Non puoi interagire mentre sei congelato."
+  cannot-attack: "<#FF6B6B>✘ <#FF8E8E>Non puoi attaccare mentre sei congelato."
+  logout-ban-reason: "Rifiuto SS / Disconnesso mentre congelato"
+  status: "<#5DADE2>❄ <#8BC4EA>Il giocatore <white><player> <#8BC4EA>è ora <status><#8BC4EA>."
+  frozen: "<#FF6B6B>CONGELATO"
+  unfrozen: "<#7FFF7F>SCONGELATO"
+  frozen-title: "<red><bold>SEI STATO CONGELATO!</bold></red>"
+  frozen-discord: "<yellow>Unisciti al nostro Discord per supporto: <white>discord.gg/tuoserver"
+  frozen-logout-warning: "<red>Non disconnetterti o verrai bannato!</red>"
+
+chat:
+  usage: "<#FF6B6B>✘ <#FF8E8E>Uso : <white>/chat <lock|slow|clear> [args]"
+  slow-usage: "<#FF6B6B>✘ <#FF8E8E>Uso : <white>/chat slow <secondi>"
+  locked: "<#FF6B6B>🔒 <#FF8E8E>La chat globale è stata <bold>BLOCCATA</bold> da <white><player><#FF8E8E>."
+  unlocked: "<#7FFF7F>🔓 <#AAFFAA>La chat globale è stata <bold>SBLOCCATA</bold> da <white><player><#AAFFAA>."
+  slowed: "<#FFD93D>⏱ <#FFCC80>Modalità lenta chat impostata a <white><secondi>s <#FFCC80>da <white><player><#FFCC80>."
+  slow-disabled: "<#7FFF7F>⚡ <#AAFFAA>Modalità lenta chat disabilitata da <white><player><#AAFFAA>."
+  cleared: "<#5DADE2>🧹 <#8BC4EA>La chat globale è stata pulita da <white><player><#8BC4EA>."
+  invalid-number: "<#FF6B6B>✘ <#FF8E8E>Numero non valido."
+  unknown-subcommand: "<#FF6B6B>✘ <#FF8E8E>Sottocomando sconosciuto."
+
+report:
+  usage: "<#FF6B6B>✘ <#FF8E8E>Uso : <white>/report <player> <reason>"
+  self-report: "<#FF6B6B>✘ <#FF8E8E>Non puoi segnalare te stesso."
+  submitted: "<#7FFF7F>✔ <#AAFFAA>Segnalazione inviata contro <white><player><#AAFFAA>."
+  already-reported: "<#FF6B6B>✘ <#FF8E8E>Hai già segnalato questo giocatore di recente."
+  cooldown: "<#FF6B6B>✘ <#FF8E8E>Attendi <white><duration><#FF8E8E> prima di segnalare di nuovo."
+  reason-required: "<#FF6B6B>✘ <#FF8E8E>Per favore fornisci un motivo per la segnalazione."
+  staff-alert: "<red>[Segnalazione]</red> <white><reporter></white> <gray>ha segnalato</gray> <white><player></white> <gray>per</gray> <yellow><reason></yellow>"
+
+notes:
+  added: "<#7FFF7F>✔ <#AAFFAA>Nota aggiunta per <white><player><#AAFFAA>."
+  removed: "<#7FFF7F>✔ <#AAFFAA>Nota <white><index><#AAFFAA> rimossa per <white><player><#AAFFAA>."
+  no-notes: "<#FF6B6B>✘ <#FF8E8E>Nessuna nota trovata per <white><player><#FF8E8E>."
+  header: "<gradient:#FF9800:#FFB74D><bold>Note per <player></bold></gradient>"
+  entry: "<#B0B0B0>[<#FFD93D><index><#B0B0B0>] <white><note> <#555555>- <gray><staff> <white><date>"
+  usage-add: "<#FF6B6B>✘ <#FF8E8E>Uso : <white>/note add <player> <note>"
+  usage-remove: "<#FF6B6B>✘ <#FF8E8E>Uso : <white>/note remove <player> <index>"
+  usage-view: "<#FF6B6B>✘ <#FF8E8E>Uso : <white>/note <player>"
+  invalid-index: "<#FF6B6B>✘ <#FF8E8E>Indice della nota non valido."
+
+banlist:
+  header: "<gradient:#FF4444:#FF6666><bold>Ban Attivi</bold></gradient> <#B0B0B0>(<#FFD93D><count><#B0B0B0>)"
+  entry: "<#B0B0B0>• <white><player> <#555555>- <gray><reason> <#555555>(<white><staff><#555555>)"
+  empty: "<#7FFF7F>✔ Nessun ban attivo."
+  page-info: "<#B0B0B0>Pagina <white><page><#B0B0B0>/<white><maxpage><#B0B0B0>"
+
+mutelist:
+  header: "<gradient:#3498DB:#5DADE2><bold>Mute Attivi</bold></gradient> <#B0B0B0>(<#FFD93D><count><#B0B0B0>)"
+  entry: "<#B0B0B0>• <white><player> <#555555>- <gray><reason> <#555555>(<white><staff><#555555>)"
+  empty: "<#7FFF7F>✔ Nessun mute attivo."
+  page-info: "<#B0B0B0>Pagina <white><page><#B0B0B0>/<white><maxpage><#B0B0B0>"
+
+blame:
+  header: "<gradient:#FF9800:#FFB74D><bold>Punizioni di <staff></bold></gradient> <#B0B0B0>(<#FFD93D><count><#B0B0B0>)"
+  entry: "<#B0B0B0>• <white><type> <white><player> <#555555>- <gray><reason> <#555555>(<white><date><#555555>)"
+  empty: "<#7FFF7F>✔ Nessuna punizione trovata per <white><staff><#7FFF7F>."
+  usage: "<#FF6B6B>✘ <#FF8E8E>Uso : <white>/blame <staff>"
+
+staff:
+  header: "<gradient:#5DADE2:#8BC4EA><bold>Staff Online</bold></gradient>"
+  entry: "<#B0B0B0>• <white><player> <#555555>- <gray><rank>"
+  empty: "<#7FFF7F>✔ Nessuno staff online."
+
+staff-alerts:
+  prefix: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃"
+  ban: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#FF8E8E>ha bannato permanentemente <white><player> <#FF8E8E>per: <#B0B0B0><reason>"
+  tempban: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#FF8E8E>ha bannato temporaneamente <white><player> <#FF8E8E>per <#FFD93D><duration> <#FF8E8E>— <#B0B0B0><reason>"
+  ipban: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#FF8E8E>ha bannato l'IP di <white><player> <#FF8E8E>per: <#B0B0B0><reason>"
+  mute: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#8BC4EA>ha silenziato permanentemente <white><player> <#8BC4EA>per: <#B0B0B0><reason>"
+  tempmute: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#8BC4EA>ha silenziato temporaneamente <white><player> <#8BC4EA>per <#FFD93D><duration> <#8BC4EA>— <#B0B0B0><reason>"
+  voicemute: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#CE93D8>ha silenziato la voce di <white><player> <#CE93D8>per: <#B0B0B0><reason>"
+  tempvoicemute: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#CE93D8>ha silenziato temporaneamente la voce di <white><player> <#CE93D8>per <#FFD93D><duration> <#CE93D8>— <#B0B0B0><reason>"
+  warn: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#FFCC80>ha avvertito <white><player> <#FFCC80>per: <#B0B0B0><reason>"
+  kick: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#FFAB91>ha espulso <white><player> <#FFAB91>per: <#B0B0B0><reason>"
+  freeze: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#80DEEA>ha congelato <white><player><#80DEEA>."
+  unfreeze: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#80DEEA>ha scongelato <white><player><#80DEEA>."
+  voidjail: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#FF8E8E>ha mandato <white><player><#FF8E8E> nella prigione del vuoto."
+  unban: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#AAFFAA>ha sbannato <white><player><#AAFFAA>."
+  unmute: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃ <white><staff> <#80DEEA>ha riattivato <white><player><#80DEEA>."
+update:
+  available: "<gradient:#a259ff:#ff6b6b><bold>Aggiornamento ControlBans Disponibile!</bold></gradient> <gray>Sei alla <white>v<current></white>, l'ultima Ã¨ <white>v<latest></white>. <aqua><click:open_url:'https://modrinth.com/plugin/controlbans'>[Scarica su Modrinth]</click></aqua>"

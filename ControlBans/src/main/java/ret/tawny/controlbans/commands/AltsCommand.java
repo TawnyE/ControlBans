@@ -8,6 +8,8 @@ import ret.tawny.controlbans.ControlBansPlugin;
 import ret.tawny.controlbans.commands.gui.AltsGuiManager;
 
 import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 public class AltsCommand extends CommandBase {
     private final AltsGuiManager guiManager;
@@ -34,17 +36,27 @@ public class AltsCommand extends CommandBase {
         }
 
         String targetName = args[0];
-
-        @SuppressWarnings("deprecation")
-        OfflinePlayer target = Bukkit.getOfflinePlayer(targetName);
-
-        if (!target.hasPlayedBefore() && !target.isOnline()) {
-            viewer.sendMessage(locale.getMessage("errors.player-not-found", playerPlaceholder(targetName)));
-            return true;
-        }
-
-        guiManager.openAltsGui(viewer, target, 1);
+        resolveTarget(targetName).thenAccept(target -> {
+            if (target == null) {
+                scheduler.runTask(() -> viewer.sendMessage(locale.getMessage("errors.player-not-found", playerPlaceholder(targetName))));
+                return;
+            }
+            scheduler.runTask(() -> guiManager.openAltsGui(viewer, target, 1));
+        });
         return true;
+    }
+
+    private CompletableFuture<OfflinePlayer> resolveTarget(String name) {
+        Player online = Bukkit.getPlayerExact(name);
+        if (online != null) return CompletableFuture.completedFuture(online);
+
+        return plugin.getStorage().getUuidByName(name).thenCompose(uuid -> {
+            if (uuid != null) return CompletableFuture.completedFuture(Bukkit.getOfflinePlayer(uuid));
+            return CompletableFuture.supplyAsync(() -> {
+                UUID mojangUuid = ret.tawny.controlbans.util.UuidUtil.lookupUuid(name);
+                return mojangUuid != null ? Bukkit.getOfflinePlayer(mojangUuid) : null;
+            });
+        });
     }
 
     @Override

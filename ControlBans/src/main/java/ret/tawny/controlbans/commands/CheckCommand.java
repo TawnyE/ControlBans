@@ -36,15 +36,17 @@ public class CheckCommand extends CommandBase {
         if (target.matches("^[a-zA-Z0-9]{6,8}$")) {
             sender.sendMessage(locale.getMessage("actions.checking-id", idPlaceholder(target)));
             punishmentService.getPunishmentById(target).thenAccept(punishmentOpt -> {
-                if (punishmentOpt.isPresent()) {
-                    displayPunishmentInfo(sender, punishmentOpt.get());
-                } else {
-                    sender.sendMessage(locale.getMessage("errors.id-not-found"));
-                }
+                scheduler.runTask(() -> {
+                    if (punishmentOpt.isPresent()) {
+                        displayPunishmentInfo(sender, punishmentOpt.get());
+                    } else {
+                        sender.sendMessage(locale.getMessage("errors.id-not-found"));
+                    }
+                });
             });
         } else {
             sender.sendMessage(locale.getMessage("actions.checking-player", playerPlaceholder(target)));
-            scheduler.callSync(() -> UuidUtil.lookupUuid(target)).thenAccept(uuid -> {
+            CompletableFuture.supplyAsync(() -> UuidUtil.lookupUuid(target)).thenAccept(uuid -> {
                 if (uuid == null) {
                     scheduler.runTask(() -> sender.sendMessage(locale.getMessage("errors.player-not-found", playerPlaceholder(target))));
                     return;
@@ -106,3 +108,4 @@ public class CheckCommand extends CommandBase {
         sender.sendMessage(message);
     }
 }
+

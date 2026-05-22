@@ -24,7 +24,7 @@ public class UnbanCommand extends CommandBase {
         }
 
         String targetName = args[0];
-        sender.sendMessage(locale.getMessage("actions.unbanning", playerPlaceholder(targetName)));
+
 
         punishmentService.unbanPlayer(targetName, getSenderUuid(sender), sender.getName())
                 .whenComplete((success, throwable) -> {

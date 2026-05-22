@@ -44,6 +44,14 @@ public class ProxyService {
         sendPluginMessage(json.toString());
     }
 
+    public void sendStaffAlertMessage(String message, String permission) {
+        JsonObject json = new JsonObject();
+        json.addProperty("action", "STAFF_ALERT");
+        json.addProperty("message", message);
+        json.addProperty("permission", permission);
+        sendPluginMessage(json.toString());
+    }
+
     public void sendInvalidateCacheMessage(UUID playerUuid) {
         if (playerUuid == null) return;
 

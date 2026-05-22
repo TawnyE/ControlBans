@@ -50,7 +50,7 @@ public class TempMuteCommand extends CommandBase {
         }
         String reason = reasonJoiner.toString().isEmpty() ? null : reasonJoiner.toString();
 
-        sender.sendMessage(locale.getMessage("actions.temp-muting", playerPlaceholder(targetName)));
+
         punishmentService.tempMutePlayer(targetName, duration, reason, getSenderUuid(sender), sender.getName(), silent)
                 .whenComplete((unused, throwable) -> {
                     if (throwable != null) {

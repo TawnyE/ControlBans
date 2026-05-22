@@ -1,0 +1,5 @@
+name: ControlBans
+version: 5.2
+main: ret.tawny.controlbans.proxy.BungeeEntryPoint
+author: Tawny
+description: Cross-platform moderation extension for BungeeCord.

@@ -1,0 +1,10 @@
+{
+  "id": "controlbans",
+  "name": "ControlBans",
+  "version": "5.2",
+  "description": "Cross-platform moderation extension for Velocity.",
+  "authors": [
+    "Tawny"
+  ],
+  "main": "ret.tawny.controlbans.proxy.VelocityEntryPoint"
+}

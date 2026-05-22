@@ -19,7 +19,6 @@ public class SkinBanListener implements Listener {
     @EventHandler(priority = EventPriority.LOW)
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        // The service handles the logic of checking if the player is banned and applying the skin change.
         skinBanService.handlePlayerJoin(player);
     }
 }

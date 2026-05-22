@@ -23,7 +23,7 @@ public class UnmuteCommand extends CommandBase {
             return true;
         }
         String targetName = args[0];
-        sender.sendMessage(locale.getMessage("actions.unmuting", playerPlaceholder(targetName)));
+
 
         punishmentService.unmutePlayer(targetName, getSenderUuid(sender), sender.getName())
                 .whenComplete((success, throwable) -> {

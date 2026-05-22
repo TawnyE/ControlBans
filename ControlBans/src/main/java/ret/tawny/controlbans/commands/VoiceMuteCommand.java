@@ -38,13 +38,13 @@ public class VoiceMuteCommand extends CommandBase {
         }
         String reason = reasonJoiner.toString().isEmpty() ? null : reasonJoiner.toString();
 
-        sender.sendMessage(locale.getMessage("actions.voice-muting", playerPlaceholder(targetName)));
+
         punishmentService.voiceMutePlayer(targetName, reason, getSenderUuid(sender), sender.getName(), silent)
                 .whenComplete((unused, throwable) -> {
                     if (throwable != null) {
                         handlePunishmentError(throwable, sender, targetName);
                     } else {
-                        sender.sendMessage(locale.getMessage("success.voice-mute", playerPlaceholder(targetName)));
+                        sender.sendMessage(locale.getMessage("success.voicemute", playerPlaceholder(targetName)));
                     }
                 });
         return true;
