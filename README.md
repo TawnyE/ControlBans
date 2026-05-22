@@ -1,7 +1,5 @@
 <div align="center">
 
-<img src="https://i.imgur.com/placeholder.png" alt="ControlBans" width="120" />
-
 # ControlBans
 
 **Advanced, next-generation punishment & moderation system for Minecraft networks.**
