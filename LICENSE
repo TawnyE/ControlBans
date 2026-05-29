@@ -1,102 +1,71 @@
-# ControlFamily License v1.1
-Developer-Friendly License for Open Control Projects
+# Truthful and Faithful License v1.1
 
-Copyright (c) 2025 Tawny (ret.tawny)
+**Copyright (c) 2026 tawny (ret.tawny / TawnyE)**
 
-This license applies only to repositories that include this file.  
-Some Control-related projects are closed-source and not covered by this license.
+Permission is hereby granted to any person obtaining a copy of this software to use, study, and modify it for personal or server use, subject to the following conditions:
 
 ---
 
-## 1. Permission to Use, Modify, and Distribute
+## 1. FREE TO USE
 
-You are allowed to:
-
-- Use the code and assets in this repository for personal or commercial projects
-- Modify, extend, or build your own plugins or software based on this project
-- Publish, distribute, or sell your modified versions
-
-As long as you follow the rules below.
+This software is free to use on any Minecraft server without restriction.
 
 ---
 
-## 2. Attribution Required
+## 2. FREE TO STUDY AND MODIFY
 
-If you use any code or assets from this project, you must:
-
-- Credit **"ControlFamily by Tawny (ret.tawny)"** in your README or documentation  
-**and**
-- Provide visible credit inside the software (e.g., `/help`, `/about`, or equivalent)
-
-Attribution must be easy to find and not hidden.
+You may read, modify, and build upon the source code for personal or server use.
 
 ---
 
-## 3. Scope of This License
+## 3. CONTRIBUTIONS WELCOME
 
-This license covers everything in this repository unless stated otherwise:
+You may submit contributions back to the original project via pull request.
 
-✔ Source code  
-✔ Configurations  
-✔ Documentation  
-✔ Assets (textures, images, models, art)  
-
-Third-party assets that have their own licenses are excluded.
+Contributions must include a clear explanation of what changed and why.
 
 ---
 
-## 4. DMCA & Protection Against Abuse
+## 4. NO SELLING THE PLUGIN
 
-You may **not**:
+You may not sell, license, or monetize this plugin or any modified version of it.
 
-- Claim this project as your own original work
-- File false DMCA claims against others who are following this license
-- Remove or alter original copyright notices
+You may not distribute the plugin jar as part of a paid product or bundle.
 
-If you do, this license will be revoked.
+The plugin jar must always be obtained separately by the end user from the official sources listed in each project's repository or marketplace listing.
 
 ---
 
-## 5. Fair-Use, Contributions, and Pull Requests
+## 5. CONFIGURATIONS ARE EXEMPT
 
-If you contribute to this project via PR or patch, you grant the project owner the right to use your contribution as part of the project.
+Configuration files and presets created for this plugin are not subject to the restrictions above.
 
-You keep ownership of your specific contributions.
+You may sell, distribute, or monetize custom configuration setups for this plugin.
 
----
+The plugin jar itself must still be downloaded separately by the buyer.
 
-## 6. Violations and Termination (Soft Warning Policy)
-
-If you break this license:
-
-1. You will be notified of the violation.
-2. You will have **7 days** to correct the issue.
-3. If not corrected, your rights under this license end.
-
-Once terminated, you must remove all ControlFamily licensed code and assets from your project.
+You may not bundle or include the jar in what you are selling.
 
 ---
 
-## 7. No Warranty
+## 6. NO REDISTRIBUTION UNDER A DIFFERENT LICENSE
 
-This project is provided “as-is” with no guarantee of performance, safety, or fitness for a particular purpose.
+You may not redistribute this software or any derivative of it under a different license.
 
----
-
-## 8. Compatibility With Other Licenses
-
-You may combine this code with other open-source projects if their licenses allow it.  
-If there is a conflict, you must resolve it or remove the conflicting code.
+Any public fork or distribution must retain this license in full.
 
 ---
 
-### Summary (Not a Legal Section)
+## 7. NO FALSE ATTRIBUTION
 
-You can use, modify, and sell this open-source ControlFamily project, but:
+You may not claim authorship or original ownership of this plugin or its core systems.
 
-- You must give proper credit
-- You can’t claim ownership or abuse DMCA
-- You must keep the original copyright notice
-- You get 7 days to fix issues if you violate anything
+Forks must clearly credit the original project and author.
 
-Be respectful and fair—that’s all.
+---
+
+## DISCLAIMER
+
+THIS SOFTWARE IS PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED.
+
+THE AUTHOR IS NOT LIABLE FOR ANY DAMAGES OR ISSUES ARISING FROM THE USE OF THIS SOFTWARE.
