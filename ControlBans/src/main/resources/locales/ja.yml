@@ -248,10 +248,6 @@ alts:
   status-muted: "<#5DADE2> [ミュート中]"
   join-alert: "<red>[Alts]</red> <white><player> <gray>が参加しました。</gray> <white><banned_player></white> <gray>の疑いのあるaltアカウント</gray> <gray>(<#FFD93D><confidence>%<gray> 一致)"
 
-automod:
-  spam-warning: "<red>AutoMod >> </red><gray>メッセージの頻度を下げるか、同じ内容を繰り返さないでください。</gray>"
-  rule-denied: "<red>AutoMod >> </red><gray><message></gray>"
-  staff-alert: "<red>[AutoMod]</red> <white><player></white> <gray>が</gray> <yellow><rule></yellow> <gray>を</gray> <aqua><type></aqua> <gray>でトリガーしました</gray>"
 
 config-editor:
   prompt: "<#FFD93D>チャットに<white><path><#FFD93D>の新しい値を入力するか、'cancel'と入力してください。"

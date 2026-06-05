@@ -2,19 +2,17 @@ package ret.tawny.controlbans.commands.gui;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.SkullMeta;
 import ret.tawny.controlbans.ControlBansPlugin;
-import ret.tawny.controlbans.locale.LocaleManager;
 import ret.tawny.controlbans.menus.ControlBansHolder;
+import ret.tawny.controlbans.services.PunishmentTemplateService.TemplateRule;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,40 +20,86 @@ import java.util.List;
 public class PunishGuiManager {
 
     private final ControlBansPlugin plugin;
-    private final LocaleManager locale;
 
     public PunishGuiManager(ControlBansPlugin plugin) {
         this.plugin = plugin;
-        this.locale = plugin.getLocaleManager();
+    }
+
+    public enum PunishMode {
+        BANS, MUTES, WARNS
     }
 
     public static class PunishHolder extends ControlBansHolder {
         private final OfflinePlayer target;
-        public PunishHolder(OfflinePlayer target) { this.target = target; }
+        private final PunishMode mode;
+
+        public PunishHolder(OfflinePlayer target, PunishMode mode) {
+            this.target = target;
+            this.mode = mode;
+        }
+
         public OfflinePlayer getTarget() { return target; }
+        public PunishMode getMode() { return mode; }
     }
 
     public void openPunishMenu(Player staff, OfflinePlayer target) {
-        Component title = locale.getMessage("gui.punish.title",
-                Placeholder.unparsed("player", target.getName() != null ? target.getName() : locale.getRawMessage("gui.punish.unknown-player")));
+        openPunishMenu(staff, target, PunishMode.MUTES);
+    }
 
-        Inventory inv = Bukkit.createInventory(new PunishHolder(target), 45, title);
+    public void openPunishMenu(Player staff, OfflinePlayer target, PunishMode mode) {
+        String targetName = target.getName() != null ? target.getName() : "Unknown";
 
-        inv.setItem(4, createHeadInfo(target));
+        String colorTag = switch (mode) {
+            case BANS -> "<red>";
+            case MUTES -> "<gold>";
+            case WARNS -> "<orange>";
+        };
+        String modeLabel = switch (mode) {
+            case BANS -> "Bans";
+            case MUTES -> "Mutes";
+            case WARNS -> "Warns";
+        };
 
-        inv.setItem(19, createActionItem(staff, "controlbans.ban", Material.NETHERITE_AXE, "ban"));
-        inv.setItem(20, createActionItem(staff, "controlbans.tempban", Material.IRON_AXE, "tempban"));
-        inv.setItem(21, createActionItem(staff, "controlbans.ban.ip", Material.BEDROCK, "ipban"));
+        Component title = MiniMessage.miniMessage().deserialize(
+                "<gold>Punishment</gold> <gray>»</gray> <white>" + targetName + "</white> <gray>»</gray> " +
+                colorTag + modeLabel
+        );
 
-        inv.setItem(28, createActionItem(staff, "controlbans.mute", Material.PAPER, "mute"));
-        inv.setItem(29, createActionItem(staff, "controlbans.tempmute", Material.MAP, "tempmute"));
-        inv.setItem(30, createActionItem(staff, "controlbans.voicemute", Material.JUKEBOX, "voicemute"));
+        Inventory inv = Bukkit.createInventory(new PunishHolder(target, mode), 45, title);
 
-        inv.setItem(39, createActionItem(staff, "controlbans.kick", Material.LEATHER_BOOTS, "kick"));
-        inv.setItem(40, createActionItem(staff, "controlbans.warn", Material.WRITABLE_BOOK, "warn"));
-        inv.setItem(41, createActionItem(staff, "controlbans.freeze", Material.PACKED_ICE, "freeze"));
+        inv.setItem(1, createPlayerInfoItem(target, mode));
+        inv.setItem(7, createHistoryShortcutItem(mode));
 
-        ItemStack filler = createFiller();
+        List<TemplateRule> templates = plugin.getPunishmentService().getTemplateService().getTemplates();
+        int[] slots = {10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25};
+        int templateIdx = 0;
+
+        for (TemplateRule rule : templates) {
+            if (templateIdx >= slots.length) break;
+
+            boolean isBanType = rule.getType().equalsIgnoreCase("ban") ||
+                                rule.getType().equalsIgnoreCase("tempban") ||
+                                rule.getType().equalsIgnoreCase("ipban");
+
+            boolean shouldShow = switch (mode) {
+                case BANS -> isBanType || rule.getType().equalsIgnoreCase("any");
+                case MUTES -> rule.getType().equalsIgnoreCase("mute") ||
+                              rule.getType().equalsIgnoreCase("tempmute") ||
+                              rule.getType().equalsIgnoreCase("voicemute");
+                case WARNS -> rule.getType().equalsIgnoreCase("warn") ||
+                              rule.getType().equalsIgnoreCase("kick");
+            };
+
+            if (!shouldShow) continue;
+
+            inv.setItem(slots[templateIdx++], createTemplateItem(staff, rule, mode));
+        }
+
+        inv.setItem(36, createCloseItem(mode));
+
+        inv.setItem(44, createSwitchPageItem(mode));
+
+        ItemStack filler = createFiller(mode);
         for (int i = 0; i < 45; i++) {
             if (inv.getItem(i) == null) inv.setItem(i, filler);
         }
@@ -63,18 +107,35 @@ public class PunishGuiManager {
         staff.openInventory(inv);
     }
 
-    private ItemStack createActionItem(Player staff, String permission, Material mat, String actionType) {
-        String nameKey = "gui.punish.items." + actionType + ".name";
-        String loreKey = "gui.punish.items." + actionType + ".lore";
+    private ItemStack createTemplateItem(Player staff, TemplateRule rule, PunishMode mode) {
+        String matName = rule.getItemMaterial();
+        Material mat = Material.matchMaterial(matName);
+        if (mat == null) {
+            mat = switch (mode) {
+                case BANS -> Material.RED_CANDLE;
+                case MUTES -> Material.ORANGE_CANDLE;
+                case WARNS -> Material.YELLOW_CANDLE;
+            };
+        }
 
-        if (!staff.hasPermission(permission)) {
+        String accentColor = switch (mode) {
+            case BANS -> "<red>";
+            case MUTES -> "<gold>";
+            case WARNS -> "<orange>";
+        };
+
+        boolean hasPerm = rule.getPermission() == null || staff.hasPermission(rule.getPermission());
+        if (!hasPerm) {
             ItemStack barrier = new ItemStack(Material.BARRIER);
             ItemMeta meta = barrier.getItemMeta();
-            meta.displayName(locale.getMessage(nameKey).decoration(TextDecoration.ITALIC, false));
-            List<Component> lore = new ArrayList<>(locale.getMessageList("gui.punish.no-permission"));
+            meta.displayName(MiniMessage.miniMessage().deserialize("<red><bold>" + rule.getDisplayName() + "</bold></red>").decoration(TextDecoration.ITALIC, false));
+            List<Component> lore = new ArrayList<>();
+            lore.add(MiniMessage.miniMessage().deserialize("<dark_gray><bold>LOCKED TEMPLATE</bold></dark_gray>").decoration(TextDecoration.ITALIC, false));
             lore.add(Component.empty());
-            lore.add(locale.getMessage("gui.punish.permission-node",
-                    Placeholder.unparsed("node", permission)).decoration(TextDecoration.ITALIC, false));
+            lore.add(MiniMessage.miniMessage().deserialize("<gray>• " + rule.getDescription() + "</gray>").decoration(TextDecoration.ITALIC, false));
+            lore.add(Component.empty());
+            lore.add(MiniMessage.miniMessage().deserialize("<red><bold>❌ Requires permission:</bold></red>").decoration(TextDecoration.ITALIC, false));
+            lore.add(MiniMessage.miniMessage().deserialize("<red>  " + rule.getPermission() + "</red>").decoration(TextDecoration.ITALIC, false));
             meta.lore(lore);
             barrier.setItemMeta(meta);
             return barrier;
@@ -82,39 +143,153 @@ public class PunishGuiManager {
 
         ItemStack item = new ItemStack(mat);
         ItemMeta meta = item.getItemMeta();
-        meta.displayName(locale.getMessage(nameKey).decoration(TextDecoration.ITALIC, false));
-        List<Component> lore = new ArrayList<>(locale.getMessageList(loreKey));
+        meta.displayName(MiniMessage.miniMessage().deserialize(accentColor + rule.getDisplayName()).decoration(TextDecoration.ITALIC, false));
+
+        List<Component> lore = new ArrayList<>();
+        lore.add(MiniMessage.miniMessage().deserialize("<dark_gray><bold>TEMPLATE</bold></dark_gray>").decoration(TextDecoration.ITALIC, false));
         lore.add(Component.empty());
-        lore.addAll(locale.getMessageList("gui.punish.click-to-select"));
-        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+        lore.add(MiniMessage.miniMessage().deserialize("<gray>• " + rule.getDescription() + "</gray>").decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.empty());
+        lore.add(MiniMessage.miniMessage().deserialize(accentColor + "<bold>✜ DURATION</bold>").decoration(TextDecoration.ITALIC, false));
+        lore.add(MiniMessage.miniMessage().deserialize("<gray>| " + rule.getDurationLore() + "</gray>").decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.empty());
+        lore.add(MiniMessage.miniMessage().deserialize("<yellow><bold>➡ Click to Apply</bold></yellow>").decoration(TextDecoration.ITALIC, false));
+
         meta.lore(lore);
         item.setItemMeta(meta);
         return item;
     }
 
-    private ItemStack createHeadInfo(OfflinePlayer target) {
-        ItemStack head = new ItemStack(Material.PLAYER_HEAD);
-        SkullMeta meta = (SkullMeta) head.getItemMeta();
+    private ItemStack createPlayerInfoItem(OfflinePlayer target, PunishMode mode) {
+        Material mat = switch (mode) {
+            case BANS -> Material.BLUE_CANDLE;
+            case MUTES -> Material.BLUE_CANDLE;
+            case WARNS -> Material.YELLOW_CANDLE;
+        };
+        String accent = switch (mode) {
+            case BANS -> "<blue>";
+            case MUTES -> "<blue>";
+            case WARNS -> "<orange>";
+        };
+        ItemStack item = new ItemStack(mat);
+        ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            try {
-                meta.setOwningPlayer(target);
-            } catch (Exception ignored) {}
-
-            meta.displayName(locale.getMessage("gui.punish.head.name",
-                            Placeholder.unparsed("player", target.getName() != null ? target.getName() : locale.getRawMessage("gui.punish.unknown-player")))
-                    .decoration(TextDecoration.ITALIC, false));
-
-            meta.lore(locale.getMessageList("gui.punish.head.lore"));
-            head.setItemMeta(meta);
+            meta.displayName(MiniMessage.miniMessage().deserialize(accent + "<bold>👤 Player Information</bold>").decoration(TextDecoration.ITALIC, false));
+            List<Component> lore = new ArrayList<>();
+            lore.add(MiniMessage.miniMessage().deserialize("<gray>Target: <white>" + (target.getName() != null ? target.getName() : "Unknown") + "</white></gray>").decoration(TextDecoration.ITALIC, false));
+            lore.add(MiniMessage.miniMessage().deserialize("<gray>UUID: <white>" + target.getUniqueId() + "</white></gray>").decoration(TextDecoration.ITALIC, false));
+            lore.add(MiniMessage.miniMessage().deserialize("<gray>Status: " + (target.isOnline() ? "<green>Online</green>" : "<red>Offline</red>") + "</gray>").decoration(TextDecoration.ITALIC, false));
+            meta.lore(lore);
+            item.setItemMeta(meta);
         }
-        return head;
+        return item;
     }
 
-    private ItemStack createFiller() {
-        ItemStack item = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
+    private ItemStack createHistoryShortcutItem(PunishMode mode) {
+        Material mat = switch (mode) {
+            case BANS -> Material.GREEN_CANDLE;
+            case MUTES -> Material.GREEN_CANDLE;
+            case WARNS -> Material.ORANGE_CANDLE;
+        };
+        String accent = switch (mode) {
+            case BANS -> "<green>";
+            case MUTES -> "<green>";
+            case WARNS -> "<orange>";
+        };
+        ItemStack item = new ItemStack(mat);
         ItemMeta meta = item.getItemMeta();
-        meta.displayName(Component.text(" "));
-        item.setItemMeta(meta);
+        if (meta != null) {
+            meta.displayName(MiniMessage.miniMessage().deserialize(accent + "<bold>📜 Punishment History</bold>").decoration(TextDecoration.ITALIC, false));
+            List<Component> lore = new ArrayList<>();
+            lore.add(MiniMessage.miniMessage().deserialize("<gray>Click to view all past punishments</gray>").decoration(TextDecoration.ITALIC, false));
+            lore.add(MiniMessage.miniMessage().deserialize("<gray>and active warnings for this player.</gray>").decoration(TextDecoration.ITALIC, false));
+            lore.add(Component.empty());
+            lore.add(MiniMessage.miniMessage().deserialize("<yellow><bold>➡ Click to View</bold></yellow>").decoration(TextDecoration.ITALIC, false));
+            meta.lore(lore);
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    private ItemStack createCloseItem(PunishMode mode) {
+        ItemStack item = new ItemStack(Material.BARRIER);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            String accent = switch (mode) {
+                case BANS -> "<red>";
+                case MUTES -> "<red>";
+                case WARNS -> "<orange>";
+            };
+            meta.displayName(MiniMessage.miniMessage().deserialize(accent + "<bold>Close Menu</bold>").decoration(TextDecoration.ITALIC, false));
+            List<Component> lore = new ArrayList<>();
+            lore.add(MiniMessage.miniMessage().deserialize("<gray>Click to exit this menu.</gray>").decoration(TextDecoration.ITALIC, false));
+            meta.lore(lore);
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    private ItemStack createSwitchPageItem(PunishMode mode) {
+        PunishMode nextMode = switch (mode) {
+            case BANS -> PunishMode.MUTES;
+            case MUTES -> PunishMode.WARNS;
+            case WARNS -> PunishMode.BANS;
+        };
+        String nextLabel = switch (nextMode) {
+            case BANS -> "Bans";
+            case MUTES -> "Mutes";
+            case WARNS -> "Warns";
+        };
+        String nextColor = switch (nextMode) {
+            case BANS -> "<red>";
+            case MUTES -> "<gold>";
+            case WARNS -> "<orange>";
+        };
+        String currentLabel = switch (mode) {
+            case BANS -> "ban";
+            case MUTES -> "mute";
+            case WARNS -> "warn";
+        };
+        String currentColor = switch (mode) {
+            case BANS -> "<red>";
+            case MUTES -> "<gold>";
+            case WARNS -> "<orange>";
+        };
+        Material mat = switch (nextMode) {
+            case BANS -> Material.RED_CANDLE;
+            case MUTES -> Material.ORANGE_CANDLE;
+            case WARNS -> Material.YELLOW_CANDLE;
+        };
+
+        ItemStack item = new ItemStack(mat);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.displayName(MiniMessage.miniMessage().deserialize(nextColor + "<bold>Switch to " + nextLabel + "</bold>").decoration(TextDecoration.ITALIC, false));
+            List<Component> lore = new ArrayList<>();
+            lore.add(MiniMessage.miniMessage().deserialize("<dark_gray><bold>PAGE</bold></dark_gray>").decoration(TextDecoration.ITALIC, false));
+            lore.add(MiniMessage.miniMessage().deserialize("<gray>• Viewing </gray>" + currentColor + currentLabel + "<gray> templates</gray>").decoration(TextDecoration.ITALIC, false));
+            lore.add(MiniMessage.miniMessage().deserialize("<gray>• Switch to </gray>" + nextColor + nextLabel + "<gray> page</gray>").decoration(TextDecoration.ITALIC, false));
+            lore.add(Component.empty());
+            lore.add(MiniMessage.miniMessage().deserialize("<yellow><bold>➡ Click to Switch</bold></yellow>").decoration(TextDecoration.ITALIC, false));
+            meta.lore(lore);
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    private ItemStack createFiller(PunishMode mode) {
+        Material glass = switch (mode) {
+            case BANS -> Material.BLACK_STAINED_GLASS_PANE;
+            case MUTES -> Material.BLACK_STAINED_GLASS_PANE;
+            case WARNS -> Material.ORANGE_STAINED_GLASS_PANE;
+        };
+        ItemStack item = new ItemStack(glass);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.displayName(Component.text(" "));
+            item.setItemMeta(meta);
+        }
         return item;
     }
 }
+

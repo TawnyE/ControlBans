@@ -57,20 +57,10 @@ actionbar:
   voice-muted: "<gradient:#FF4444:#FF6666><bold>🔇 VOCÊ ESTÁ MUTADO NO CHAT DE VOZ</bold></gradient>"
 
 bossbar:
-  ban: "<red>Você foi banido!"
-  tempban: "<red>Você foi banido temporariamente!"
-  mute: "<red>Você foi silenciado!"
-  tempmute: "<red>Você foi silenciado temporariamente!"
-  voicemute: "<red>Seu microfone foi silenciado!"
-  tempvoicemute: "<red>Seu microfone foi silenciado temporariamente!"
-  ipban: "<red>Seu IP foi banido!"
-  ipmute: "<red>Seu IP foi silenciado!"
-  ip_tempban: "<red>Seu IP foi banido temporariamente!"
-  ip_tempmute: "<red>Seu IP foi silenciado temporariamente!"
-  warn: "<red>Você foi advertido!"
-  kick: "<red>Você foi expulso!"
-  freeze: "<red><bold>❄ CONGELADO!</bold></red>"
-  blacklist: "<red><bold>⚠ BLOQUEADO!</bold></red>"
+  voice-mute:
+    title: "<red><bold>🔇 MICROFONE MUTADO:</bold> <yellow><time_remaining>"
+    color: "RED"
+    style: "SOLID"
 
 actions:
   banning: "<yellow>Banindo <player>..."
@@ -265,10 +255,13 @@ gui:
       - "<gray>ID: <white><id>"
     player-head-name: "<green>Histórico de: <white><player>"
     player-head-lore: "<gray>Total de Punições: <yellow><count>"
-    summary-title: "<#8BC4EA>Resumo do Histórico"
-    summary-total: "<#B0B0B0>Total de Punições: <white><count>"
-    summary-active: "<#B0B0B0>Punições Ativas: <red><count>"
-    summary-expired: "<#B0B0B0>Punições Expiradas: <green><count>"
+    summary-total: "<#FFD93D>Total de Punições: <count>"
+    summary-bans: "<#B0B0B0>Banimentos: <red><count></red>"
+    summary-mutes: "<#B0B0B0>Silenciamentos: <blue><count></blue>"
+    summary-voice-mutes: "<#B0B0B0>Silenciamentos de Voz: <aqua><count></aqua>"
+    summary-warnings: "<#B0B0B0>Advertências: <yellow><count></yellow>"
+    summary-kicks: "<#B0B0B0>Expulsões: <gold><count></gold>"
+    unknown-player: "Desconhecido"
   alts:
     title: "Alts: <player> (<page>/<maxpage>)"
     no-alts-item-name: "<red>Nenhuma Conta Alternativa Encontrada"
@@ -296,6 +289,22 @@ gui:
     status-label: "<#B0B0B0>Status:"
     warnings-entry: "<#FFD93D>- Advertências: <warnings>"
     uuid-entry: "<#B0B0B0>UUID: <white><uuid>"
+    settings:
+      title: "ControlBans Settings"
+      value-label: "<#B0B0B0>Valor: <value>"
+      current-label: "<#B0B0B0>Atual: <#5DADE2><value>"
+      click-toggle: "<#FFD93D>Clique para alternar"
+      click-edit: "<#FFD93D>Clique para editar no chat"
+      prompt-bedrock-prefix: "<#FFD93D>Digite o novo prefixo Bedrock no chat, ou digite 'cancel'."
+      items:
+        silent-bans:
+          name: "<#FFD93D>Bans Silenciosos por Padrão"
+        broadcast-bans:
+          name: "<#FFD93D>Transmitir Punições"
+        bedrock-prefix:
+          name: "<#FFD93D>Prefixo Bedrock"
+        alts-punishment:
+          name: "<#FFD93D>Punição de Alts"
 
   nav-previous: "<green>« Página Anterior"
   nav-next: "<green>Página Seguinte »"
@@ -406,40 +415,7 @@ gui:
         lore:
           - "<#B0B0B0>Congele o jogador para inspeção."
     unknown-player: "Desconhecido"
-    settings:
-      title: "Configurações do ControlBans"
-      value-label: "<#B0B0B0>Valor: <value>"
-      current-label: "<#B0B0B0>Atual: <#5DADE2><value>"
-      click-toggle: "<#FFD93D>Clique para alternar"
-      click-edit: "<#FFD93D>Clique para editar no chat"
-      prompt-bedrock-prefix: "<#FFD93D>Digite o novo prefixo Bedrock no chat, ou digite 'cancel'."
-      items:
-        silent-bans:
-          name: "<#FFD93D>Bans Silenciosos por Padrão"
-        broadcast-bans:
-          name: "<#FFD93D>Transmitir Punições"
-        bedrock-prefix:
-          name: "<#FFD93D>Prefixo Bedrock"
-        alts-punishment:
-          name: "<#FFD93D>Punição de Alts"
 
-automod:
-  ads-title: "<red><bold>Automod - Anúncios Não Autorizados</bold></red>"
-  ads-reason: "Publicidade não autorizada"
-  spam-title: "<red><bold>Automod - Spam</bold></red>"
-  spam-reason: "Spam excessivo"
-  caps-title: "<red><bold>Automod - Caps Lock Excessivo</bold></red>"
-  caps-reason: "Uso excessivo de caps lock"
-  flood-title: "<red><bold>Automod - Flood</bold></red>"
-  flood-reason: "Flood no chat"
-  personal-info-title: "<red><bold>Automod - Informações Pessoais</bold></red>"
-  personal-info-reason: "Compartilhamento de informações pessoais"
-  blacklist-title: "<red><bold>Automod - Palavras Proibidas</bold></red>"
-  blacklist-reason: "Uso de palavras proibidas"
-  unicode-title: "<red><bold>Automod - Caracteres Unicode</bold></red>"
-  unicode-reason: "Uso excessivo de caracteres unicode"
-  staff-title: "<#E74C3C><bold>Automod</bold></#E74C3C> <dark_gray>┃"
-  staff: "<#E74C3C><bold>Automod</bold></#E74C3C> <dark_gray>┃ <white><player> <gray>foi punido pelo automod: <white><reason>"
 
 config-editor:
   prompt: "<#FFD93D>Digite o novo valor para <white><path><#FFD93D> no chat, ou digite 'cancel'."

@@ -61,7 +61,7 @@ public class GuiListener implements Listener {
         } else if (holder instanceof AltsGuiManager.AltsHolder altsHolder) {
             handleAltsClick(event, player, altsHolder);
         } else if (holder instanceof PunishGuiManager.PunishHolder punishHolder) {
-            handlePunishClick(player, punishHolder, item);
+            handlePunishClick(player, punishHolder, item, event.getSlot());
         } else if (holder instanceof ReportGuiManager.ReportHolder reportHolder) {
             handleReportClick(player, reportHolder, item);
         } else if (holder instanceof MyReportsGuiManager.MyReportsHolder myReportsHolder) {
@@ -108,71 +108,74 @@ public class GuiListener implements Listener {
         }
     }
 
-    private void handlePunishClick(Player player, PunishGuiManager.PunishHolder holder, ItemStack item) {
-        if (item.getType() == Material.BLACK_STAINED_GLASS_PANE) {
+    private void handlePunishClick(Player player, PunishGuiManager.PunishHolder holder, ItemStack item, int slot) {
+        if (item.getType() == Material.BLACK_STAINED_GLASS_PANE || item.getType() == Material.ORANGE_STAINED_GLASS_PANE || item.getType() == Material.BLUE_CANDLE || item.getType() == Material.YELLOW_CANDLE) {
             return;
         }
 
-        if (item.getType() == Material.BARRIER) {
-            player.sendMessage(plugin.getLocaleManager().getMessage("gui.punish.no-permission-action"));
+        if (item.getType() == Material.BARRIER && slot == 36) {
+            player.closeInventory();
             return;
         }
 
         OfflinePlayer target = holder.getTarget();
-        String targetName = target.getName() != null
-                ? target.getName()
-                : plugin.getLocaleManager().getRawMessage("gui.punish.unknown-player");
+        String targetName = target.getName() != null ? target.getName() : "Unknown";
 
-        String action = switch (item.getType()) {
-            case NETHERITE_AXE -> "ban";
-            case IRON_AXE -> "tempban";
-            case BEDROCK -> "ipban";
-            case PAPER -> "mute";
-            case MAP -> "tempmute";
-            case JUKEBOX -> "voicemute";
-            case LEATHER_BOOTS -> "kick";
-            case WRITABLE_BOOK -> "warn";
-            case PACKED_ICE -> "freeze";
-            default -> null;
-        };
+        boolean isHistoryShortcut;
+        if (item.getType() == Material.GREEN_CANDLE && slot == 7) {
+            isHistoryShortcut = true;
+        } else if (item.getType() == Material.ORANGE_CANDLE && slot == 7) {
+            isHistoryShortcut = true;
+        } else {
+            isHistoryShortcut = false;
+        }
+        if (isHistoryShortcut) {
+            player.closeInventory();
+            player.performCommand("history " + targetName);
+            return;
+        }
 
-        if (action == null) {
+        if (slot == 44) {
+            PunishGuiManager.PunishMode currentMode = holder.getMode();
+            PunishGuiManager.PunishMode nextMode = switch (currentMode) {
+                case BANS -> PunishGuiManager.PunishMode.MUTES;
+                case MUTES -> PunishGuiManager.PunishMode.WARNS;
+                case WARNS -> PunishGuiManager.PunishMode.BANS;
+            };
+            punishGuiManager.openPunishMenu(player, target, nextMode);
+            return;
+        }
+
+        if (item.getItemMeta() == null || item.getItemMeta().displayName() == null) return;
+        
+        String plainName = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(item.getItemMeta().displayName());
+        
+        var templateService = plugin.getPunishmentService().getTemplateService();
+        var templateOpt = templateService.findTemplate(plainName);
+        
+        if (templateOpt.isEmpty()) {
+            return;
+        }
+        
+        var template = templateOpt.get();
+        
+        if (template.getPermission() != null && !player.hasPermission(template.getPermission())) {
+            player.sendMessage(plugin.getLocaleManager().getMessage("gui.punish.no-permission-action"));
             return;
         }
 
         player.closeInventory();
-
-        if (action.equals("freeze")) {
-            player.performCommand("freeze " + targetName);
-            return;
-        }
-
-        boolean requiresDuration = action.contains("temp") || action.equals("ipban") || action.equals("ipmute");
-        if (requiresDuration) {
-            player.sendMessage(plugin.getLocaleManager().getMessage("gui.punish.prompt-duration-reason"));
-            player.sendMessage(plugin.getLocaleManager().getMessage("gui.punish.prompt-example-duration"));
-            player.sendMessage(plugin.getLocaleManager().getMessage("gui.punish.prompt-cancel"));
-
-            plugin.getChatInputListener().awaitInput(player, input -> {
-                if (input.equalsIgnoreCase("cancel")) {
-                    player.sendMessage(plugin.getLocaleManager().getMessage("gui.punish.prompt-cancelled"));
-                    return;
+        
+        plugin.getPunishmentService().applyTemplatePunishment(targetName, template, null, player.getUniqueId(), player.getName(), false)
+            .whenComplete((unused, throwable) -> {
+                if (throwable != null) {
+                    plugin.getSchedulerAdapter().runTask(() -> {
+                        player.sendMessage(net.kyori.adventure.text.Component.text("Error applying punishment: " + throwable.getMessage(), net.kyori.adventure.text.format.NamedTextColor.RED));
+                    });
+                } else {
+                    player.sendMessage(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize("<green>Applied template </green>" + template.getDisplayName() + "<green> to " + targetName + "</green>"));
                 }
-                plugin.getSchedulerAdapter().runTask(() -> player.performCommand(action + " " + targetName + " " + input));
             });
-            return;
-        }
-
-        player.sendMessage(plugin.getLocaleManager().getMessage("gui.punish.prompt-reason"));
-        player.sendMessage(plugin.getLocaleManager().getMessage("gui.punish.prompt-cancel"));
-
-        plugin.getChatInputListener().awaitInput(player, input -> {
-            if (input.equalsIgnoreCase("cancel")) {
-                player.sendMessage(plugin.getLocaleManager().getMessage("gui.punish.prompt-cancelled"));
-                return;
-            }
-            plugin.getSchedulerAdapter().runTask(() -> player.performCommand(action + " " + targetName + " " + input));
-        });
     }
 
     private void handleHistoryClick(InventoryClickEvent event, Player player, HistoryGuiManager.HistoryHolder holder) {

@@ -7,9 +7,13 @@ import org.bukkit.entity.Player;
 import ret.tawny.controlbans.ControlBansPlugin;
 import ret.tawny.controlbans.commands.gui.PunishGuiManager;
 import ret.tawny.controlbans.util.ChatUtil;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.StringJoiner;
 import java.util.concurrent.CompletableFuture;
 
 public class PunishCommand extends CommandBase {
@@ -40,11 +44,51 @@ public class PunishCommand extends CommandBase {
         }
 
         String targetName = args[0];
+        String reason = null;
+        if (args.length >= 2) {
+            StringJoiner sj = new StringJoiner(" ");
+            for (int i = 1; i < args.length; i++) {
+                sj.add(args[i]);
+            }
+            reason = sj.toString();
+        }
+
+        final String finalReason = reason;
         resolveTarget(targetName).thenAccept(target -> {
             if (target == null) {
                 scheduler.runTask(() -> player.sendMessage(locale.getMessage("errors.player-not-found", playerPlaceholder(targetName))));
                 return;
             }
+
+            if (finalReason != null) {
+                var templateService = plugin.getPunishmentService().getTemplateService();
+                var templateOpt = templateService.findTemplate(finalReason);
+                if (templateOpt.isPresent()) {
+                    var template = templateOpt.get();
+
+                    if (template.getPermission() != null && !player.hasPermission(template.getPermission())) {
+                        scheduler.runTask(() -> player.sendMessage(locale.getMessage("errors.no-permission")));
+                        return;
+                    }
+
+                    String customReason = finalReason.replace("#" + template.getKey(), "").trim();
+                    if (customReason.equalsIgnoreCase(finalReason)) {
+                        customReason = finalReason.replaceAll("(?i)#" + template.getKey(), "").trim();
+                    }
+                    final String notes = customReason.isEmpty() ? null : customReason;
+
+                    plugin.getPunishmentService().applyTemplatePunishment(targetName, template, notes, player.getUniqueId(), player.getName(), false)
+                        .whenComplete((unused, throwable) -> {
+                            if (throwable != null) {
+                                scheduler.runTask(() -> player.sendMessage(Component.text("Error applying punishment: " + throwable.getMessage(), NamedTextColor.RED)));
+                            } else {
+                                scheduler.runTask(() -> player.sendMessage(MiniMessage.miniMessage().deserialize("<green>Applied template </green>" + template.getDisplayName() + "<green> to " + targetName + "</green>")));
+                            }
+                        });
+                    return;
+                }
+            }
+
             scheduler.runTask(() -> guiManager.openPunishMenu(player, target));
         });
         return true;
@@ -66,6 +110,7 @@ public class PunishCommand extends CommandBase {
     @Override
     public List<String> onTab(CommandSender sender, String[] args) {
         if (args.length == 1) return getPlayerSuggestions(args[0]);
+        if (args.length == 2) return getTemplateSuggestions(args[1]);
         return List.of();
     }
 }

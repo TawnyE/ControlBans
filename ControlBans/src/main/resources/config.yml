@@ -8,7 +8,7 @@
 #
 #  ControlBans Configuration
 #  Advanced punishment and moderation system for Minecraft networks.
-#  Version: 5.4
+#  Version: 5.6
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
@@ -123,35 +123,6 @@ alts-punish:
 
   log-alt-punishments: true
   notify-staff: true
-
-# ------------------------------------------------------------------------------
-# SMART AUTOMOD (Regex Engine)
-# ------------------------------------------------------------------------------
-# Automatically scan Chat, Signs, and Books for prohibited content.
-automod:
-  enabled: true
-  anti-spam:
-    enabled: true
-    max-messages: 4
-    seconds: 4
-    block-similar: true
-  anti-caps:
-    enabled: true
-    min-length: 5
-    percentage: 0.7
-  rules:
-    links:
-      pattern: "(https?://)?(www\\.)?([-a-zA-Z0-9@:%._\\+~#=]{2,256}\\.[a-z]{2,4}\\b)(/[-a-zA-Z0-9@:%_\\+.~#?&//=]*)?"
-      action: CANCEL
-      message: "External links are not permitted here."
-    discord_invites:
-      pattern: "(discord\\.(gg|io|me|li)|discordapp\\.com/invite)/[a-zA-Z0-9]+"
-      action: CANCEL
-      message: "Discord invites are not allowed."
-    ip_addresses:
-      pattern: "\\b(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\b"
-      action: CANCEL
-      message: "Do not post IP addresses in chat."
 
 # ------------------------------------------------------------------------------
 # INTEGRATIONS
@@ -296,6 +267,7 @@ cache:
     player-lookup: 300
     punishment-check: 60
     alt-lookup: 600
+    offline-suggestions: 30
   max-size: 10000
 
 performance:
@@ -424,53 +396,669 @@ notes:
 # ------------------------------------------------------------------------------
 # PUNISHMENT TEMPLATES (Auto-Escalation)
 # ------------------------------------------------------------------------------
+# Templates define GUI presets AND auto-escalation rules.
+# Staff click a template in the GUI OR type /punish <player> #TemplateKey
+# and the system applies the right punishment level based on offense count.
+#
+# ── HOW TO USE ──
+#   1. Staff runs /punish <player>
+#   2. GUI opens with 3 pages: Bans (red), Mutes (gold), Warns (warm)
+#   3. Staff clicks a template → punishment is applied automatically
+#   4. Shortcut: /punish <player> #templateKey extra-notes-here
+#
+# ── HOW ESCALATION WORKS ──
+#   Each template has numbered levels (1, 2, 3...). The system counts
+#   how many times this player has received this SAME template before.
+#   Level 1 = first offense, Level 2 = second offense, etc.
+#   If the player has no prior record, Level 1 is used.
+#
+# ── LEVEL FORMAT ──
+#   "<PUNISHMENT_TYPE> [duration]"
+#   Types: BAN, TEMPBAN, IPBAN, MUTE, TEMPMUTE, VOICEMUTE, TEMPVOICEMUTE,
+#          WARN, KICK, IPMUTE, TEMPIPMUTE
+#   Duration (optional): 10m, 1h, 7d, 30d, 365d, permanent
+#   Omit duration for permanent punishments (BAN, MUTE, etc.)
+#   Example: "TEMPMUTE 7d", "WARN", "BAN", "TEMPBAN 30d"
+# ------------------------------------------------------------------------------
 templates:
   enabled: true
+
+  # ── KEYWORD MATCHING ──
+  # When true: previous offenses are matched by scanning the punishment reason
+  #   for keywords listed in the template. Useful if staff type free-form reasons.
+  # When false: only explicit #templateKey or display-name matches count as
+  #   prior offenses. Staff must use #TemplateKey in reasons for escalation to work.
+  # Default: true
+  match-by-keywords: true
+
   rules:
-    swearing:
-      type: "mute"
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    #  REFERENCE — every field explained:
+    #
+    #  my-template-key:           # unique ID for #hashtag matching
+    #    type: "mute"             # page filter: "ban", "mute", "warn", "kick", "voicemute", "any"
+    #    display-name: "#Name"    # GUI label + hashtag for /punish <p> #Name
+    #    description: "..."       # GUI tooltip
+    #    item: "MATERIAL"         # Bukkit Material for the GUI icon
+    #    permission: null         # (optional) required permission node
+    #    reason: "..."            # (optional) auto-fills punishment reason.
+    #                             #   blank → just "#my-template-key"
+    #                             #   set   → "#my-template-key — reason | staff-notes"
+    #    keywords:                # (optional) triggers on reason-scan when match-by-keywords: true
+    #      - "word"
+    #    levels:
+    #      window-days: 30        # lookback window for counting repeat offenses
+    #      1: "TEMPMUTE 7d"       # level format: "<TYPE> [duration]"
+    #      2: "MUTE"              # omit duration for permanent
+    #
+    #  TYPES:  BAN, TEMPBAN, IPBAN, MUTE, TEMPMUTE, VOICEMUTE, TEMPVOICEMUTE,
+    #          WARN, KICK, IPMUTE, TEMPIPMUTE
+    #
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    # =========================================================================
+    #  BANS PAGE — type: "ban" | "any"
+    #  These templates show on the red Bans tab.
+    # =========================================================================
+
+    # ── Permanent: Player is under 13 (legal/ToS requirement) ──
+    underage:
+      type: "ban"
+      display-name: "<red><bold>#Underage [ADMIN]</bold></red>"
+      description: "You must be at least 13 years old"
+      item: "RED_CANDLE"
+      permission: "controlbans.admin"
+      reason: "Underage — player must be at least 13 years old"
       keywords:
-        - "swear"
-        - "curse"
-        - "toxic"
+        - "underage"
+        - "too young"
       levels:
-        window-days: 7
-        1: "TEMPMUTE"
-        2: "TEMPMUTE"
-        3: "MUTE"
-        4: "MUTE"
-    spam:
-      type: "mute"
+        window-days: 365
+        1: "BAN"
+
+    # ── Permanent: Hate speech, racism, discrimination ──
+    hate-speech:
+      type: "ban"
+      display-name: "<red><bold>#Hate-Speech</bold></red>"
+      description: "Racism, discrimination, or hate speech — zero tolerance"
+      item: "RED_CANDLE"
+      reason: "Hate speech — zero tolerance policy"
       keywords:
-        - "spam"
-        - "flood"
-        - "caps"
+        - "hate"
+        - "racist"
+        - "discrimination"
+        - "racial"
       levels:
-        window-days: 1
-        1: "WARN"
-        2: "TEMPMUTE"
-        3: "MUTE"
+        window-days: 365
+        1: "BAN"
+
+    # ── Permanent: Doxing / sharing personal information ──
+    doxing:
+      type: "ban"
+      display-name: "<red><bold>#Doxing</bold></red>"
+      description: "Sharing personal information of others"
+      item: "RED_CANDLE"
+      reason: "Sharing personal information (doxing)"
+      keywords:
+        - "dox"
+        - "doxx"
+        - "personal info"
+        - "address"
+      levels:
+        window-days: 365
+        1: "BAN"
+
+    # ── Permanent: IRL trading / selling items for real money ──
+    irl-trading:
+      type: "ban"
+      display-name: "<red><bold>#IRL-Trading</bold></red>"
+      description: "Selling in-game items or currency for real money"
+      item: "RED_CANDLE"
+      permission: "controlbans.admin"
+      reason: "IRL trading — selling in-game content for real money"
+      keywords:
+        - "irl trading"
+        - "real money"
+        - "selling items"
+        - "buying items"
+        - "paypal"
+      levels:
+        window-days: 365
+        1: "BAN"
+
+    # ── Permanent: Impersonating staff members ──
+    impersonating-staff:
+      type: "ban"
+      display-name: "<red><bold>#Impersonating-Staff</bold></red>"
+      description: "Pretending to be a staff member"
+      item: "RED_CANDLE"
+      permission: "controlbans.admin"
+      reason: "Impersonating a staff member"
+      keywords:
+        - "impersonate"
+        - "fake staff"
+        - "pretending to be staff"
+      levels:
+        window-days: 365
+        1: "BAN"
+
+    # ── Permanent: Death threats / extreme threats ──
+    extreme-threats:
+      type: "ban"
+      display-name: "<red><bold>#Extreme-Threats</bold></red>"
+      description: "Death threats or extreme violent threats"
+      item: "RED_CANDLE"
+      permission: "controlbans.admin"
+      reason: "Extreme threats — violence or death threats"
+      keywords:
+        - "death threat"
+        - "kill you"
+        - "ddos"
+        - "swat"
+      levels:
+        window-days: 365
+        1: "BAN"
+
+    # ── Escalation: Hacking / cheating type: "any" so it shows on Bans page ──
     hacking:
       type: "any"
+      display-name: "#Hacking"
+      description: "Using blacklisted clients, mods, or exploits"
+      item: "RED_CANDLE"
+      reason: "Illegal modifications to the client (cheats)"
       keywords:
         - "hack"
         - "cheat"
         - "exploit"
         - "xray"
         - "fly"
+        - "killaura"
       levels:
         window-days: 30
-        1: "TEMPBAN"
+        1: "TEMPBAN 7d"
         2: "BAN"
         3: "IPBAN"
+
+    # ── Escalation: X-Ray resource packs / texture packs ──
+    xray:
+      type: "any"
+      display-name: "#Xray"
+      description: "Using X-Ray resource packs or texture packs"
+      item: "RED_CANDLE"
+      reason: "Use of X-Ray resource packs or texture packs"
+      keywords:
+        - "xray"
+        - "orebfuscator"
+        - "wallhack"
+      levels:
+        window-days: 30
+        1: "TEMPBAN 3d"
+        2: "TEMPBAN 14d"
+        3: "BAN"
+
+    # ── Escalation: Griefing starts with a warn then bans ──
     griefing:
       type: "any"
+      display-name: "#Griefing"
+      description: "Maliciously destroying or stealing player builds"
+      item: "RED_CANDLE"
+      reason: "Griefing — malicious destruction of player builds"
       keywords:
         - "grief"
         - "destroy"
         - "tnt"
+        - "lava"
+        - "fire"
       levels:
         window-days: 14
         1: "WARN"
-        2: "TEMPBAN"
+        2: "TEMPBAN 1d"
+        3: "TEMPBAN 7d"
+        4: "BAN"
+
+    # ── Escalation: Bug / exploit abuse ──
+    bug-abuse:
+      type: "any"
+      display-name: "#Bug-Abuse"
+      description: "Exploiting bugs or glitches for unfair advantage"
+      item: "RED_CANDLE"
+      permission: "controlbans.mod"
+      reason: "Exploiting bugs or glitches for unfair advantage"
+      keywords:
+        - "bug abuse"
+        - "exploit"
+        - "dupe"
+        - "duplication"
+        - "glitch"
+      levels:
+        window-days: 60
+        1: "TEMPBAN 7d"
+        2: "TEMPBAN 30d"
         3: "BAN"
+
+    # ── Escalation: Combat logging in PvP ──
+    combat-log:
+      type: "any"
+      display-name: "#Combat-Log"
+      description: "Logging out during PvP to avoid death"
+      item: "RED_CANDLE"
+      reason: "Combat logging — disconnecting during PvP"
+      keywords:
+        - "combat log"
+        - "combatlog"
+        - "log out"
+        - "pvp log"
+      levels:
+        window-days: 14
+        1: "TEMPBAN 1d"
+        2: "TEMPBAN 3d"
+        3: "TEMPBAN 7d"
+
+    # ── Escalation: Using alts to evade a punishment ──
+    alt-evasion:
+      type: "any"
+      display-name: "#Alt-Evasion"
+      description: "Using alt accounts to evade an active punishment"
+      item: "RED_CANDLE"
+      permission: "controlbans.mod"
+      reason: "Ban evasion — using alternate accounts"
+      keywords:
+        - "alt evade"
+        - "ban evade"
+        - "evading"
+      levels:
+        window-days: 365
+        1: "TEMPBAN 7d"
+        2: "TEMPBAN 30d"
+        3: "BAN"
+        4: "IPBAN"
+
+    # =========================================================================
+    #  MUTES PAGE — type: "mute" | "tempmute" | "voicemute"
+    #  These templates show on the gold Mutes tab.
+    # =========================================================================
+
+    # ── Escalation: Swearing / profanity in chat ──
+    swearing:
+      type: "mute"
+      display-name: "#Swearing"
+      description: "Inappropriate or abusive language in chat"
+      item: "ORANGE_CANDLE"
+      reason: "Inappropriate language in chat"
+      keywords:
+        - "swear"
+        - "curse"
+        - "profanity"
+        - "foul language"
+      levels:
+        window-days: 7
+        1: "TEMPMUTE 1h"
+        2: "TEMPMUTE 12h"
+        3: "TEMPMUTE 7d"
+        4: "MUTE"
+
+    # ── Escalation: Harassment / toxicity ──
+    toxicity:
+      type: "mute"
+      display-name: "#Toxicity"
+      description: "Harassment, bullying, or targeted toxicity"
+      item: "ORANGE_CANDLE"
+      reason: "Harassment or toxicity towards other players"
+      keywords:
+        - "harass"
+        - "bully"
+        - "toxic"
+        - "target"
+      levels:
+        window-days: 14
+        1: "TEMPMUTE 6h"
+        2: "TEMPMUTE 3d"
+        3: "TEMPMUTE 14d"
+        4: "MUTE"
+
+    # ── Escalation: Spam / flood starts with a WARN ──
+    spam:
+      type: "mute"
+      display-name: "#Spam"
+      description: "Flooding chat or repeated messages"
+      item: "ORANGE_CANDLE"
+      reason: "Spamming in chat"
+      keywords:
+        - "spam"
+        - "flood"
+        - "repeat"
+        - "copypasta"
+      levels:
+        window-days: 1
+        1: "WARN"
+        2: "TEMPMUTE 10m"
+        3: "TEMPMUTE 1h"
+        4: "TEMPMUTE 12h"
+        5: "MUTE"
+
+    # ── Escalation: Advertising external servers / services ──
+    advertising:
+      type: "mute"
+      display-name: "#Advertising"
+      description: "Promoting external servers, Discord, or services"
+      item: "ORANGE_CANDLE"
+      reason: "Advertising external servers or services"
+      keywords:
+        - "advertise"
+        - "join my server"
+        - ".com"
+        - ".net"
+        - "discord.gg"
+        - "vote"
+      levels:
+        window-days: 7
+        1: "TEMPMUTE 6h"
+        2: "TEMPMUTE 3d"
+        3: "MUTE"
+        4: "TEMPBAN 7d"
+
+    # ── Escalation: Bypassing chat filter ──
+    bypass-filter:
+      type: "mute"
+      display-name: "#Bypass-Filter"
+      description: "Bypassing the chat filter (symbols, spacing, unicode)"
+      item: "ORANGE_CANDLE"
+      reason: "Bypassing the chat filter"
+      keywords:
+        - "bypass"
+        - "filter bypass"
+        - "bypass filter"
+      levels:
+        window-days: 3
+        1: "TEMPMUTE 30m"
+        2: "TEMPMUTE 6h"
+        3: "TEMPMUTE 2d"
+        4: "MUTE"
+
+    # ── Escalation: Excessive caps lock ──
+    excessive-caps:
+      type: "mute"
+      display-name: "#Excessive-Caps"
+      description: "Writing in all caps excessively"
+      item: "ORANGE_CANDLE"
+      reason: "Excessive use of capital letters in chat"
+      keywords:
+        - "caps"
+        - "all caps"
+        - "shouting"
+      levels:
+        window-days: 1
+        1: "WARN"
+        2: "TEMPMUTE 10m"
+        3: "TEMPMUTE 1h"
+
+    # ── Escalation: NSFW / inappropriate content ──
+    nsfw:
+      type: "mute"
+      display-name: "#NSFW"
+      description: "Sharing NSFW or sexually explicit content"
+      item: "ORANGE_CANDLE"
+      reason: "NSFW or sexually explicit content in chat"
+      keywords:
+        - "nsfw"
+        - "explicit"
+        - "porn"
+        - "sexual"
+      levels:
+        window-days: 30
+        1: "TEMPMUTE 7d"
+        2: "MUTE"
+        3: "TEMPBAN 7d"
+
+    # ── Escalation: Disrespect towards staff ──
+    staff-disrespect:
+      type: "mute"
+      display-name: "#Staff-Disrespect"
+      description: "Insulting, arguing with, or disrespecting staff"
+      item: "ORANGE_CANDLE"
+      permission: "controlbans.mod"
+      reason: "Disrespect towards staff members"
+      keywords:
+        - "staff disrespect"
+        - "insult staff"
+        - "abusive to staff"
+      levels:
+        window-days: 14
+        1: "TEMPMUTE 2h"
+        2: "TEMPMUTE 1d"
+        3: "TEMPMUTE 7d"
+        4: "MUTE"
+
+    # ── Escalation: Direct message / /msg advertising ──
+    dm-advertising:
+      type: "mute"
+      display-name: "#DM-Advertising"
+      description: "Advertising via private messages"
+      item: "ORANGE_CANDLE"
+      reason: "Advertising via private messages"
+      keywords:
+        - "dm advertise"
+        - "pm advertise"
+        - "msg advertise"
+      levels:
+        window-days: 7
+        1: "TEMPMUTE 12h"
+        2: "TEMPMUTE 3d"
+        3: "MUTE"
+
+    # ── Escalation: Voice chat abuse ──
+    voice-abuse:
+      type: "voicemute"
+      display-name: "#Voice-Abuse"
+      description: "Screaming or making loud disruptive noises in voice chat"
+      item: "MAGENTA_CANDLE"
+      reason: "Voice chat abuse — disruptive noises"
+      keywords:
+        - "scream"
+        - "earrape"
+        - "loud"
+        - "disruptive"
+      levels:
+        window-days: 7
+        1: "TEMPVOICEMUTE 1h"
+        2: "TEMPVOICEMUTE 1d"
+        3: "TEMPVOICEMUTE 7d"
+        4: "VOICEMUTE"
+
+    # ── Escalation: Earrape / soundboard abuse ──
+    voice-earrape:
+      type: "voicemute"
+      display-name: "#Voice-Earrape"
+      description: "Soundboard spam or earrape in voice chat"
+      item: "MAGENTA_CANDLE"
+      reason: "Earrape or soundboard abuse in voice chat"
+      keywords:
+        - "soundboard"
+        - "earrape"
+        - "mic spam"
+      levels:
+        window-days: 7
+        1: "TEMPVOICEMUTE 3h"
+        2: "TEMPVOICEMUTE 3d"
+        3: "VOICEMUTE"
+
+    # ── Escalation: Harassment in voice chat ──
+    voice-harassment:
+      type: "voicemute"
+      display-name: "#Voice-Harassment"
+      description: "Harassing or threatening others in voice chat"
+      item: "MAGENTA_CANDLE"
+      reason: "Harassment in voice chat"
+      keywords:
+        - "voice harass"
+        - "voice threat"
+        - "vc abuse"
+      levels:
+        window-days: 14
+        1: "TEMPVOICEMUTE 1d"
+        2: "TEMPVOICEMUTE 7d"
+        3: "VOICEMUTE"
+
+    # =========================================================================
+    #  WARNS PAGE — type: "warn" | "kick"
+    #  These templates show on the warm orange Warns tab.
+    # =========================================================================
+
+    # ── Escalation: Minor chat infraction starts as a warn ──
+    chat-warning:
+      type: "warn"
+      display-name: "#Chat-Warning"
+      description: "Minor chat infraction — formal warning"
+      item: "YELLOW_CANDLE"
+      reason: "Minor chat infraction — formal warning"
+      keywords:
+        - "minor"
+        - "first-time"
+        - "small"
+      levels:
+        window-days: 7
+        1: "WARN"
+        2: "WARN"
+        3: "TEMPMUTE 1h"
+
+    # ── Escalation: Minor grief warning ──
+    minor-grief:
+      type: "warn"
+      display-name: "#Minor-Grief"
+      description: "Minor griefing — warning before escalation"
+      item: "YELLOW_CANDLE"
+      reason: "Minor griefing — formal warning"
+      keywords:
+        - "minor grief"
+        - "small grief"
+        - "accidental"
+      levels:
+        window-days: 14
+        1: "WARN"
+        2: "TEMPBAN 1d"
+        3: "TEMPBAN 7d"
+
+    # ── Escalation: Building violations ──
+    building:
+      type: "warn"
+      display-name: "#Building"
+      description: "Building violations (out of bounds, floating, inappropriate)"
+      item: "YELLOW_CANDLE"
+      reason: "Building violations — formal warning"
+      keywords:
+        - "building"
+        - "out of bounds"
+        - "floating"
+        - "inappropriate build"
+      levels:
+        window-days: 7
+        1: "WARN"
+        2: "TEMPBAN 1d"
+        3: "TEMPBAN 3d"
+
+    # ── Escalation: Trolling / intentionally provoking ──
+    trolling:
+      type: "warn"
+      display-name: "#Trolling"
+      description: "Intentionally provoking or trolling other players"
+      item: "YELLOW_CANDLE"
+      reason: "Trolling — intentionally provoking other players"
+      keywords:
+        - "troll"
+        - "provoke"
+        - "bait"
+        - "annoy"
+      levels:
+        window-days: 3
+        1: "WARN"
+        2: "TEMPMUTE 6h"
+        3: "TEMPMUTE 1d"
+        4: "TEMPMUTE 7d"
+
+    # ── Escalation: First / general offense catch-all ──
+    first-offense:
+      type: "warn"
+      display-name: "#First-Offense"
+      description: "General first warning for minor rule breaks"
+      item: "YELLOW_CANDLE"
+      reason: "First offense — formal warning"
+      keywords:
+        - "first"
+        - "first offense"
+        - "general"
+      levels:
+        window-days: 30
+        1: "WARN"
+        2: "WARN"
+        3: "TEMPMUTE 6h"
+
+    # ── Escalation: Combat log kick ──
+    kick-combat:
+      type: "kick"
+      display-name: "#Kick-Combat"
+      description: "Combat logging — kicked with warning"
+      item: "REDSTONE_TORCH"
+      reason: "Combat logging — disconnected during PvP"
+      keywords:
+        - "combat log kick"
+        - "pvp kick"
+      levels:
+        window-days: 7
+        1: "KICK"
+        2: "TEMPBAN 1d"
+        3: "TEMPBAN 3d"
+
+    # ── Escalation: Suspicious alt account ──
+    alt-account:
+      type: "kick"
+      display-name: "#Alt-Account"
+      description: "Suspicious alt account — kicked for investigation"
+      item: "REDSTONE_TORCH"
+      permission: "controlbans.mod"
+      reason: "Suspicious alt account — kicked for investigation"
+      keywords:
+        - "alt account"
+        - "suspicious alt"
+        - "second account"
+      levels:
+        window-days: 30
+        1: "KICK"
+        2: "TEMPBAN 3d"
+        3: "BAN"
+
+    # ── Escalation: Ban evasion repeated ──
+    ban-evasion:
+      type: "kick"
+      display-name: "<gold>#Ban-Evasion</gold>"
+      description: "Ban evasion attempt — kicked with notice"
+      item: "REDSTONE_TORCH"
+      reason: "Ban evasion — using an alternate account"
+      keywords:
+        - "evade"
+        - "ban evade"
+        - "evading ban"
+      levels:
+        window-days: 365
+        1: "KICK"
+        2: "TEMPBAN 3d"
+        3: "TEMPBAN 14d"
+        4: "BAN"
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    #  END OF BUILT-IN TEMPLATES — 34 pre-configured templates total.
+    #
+    #  Duplicate one below and customise:
+    #
+    #    my-template:
+    #      type: "mute"
+    #      display-name: "#My-Template"
+    #      description: "Describe what this is for"
+    #      item: "ORANGE_CANDLE"
+    #      reason: "Auto-fill reason text"       # omit for just "#My-Template"
+    #      levels:
+    #        window-days: 30
+    #        1: "TEMPMUTE 1d"
+    #        2: "MUTE"
+    #
+    # ═══════════════════════════════════════════════════════════════════════════

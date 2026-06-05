@@ -1,5 +1,5 @@
 name: ControlBans
-version: 5.4
+version: 5.6
 main: ret.tawny.controlbans.ControlBansPlugin
 description: Advanced, next-generation punishment system for Minecraft networks.
 api-version: "1.20"
@@ -16,65 +16,67 @@ commands:
     description: Ban a player permanently
     usage: /ban [-s] <player> [reason]
     permission: controlbans.ban
-    aliases: [b]
+    aliases: [b, cbban]
   tempban:
     description: Temporarily ban a player
     usage: /tempban [-s] <player> <time> [reason]
     permission: controlbans.tempban
-    aliases: [tban, tb]
+    aliases: [tban, tb, cbtempban]
   unban:
     description: Unban a player or IP
     usage: /unban [-s] <player|ip>
     permission: controlbans.unban
-    aliases: [pardon, ub]
+    aliases: [pardon, ub, cbunban]
   mute:
     description: Mute a player permanently
     usage: /mute [-s] <player> [reason]
     permission: controlbans.mute
-    aliases: [m, silence]
+    aliases: [m, silence, cbmute]
   tempmute:
     description: Temporarily mute a player
     usage: /tempmute [-s] <player> <time> [reason]
     permission: controlbans.tempmute
-    aliases: [tmute, tm]
+    aliases: [tmute, tm, cbtempmute]
   shadowmute:
     description: Secretly mute a player so only they see their messages.
     usage: /shadowmute <player> [reason]
     permission: controlbans.shadowmute
-    aliases: [ smute ]
+    aliases: [ smute, cbshadowmute ]
   unmute:
     description: Unmute a player
     usage: /unmute [-s] <player>
     permission: controlbans.unmute
-    aliases: [um]
+    aliases: [um, cbunmute]
   warn:
     description: Warn a player
     usage: /warn [-s] <player> [reason]
     permission: controlbans.warn
+    aliases: [cbwarn]
   kick:
     description: Kick a player
     usage: /kick [-s] <player> [reason]
     permission: controlbans.kick
-    aliases: [k]
+    aliases: [k, cbkick]
   history:
     description: View player punishment history
     usage: /history <player>
     permission: controlbans.history
-    aliases: [h, punishments]
+    aliases: [h, punishments, cbhistory]
   check:
     description: Check if a player is banned/muted
     usage: /check <player>
     permission: controlbans.check
-    aliases: [c, pinfo]
+    aliases: [c, pinfo, cbcheck]
   alts:
     description: View alternate accounts for a player
     usage: /alts <player>
     permission: controlbans.alts
-    aliases: [alt]
+    aliases: [alt, cbalts]
   appeal:
     description: Submit an appeal for an active mute
     usage: /appeal <message>
     permission: controlbans.appeal
+    aliases: [cbappeal]
   controlbans:
     description: Main ControlBans command for admin tasks like imports and reloads
     usage: /controlbans <reload|import|export|settings|database>
@@ -84,103 +86,107 @@ commands:
     description: Ban all accounts associated with an IP address.
     usage: /ipban [-s] <player|ip> <time> [reason]
     permission: controlbans.ban.ip
-    aliases: [iban]
+    aliases: [iban, cbipban]
   ipmute:
     description: Mute all accounts associated with an IP address.
     usage: /ipmute [-s] <player|ip> <time> [reason]
     permission: controlbans.mute.ip
-    aliases: [imute]
+    aliases: [imute, cbipmute]
   voidjail:
     description: Send a player to the void jail.
     usage: /voidjail <player>
     permission: controlbans.voidjail
-    aliases: [vjail]
+    aliases: [vjail, cbvoidjail]
   unvoidjail:
     description: Release a player from the void jail.
     usage: /unvoidjail <player>
     permission: controlbans.voidjail
-    aliases: [unvjail]
+    aliases: [unvjail, cbunvoidjail]
   banskin:
     description: Removes a player's skin, forcing the default skin.
     usage: /banskin <player> [reason]
     permission: controlbans.banskin
+    aliases: [cbbanskin]
   unbanskin:
     description: Restores a player's ability to use their custom skin.
     usage: /unbanskin <player>
     permission: controlbans.banskin
+    aliases: [cbunbanskin]
   voicemute:
     description: Mute a player in voice chat.
     usage: /voicemute [-s] <player> [reason]
     permission: controlbans.voicemute
-    aliases: [vmute, vm]
+    aliases: [vmute, vm, cbvoicemute]
   tempvoicemute:
     description: Temporarily mute a player in voice chat.
     usage: /tempvoicemute [-s] <player> <time> [reason]
     permission: controlbans.tempvoicemute
-    aliases: [tvmute, tvm]
+    aliases: [tvmute, tvm, cbtempvoicemute]
   voiceunmute:
     description: Unmute a player in voice chat.
     usage: /voiceunmute <player>
     permission: controlbans.voiceunmute
-    aliases: [vunmute, vum]
+    aliases: [vunmute, vum, cbvoiceunmute]
   freeze:
     description: Freeze a player for screenshare/inspection
     usage: /freeze <player>
     permission: controlbans.freeze
-    aliases: [ss]
+    aliases: [ss, cbfreeze]
   chat:
     description: Manage chat settings (lock, slow, clear)
     usage: /chat <lock|slow|clear> [args]
     permission: controlbans.chat
-    aliases: [cchat]
+    aliases: [cchat, cbchat]
   punish:
     description: Open the punishment GUI
     usage: /punish <player>
     permission: controlbans.punish
-    aliases: [ p, gui ]
+    aliases: [ p, gui, cbpunish ]
   unipban:
     description: Unban an IP address
     usage: /unipban <ip>
     permission: controlbans.unipban
-    aliases: [ uniban, pardonip ]
+    aliases: [ uniban, pardonip, cbunipban ]
   unipmute:
     description: Unmute an IP address
     usage: /unipmute <ip>
     permission: controlbans.unipmute
-    aliases: [ unimute, pardonipmute ]
+    aliases: [ unimute, pardonipmute, cbunipmute ]
   report:
     description: Report a player for rule violations
     usage: /report <player> <reason>
     permission: controlbans.report
+    aliases: [cbreport]
   reports:
     description: View your reports or resolve them
     usage: /reports [resolve <id> <status>]
     permission: controlbans.report
-    aliases: [myreports]
+    aliases: [myreports, cbreports]
   banlist:
     description: View all active bans
     usage: /banlist [page]
     permission: controlbans.banlist
-    aliases: [ bans ]
+    aliases: [ bans, cbbanlist ]
   mutelist:
     description: View all active mutes
     usage: /mutelist [page]
     permission: controlbans.mutelist
-    aliases: [ mutes ]
+    aliases: [ mutes, cbmutelist ]
   blame:
     description: View punishments issued by a staff member
     usage: /blame <staff> [page]
     permission: controlbans.blame
+    aliases: [cbblame]
   note:
     description: Add or view notes on players
     usage: /note <player> [add|remove] [text|index]
     permission: controlbans.note
-    aliases: [ notes ]
+    aliases: [ notes, cbnote ]
   staff:
     description: View online staff members
     usage: /staff
     permission: controlbans.staff
-    aliases: [ online, staffonline ]
+    aliases: [ online, staffonline, cbstaff ]
 
 permissions:
   controlbans.*:
@@ -366,8 +372,8 @@ permissions:
     description: Bypass global chat lock and slowmode.
     default: op
   controlbans.bypass.spam:
-    description: Bypass AutoMod anti-spam checks.
+    description: Bypass anti-spam checks.
     default: op
   controlbans.bypass.caps:
-    description: Bypass AutoMod caps normalization.
+    description: Bypass caps normalization.
     default: op

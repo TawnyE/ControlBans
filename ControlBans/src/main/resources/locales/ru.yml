@@ -248,10 +248,6 @@ alts:
   status-muted: "<#5DADE2> [В МУТЕ]"
   join-alert: "<red>[Alts]</red> <white><player> <gray>вошёл. Возможный альт</gray> <white><banned_player></white> <gray>(<#FFD93D><confidence>%<gray> совпадение)"
 
-automod:
-  spam-warning: "<red>AutoMod >> </red><gray>Пожалуйста, отправляйте сообщения медленнее или избегайте повторений.</gray>"
-  rule-denied: "<red>AutoMod >> </red><gray><message></gray>"
-  staff-alert: "<red>[AutoMod]</red> <white><player></white> <gray>сработал</gray> <yellow><rule></yellow> <gray>в</gray> <aqua><type></aqua>"
 
 config-editor:
   prompt: "<#FFD93D>Введите новое значение для <white><path><#FFD93D> в чате или введите 'cancel'."

@@ -145,6 +145,34 @@ public abstract class CommandBase implements CommandExecutor, TabCompleter {
                 .collect(Collectors.toList());
     }
 
+    protected List<String> getTemplateSuggestions(String arg) {
+        List<String> suggestions = new ArrayList<>();
+        if (!plugin.getConfig().getBoolean("templates.enabled", false)) {
+            return suggestions;
+        }
+        var rulesSection = plugin.getConfig().getConfigurationSection("templates.rules");
+        if (rulesSection == null) return suggestions;
+
+        String query = arg.toLowerCase();
+        for (String key : rulesSection.getKeys(false)) {
+            String hashtag = "#" + key;
+            if (hashtag.toLowerCase().startsWith(query)) {
+                suggestions.add(hashtag);
+            }
+            var section = rulesSection.getConfigurationSection(key);
+            if (section != null) {
+                String displayName = section.getString("display-name");
+                if (displayName != null && displayName.startsWith("#")) {
+                    String cleanName = displayName.replaceAll("<[^>]+>", "");
+                    if (cleanName.toLowerCase().startsWith(query) && !suggestions.contains(cleanName)) {
+                        suggestions.add(cleanName);
+                    }
+                }
+            }
+        }
+        return suggestions;
+    }
+
     protected void handlePunishmentError(Throwable throwable, CommandSender sender, String targetName) {
         if (throwable instanceof CompletionException) {
             throwable = throwable.getCause();

@@ -4,10 +4,6 @@ success:
 broadcasts:
   tempvoicemute: "<gradient:#9C27B0:#BA68C8><bold>VOICE MUTE</bold></gradient> <dark_gray>| <white><player> <#CE93D8>voice muted by <white><staff> <#CE93D8>for <#FFD93D><duration><#CE93D8>."
 
-automod:
-  spam-warning: "<red>AutoMod >> </red><gray>Please slow down your messages or avoid repeating yourself.</gray>"
-  rule-denied: "<red>AutoMod >> </red><gray><message></gray>"
-  staff-alert: "<red>[AutoMod]</red> <white><player></white> <gray>triggered</gray> <yellow><rule></yellow> <gray>in</gray> <aqua><type></aqua>"
 
 config-editor:
   prompt: "<#FFD93D>Type the new value for <white><path><#FFD93D> in chat, or type 'cancel'."
@@ -32,22 +28,6 @@ gui:
     alt-voice-muted: "<#5DADE2>- Voice Muted: Yes (<white><reason><#5DADE2>)"
     alt-not-voice-muted: "<#7FFF7F>- Voice Muted: No"
     unknown-player: "Unknown"
-  settings:
-    title: "ControlBans Settings"
-    value-label: "<#B0B0B0>Value: <value>"
-    current-label: "<#B0B0B0>Current: <#5DADE2><value>"
-    click-toggle: "<#FFD93D>Click to toggle"
-    click-edit: "<#FFD93D>Click to edit in chat"
-    prompt-bedrock-prefix: "<#FFD93D>Type the new Bedrock prefix in chat, or type 'cancel'."
-    items:
-      silent-bans:
-        name: "<#FFD93D>Silent Bans Default"
-      broadcast-bans:
-        name: "<#FFD93D>Broadcast Punishments"
-      bedrock-prefix:
-        name: "<#FFD93D>Bedrock Prefix"
-      alts-punishment:
-        name: "<#FFD93D>Alt Punishment"
   report:
     title: "🚨 Report <player>"
     head:

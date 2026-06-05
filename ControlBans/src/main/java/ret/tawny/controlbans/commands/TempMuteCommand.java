@@ -36,6 +36,40 @@ public class TempMuteCommand extends CommandBase {
 
         String targetName = args[targetIndex];
         String durationStr = args[targetIndex + 1];
+
+        // Case 1: Duration string is a template trigger (starts with #)
+        if (durationStr.startsWith("#")) {
+            var templateService = punishmentService.getTemplateService();
+            StringJoiner reasonJoiner = new StringJoiner(" ");
+            for (int i = targetIndex + 1; i < args.length; i++) {
+                reasonJoiner.add(args[i]);
+            }
+            String reason = reasonJoiner.toString();
+
+            var templateOpt = templateService.findTemplate(reason);
+            if (templateOpt.isPresent()) {
+                var template = templateOpt.get();
+                if (template.getPermission() != null && !sender.hasPermission(template.getPermission())) {
+                    sender.sendMessage(locale.getMessage("errors.no-permission"));
+                    return true;
+                }
+                String customReason = reason.replace("#" + template.getKey(), "").trim();
+                if (customReason.equalsIgnoreCase(reason)) {
+                    customReason = reason.replaceAll("(?i)#" + template.getKey(), "").trim();
+                }
+                final String notes = customReason.isEmpty() ? null : customReason;
+                punishmentService.applyTemplatePunishment(targetName, template, notes, getSenderUuid(sender), sender.getName(), silent)
+                    .whenComplete((unused, throwable) -> {
+                        if (throwable != null) {
+                            handlePunishmentError(throwable, sender, targetName);
+                        } else {
+                            sender.sendMessage(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize("<green>Applied template </green>" + template.getDisplayName() + "<green> to " + targetName + "</green>"));
+                        }
+                    });
+                return true;
+            }
+        }
+
         long duration;
         try {
             duration = TimeUtil.parseDuration(durationStr);
@@ -50,6 +84,31 @@ public class TempMuteCommand extends CommandBase {
         }
         String reason = reasonJoiner.toString().isEmpty() ? null : reasonJoiner.toString();
 
+        // Case 2: Reason is a template trigger
+        if (reason != null) {
+            var templateOpt = punishmentService.getTemplateService().findTemplate(reason);
+            if (templateOpt.isPresent()) {
+                var template = templateOpt.get();
+                if (template.getPermission() != null && !sender.hasPermission(template.getPermission())) {
+                    sender.sendMessage(locale.getMessage("errors.no-permission"));
+                    return true;
+                }
+                String customReason = reason.replace("#" + template.getKey(), "").trim();
+                if (customReason.equalsIgnoreCase(reason)) {
+                    customReason = reason.replaceAll("(?i)#" + template.getKey(), "").trim();
+                }
+                final String notes = customReason.isEmpty() ? null : customReason;
+                punishmentService.applyTemplatePunishment(targetName, template, notes, getSenderUuid(sender), sender.getName(), silent)
+                    .whenComplete((unused, throwable) -> {
+                        if (throwable != null) {
+                            handlePunishmentError(throwable, sender, targetName);
+                        } else {
+                            sender.sendMessage(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize("<green>Applied template </green>" + template.getDisplayName() + "<green> to " + targetName + "</green>"));
+                        }
+                    });
+                return true;
+            }
+        }
 
         punishmentService.tempMutePlayer(targetName, duration, reason, getSenderUuid(sender), sender.getName(), silent)
                 .whenComplete((unused, throwable) -> {
@@ -78,7 +137,18 @@ public class TempMuteCommand extends CommandBase {
 
         int timeIndex = isSilent ? 2 : 1;
         if (argIndex == timeIndex) {
-            return getTimeSuggestions(currentArg);
+            if (currentArg.startsWith("#")) {
+                return getTemplateSuggestions(currentArg);
+            }
+            List<String> list = new java.util.ArrayList<>(getTimeSuggestions(currentArg));
+            if ("#".startsWith(currentArg)) {
+                list.add("#");
+            }
+            return list;
+        }
+
+        if (argIndex == timeIndex + 1) {
+            return getTemplateSuggestions(currentArg);
         }
         return List.of();
     }

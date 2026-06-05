@@ -32,7 +32,7 @@ public class CacheService {
 
         this.offlineSuggestions = Caffeine.newBuilder()
                 .maximumSize(500)
-                .expireAfterWrite(30, TimeUnit.SECONDS)
+                .expireAfterWrite(config.getOfflineSuggestionsTTL(), TimeUnit.SECONDS)
                 .build();
     }
 

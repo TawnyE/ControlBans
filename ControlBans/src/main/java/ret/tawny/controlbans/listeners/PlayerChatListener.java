@@ -207,4 +207,9 @@ public class PlayerChatListener implements Listener {
         }
         return player.getAddress().getAddress().getHostAddress();
     }
+
+    public boolean isMuted(UUID uuid) {
+        MuteState state = muteStates.get(uuid);
+        return state != null && state.muted();
+    }
 }

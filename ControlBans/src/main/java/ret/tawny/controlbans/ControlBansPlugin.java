@@ -14,6 +14,7 @@ import ret.tawny.controlbans.commands.gui.MyReportsGuiManager;
 import ret.tawny.controlbans.config.ConfigManager;
 import ret.tawny.controlbans.config.ConfigUpdater;
 import ret.tawny.controlbans.listeners.*;
+import ret.tawny.controlbans.config.LocaleValidator;
 import ret.tawny.controlbans.locale.LocaleManager;
 import ret.tawny.controlbans.services.*;
 import ret.tawny.controlbans.storage.DatabaseManager;
@@ -57,7 +58,6 @@ public class ControlBansPlugin extends JavaPlugin {
     private FreezeManager freezeManager;
     private ChatManager chatManager;
     private DataExportService dataExportService;
-    private AutoModService autoModService;
     private ReportService reportService;
     private NoteService noteService;
     private UpdateChecker updateChecker;
@@ -86,6 +86,7 @@ public class ControlBansPlugin extends JavaPlugin {
 
     private void initializePlugin() {
         initializeCore();
+        LocaleValidator.validate(localeManager, configManager.getLanguage());
         initializeMetrics();
         registerCommands();
         registerListeners();
@@ -135,7 +136,6 @@ public class ControlBansPlugin extends JavaPlugin {
         punishmentService = new PunishmentService(this, storage, cacheService);
         altService = new AltService(this, storage, cacheService);
         appealService = new AppealService(storage, configManager);
-        autoModService = new AutoModService(this);
         reportService = new ReportService(this);
         noteService = new NoteService(this);
 
@@ -234,7 +234,6 @@ public class ControlBansPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new PlayerJoinListener(this), this);
         new ProxyMessengerListener(this);
         getServer().getPluginManager().registerEvents(playerChatListener, this);
-        getServer().getPluginManager().registerEvents(new AutoModListener(this), this);
         getServer().getPluginManager()
                 .registerEvents(new GuiListener(historyGuiManager, altsGuiManager, settingsGuiManager, punishGuiManager, reportGuiManager, myReportsGuiManager, this), this);
         getServer().getPluginManager().registerEvents(new VoidJailListener(this), this);
@@ -274,6 +273,15 @@ public class ControlBansPlugin extends JavaPlugin {
                 getLogger().warning("Voice Chat integration is enabled in config, but 'voicechat' plugin is not found!");
             }
         }
+
+        if (getServer().getPluginManager().isPluginEnabled("DiscordSRV")) {
+            try {
+                ret.tawny.controlbans.services.DiscordSRVIntegration.register(this);
+                getLogger().info("DiscordSRV hook registered for preventing muted players from sending messages.");
+            } catch (Throwable t) {
+                getLogger().log(Level.WARNING, "Failed to register DiscordSRV hook", t);
+            }
+        }
     }
 
     public void reload() {
@@ -285,9 +293,6 @@ public class ControlBansPlugin extends JavaPlugin {
 
             if (voidJailService != null) {
                 voidJailService.loadJailLocation();
-            }
-            if (autoModService != null) {
-                autoModService.loadRules();
             }
             if (cacheService != null) {
                 cacheService.invalidateAll();
@@ -438,10 +443,6 @@ public class ControlBansPlugin extends JavaPlugin {
 
     public PlayerChatListener getPlayerChatListener() {
         return playerChatListener;
-    }
-
-    public AutoModService getAutoModService() {
-        return autoModService;
     }
 
     public ReportService getReportService() {

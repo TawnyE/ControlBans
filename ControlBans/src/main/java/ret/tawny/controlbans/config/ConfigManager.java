@@ -108,6 +108,8 @@ public class ConfigManager {
     public long getPlayerLookupTTL() { return getCachedOrLoad("cache.ttl.player-lookup", Long.class, 300L); }
     public long getPunishmentCheckTTL() { return getCachedOrLoad("cache.ttl.punishment-check", Long.class, 60L); }
     public long getAltLookupTTL() { return getCachedOrLoad("cache.ttl.alt-lookup", Long.class, 600L); }
+
+    public long getOfflineSuggestionsTTL() { return getCachedOrLoad("cache.ttl.offline-suggestions", Long.class, 30L); }
     public int getCacheMaxSize() { return getCachedOrLoad("cache.max-size", Integer.class, 10000); }
 
     public String getDefaultBanReason() { return getCachedOrLoad("punishments.default-reasons.ban", String.class, "Unspecified"); }
@@ -221,6 +223,8 @@ public class ConfigManager {
                 .replaceAll("[^a-z0-9]+", "");
         return cleaned.trim();
     }
+
+    public boolean isTemplateKeywordMatchingEnabled() { return getCachedOrLoad("templates.match-by-keywords", Boolean.class, true); }
 
     private void syncConfigWithDefaults() {
         try (InputStream defaultConfigStream = plugin.getResource("config.yml")) {

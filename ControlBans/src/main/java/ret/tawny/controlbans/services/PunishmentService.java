@@ -60,6 +60,7 @@ public class PunishmentService {
     public PlayerResolver getPlayerResolver() { return playerResolver; }
     public EscalationService getEscalationService() { return escalationService; }
     public NotificationService getNotificationService() { return notificationService; }
+    public PunishmentTemplateService getTemplateService() { return templateService; }
 
     private CompletableFuture<PunishmentCheckResult> prePunishmentCheck(UUID staffUuid, UUID targetUuid) {
         if (staffUuid != null && staffUuid.equals(targetUuid)) {
@@ -483,6 +484,124 @@ public class PunishmentService {
     public void recordPlayerLogin(Player player) {
         scheduler.runTaskForPlayer(player, () -> {
             storage.recordHistory(player.getUniqueId(), player.getName(), playerResolver.getPlayerIp(player.getUniqueId()));
+        });
+    }
+    public CompletableFuture<Void> applyTemplatePunishment(String targetName, PunishmentTemplateService.TemplateRule template, String customReason, UUID staffUuid, String staffName, boolean silent) {
+        return playerResolver.getPlayerUuid(targetName).thenCompose(targetUuid -> {
+            if (targetUuid == null) {
+                return CompletableFuture.failedFuture(new IllegalArgumentException("Player not found"));
+            }
+
+            return prePunishmentCheck(staffUuid, targetUuid).thenCompose(checkResult -> {
+                if (!checkResult.canPunish()) {
+                    return CompletableFuture.failedFuture(new IllegalStateException(checkResult.failureMessage()));
+                }
+
+                String tr = template.getReason();
+                String kp = "#" + template.getKey();
+                String combinedReason = (tr != null && !tr.isEmpty())
+                    ? kp + " — " + tr + (customReason != null && !customReason.isEmpty() ? " | " + customReason : "")
+                    : kp + (customReason != null && !customReason.isEmpty() ? " " + customReason : "");
+
+                return templateService.determinePunishmentType(
+                        PunishmentType.valueOf(template.getType().toUpperCase().equals("ANY") ? "BAN" : template.getType().toUpperCase()),
+                        combinedReason,
+                        targetUuid
+                ).thenCompose(resolved -> {
+                    PunishmentType type = resolved.type();
+                    long duration = resolved.durationSeconds();
+
+                    final long expiry = (type.isTemporary() && duration > 0) ? System.currentTimeMillis() + (duration * 1000) : -1;
+
+                    boolean finalSilent = resolveSilent(silent, checkResult.forceSilent());
+                    boolean isIpBased = type == PunishmentType.IPBAN || type == PunishmentType.TEMPIPBAN || type == PunishmentType.IPMUTE || type == PunishmentType.TEMPIPMUTE;
+
+                    CompletableFuture<Void> actionFuture;
+
+                    if (isIpBased) {
+                        actionFuture = playerResolver.getIpFromTarget(targetName).thenCompose(ip -> {
+                            if (ip == null) return CompletableFuture.failedFuture(new IllegalStateException("No IP found for player " + targetName));
+                            if (!isSafeIp(ip)) return CompletableFuture.failedFuture(new IllegalStateException("Attempted to IP punish unsafe/local IP: " + ip));
+
+                            Punishment p = Punishment.builder()
+                                    .punishmentId(IdUtil.generatePunishmentId())
+                                    .type(type)
+                                    .targetUuid(UUID.nameUUIDFromBytes(ip.getBytes()))
+                                    .targetName(ip)
+                                    .targetIp(ip)
+                                    .reason(combinedReason)
+                                    .staffUuid(staffUuid)
+                                    .staffName(staffName)
+                                    .createdTime(System.currentTimeMillis())
+                                    .expiryTime(expiry)
+                                    .serverOrigin("global")
+                                    .silent(finalSilent)
+                                    .ipBan(true)
+                                    .build();
+
+                            if (type.isBan()) {
+                                return storage.insertBan(p).thenRun(() -> onPunishmentSuccess(p));
+                            } else {
+                                return storage.insertMute(p).thenRun(() -> onPunishmentSuccess(p));
+                            }
+                        });
+                    } else {
+                        String targetIp = playerResolver.getPlayerIp(targetUuid);
+                        Punishment p = Punishment.builder()
+                                .punishmentId(IdUtil.generatePunishmentId())
+                                .type(type)
+                                .targetUuid(targetUuid)
+                                .targetName(targetName)
+                                .targetIp(targetIp)
+                                .reason(combinedReason)
+                                .staffUuid(staffUuid)
+                                .staffName(staffName)
+                                .createdTime(System.currentTimeMillis())
+                                .expiryTime(expiry)
+                                .serverOrigin("global")
+                                .silent(finalSilent)
+                                .build();
+
+                        switch (type) {
+                            case BAN:
+                            case TEMPBAN:
+                                actionFuture = storage.insertBan(p).thenRun(() -> onPunishmentSuccess(p));
+                                break;
+                            case MUTE:
+                            case TEMPMUTE:
+                            case IPMUTE:
+                            case TEMPIPMUTE:
+                                actionFuture = storage.insertMute(p).thenRun(() -> {
+                                    if (plugin.getPlayerChatListener() != null) plugin.getPlayerChatListener().cacheMuteState(targetUuid, p);
+                                    onPunishmentSuccess(p);
+                                });
+                                break;
+                            case WARN:
+                                actionFuture = storage.insertWarning(p).thenRun(() -> {
+                                    scheduler.runTask(() -> {
+                                        Player player = Bukkit.getPlayer(targetUuid);
+                                        if (player != null && player.isOnline()) {
+                                            notificationService.formatMuteScreen(p).forEach(player::sendMessage);
+                                        }
+                                    });
+                                    onPunishmentSuccess(p);
+                                });
+                                break;
+                            case KICK:
+                                actionFuture = storage.insertKick(p).thenRun(() -> onPunishmentSuccess(p));
+                                break;
+                            case VOICEMUTE:
+                            case TEMPVOICEMUTE:
+                                actionFuture = storage.insertVoiceMute(p).thenRun(() -> postVoiceMuteActions(targetUuid, p));
+                                break;
+                            default:
+                                actionFuture = CompletableFuture.failedFuture(new IllegalArgumentException("Unsupported punishment type: " + type));
+                        }
+                    }
+
+                    return actionFuture;
+                });
+            });
         });
     }
 

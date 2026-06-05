@@ -239,10 +239,6 @@ alts:
   status-muted: "<#5DADE2> [MUTED]"
   join-alert: "<red>[Alts]</red> <white><player> <gray>joined. Suspected alt of</gray> <white><banned_player></white> <gray>(<#FFD93D><confidence>%<gray> match)"
 
-automod:
-  spam-warning: "<red>AutoMod >> </red><gray>Please slow down your messages or avoid repeating yourself.</gray>"
-  rule-denied: "<red>AutoMod >> </red><gray><message></gray>"
-  staff-alert: "<red>[AutoMod]</red> <white><player></white> <gray>triggered</gray> <yellow><rule></yellow> <gray>in</gray> <aqua><type></aqua>"
 
 config-editor:
   prompt: "<#FFD93D>Type the new value for <white><path><#FFD93D> in chat, or type 'cancel'."
