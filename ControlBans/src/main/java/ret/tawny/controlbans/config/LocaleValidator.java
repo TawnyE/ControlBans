@@ -22,10 +22,6 @@ public class LocaleValidator {
     public static void validate(LocaleManager localeManager, String language) {
         ControlBansPlugin plugin = ControlBansPlugin.getInstance();
         File localeDir = new File(plugin.getDataFolder(), "locales");
-        if (!localeDir.exists()) {
-            plugin.getLogger().warning("Locales directory not found. Skipping validation.");
-            return;
-        }
 
         // Load or cache en.yml as reference
         if (enConfigCache == null) {
@@ -33,6 +29,13 @@ public class LocaleValidator {
             if (enConfigCache == null) {
                 plugin.getLogger().warning("Could not load en.yml from resources. Skipping validation.");
                 return;
+            }
+            // The runtime fallback chain merges common-additions.yml into the English
+            // fallback, so the reference must include it too — otherwise keys served
+            // fine at runtime get reported as "missing" here.
+            YamlConfiguration additions = loadYamlFromResources("locales/common-additions.yml");
+            if (additions != null) {
+                mergeMissing(enConfigCache, additions);
             }
         }
 
@@ -43,13 +46,45 @@ public class LocaleValidator {
             return;
         }
 
-        // Load the target locale file
-        YamlConfiguration targetConfig = YamlConfiguration.loadConfiguration(localeFile);
-        Set<String> missingKeys = findMissingKeys(enConfigCache, targetConfig);
+        // Validate the merged in-memory locale, not a raw disk reload. The disk file may
+        // partially parse (Bukkit swallows YAML errors to a load-time log line) which made
+        // the validator shout "missing keys" for hundreds of actually-present keys.
+        YamlConfiguration targetConfig;
+        try {
+            targetConfig = YamlConfiguration.loadConfiguration(localeFile);
+        } catch (Exception e) {
+            plugin.getLogger().warning("Could not parse locale " + language + ".yml (" + e.getMessage()
+                    + ") — the file likely has a YAML syntax error. Regenerating keys at runtime; delete the file to get a fresh copy.");
+            return;
+        }
 
-        if (!missingKeys.isEmpty()) {
-            String missingKeysStr = missingKeys.stream().sorted().collect(Collectors.joining(", "));
-            plugin.getLogger().warning("Locale " + language + ".yml is missing keys: [" + missingKeysStr + "]");
+        Set<String> diskKeys = targetConfig.getKeys(true);
+        if (diskKeys.size() < 10) {
+            plugin.getLogger().warning("Locale " + language + ".yml parsed but contains almost no keys (" + diskKeys.size()
+                    + "). The file is likely corrupt — missing keys will be served from bundled English at runtime. "
+                    + "Fix or delete plugins/ControlBans/locales/" + language + ".yml to regenerate.");
+            return;
+        }
+
+        Set<String> missingKeys = findMissingKeys(enConfigCache, targetConfig);
+        // When the active language IS the fallback (en), a missing-key count is pure
+        // noise: the runtime chain serves the same file, so nothing can be lost.
+        // Only warn for community locales where the comparison is actionable.
+        if (!missingKeys.isEmpty() && !"en".equalsIgnoreCase(language)) {
+            // Cap output — a long sorted dump is useless; group and count instead.
+            int shown = 25;
+            String firstN = missingKeys.stream()
+                    .sorted().limit(shown).collect(Collectors.joining(", "));
+            plugin.getLogger().warning("Locale " + language + ".yml is missing " + missingKeys.size()
+                    + " keys (e.g. " + firstN + (missingKeys.size() > shown ? ", ..." : "")
+                    + "). Missing entries fall back to English automatically.");
+        }
+    }
+
+    private static void mergeMissing(YamlConfiguration target, YamlConfiguration source) {
+        for (String key : source.getKeys(true)) {
+            if (source.isConfigurationSection(key)) continue;
+            if (!target.contains(key)) target.set(key, source.get(key));
         }
     }
 

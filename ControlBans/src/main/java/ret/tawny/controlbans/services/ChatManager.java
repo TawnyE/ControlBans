@@ -78,10 +78,16 @@ public class ChatManager implements Listener {
         this.slowmodeDelay = config.getLong("chat-state.slowmode-delay", 0);
     }
 
+    public void reloadState() {
+        loadState();
+        lastMessageTime.clear();
+    }
+
     private void saveState() {
         var config = plugin.getConfig();
         config.set("chat-state.locked", locked);
         config.set("chat-state.slowmode-delay", slowmodeDelay);
-        plugin.saveConfig();
+        // saveConfig does file I/O — never run it on the main thread
+        plugin.getSchedulerAdapter().runTaskAsynchronously(plugin::saveConfig);
     }
 }

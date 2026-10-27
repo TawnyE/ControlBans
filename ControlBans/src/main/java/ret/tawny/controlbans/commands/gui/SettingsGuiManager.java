@@ -14,6 +14,7 @@ import ret.tawny.controlbans.listeners.ChatInputListener;
 import ret.tawny.controlbans.menus.ControlBansHolder;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.logging.Level;
 
 public class SettingsGuiManager {
@@ -27,10 +28,21 @@ public class SettingsGuiManager {
     }
 
     public static class SettingsHolder extends ControlBansHolder {
+        private final UUID viewerUuid;
+
+        public SettingsHolder(UUID viewerUuid) {
+            this.viewerUuid = viewerUuid;
+        }
+
+        @Override
+        public UUID getViewerUuid() { return viewerUuid; }
+
+        @Override
+        public MenuType getMenuType() { return MenuType.SETTINGS; }
     }
 
     public void openSettingsGui(Player player) {
-        Inventory inv = Bukkit.createInventory(new SettingsHolder(), 27, plugin.getLocaleManager().getMessage("gui.settings.title"));
+        Inventory inv = Bukkit.createInventory(new SettingsHolder(player.getUniqueId()), 27, plugin.getLocaleManager().getMessage("gui.settings.title"));
 
         inv.setItem(10, createBooleanItem(Material.REDSTONE_TORCH, "gui.settings.items.silent-bans.name",
                 plugin.getConfigManager().isSilentByDefault()));
@@ -71,7 +83,9 @@ public class SettingsGuiManager {
         player.closeInventory();
         player.sendMessage(plugin.getLocaleManager().getMessage("config-editor.updating"));
 
-        plugin.getSchedulerAdapter().runTaskAsynchronously(() -> {
+        // Config I/O + reload() must run on the main thread (YamlConfiguration and
+        // reload are not thread-safe). This is a quick local file write, not a DB call.
+        plugin.getSchedulerAdapter().runTask(() -> {
             try {
                 boolean current = plugin.getConfig().getBoolean(configPath);
                 boolean newValue = !current;
@@ -81,20 +95,16 @@ public class SettingsGuiManager {
                 plugin.reload();
 
                 if (player.isOnline()) {
-                    plugin.getSchedulerAdapter().runTaskForPlayer(player, () -> {
-                        player.sendMessage(plugin.getLocaleManager().getMessage("config-editor.updated",
-                                Placeholder.unparsed("path", configPath),
-                                Placeholder.unparsed("value", String.valueOf(newValue))));
-                        openSettingsGui(player);
-                    });
+                    player.sendMessage(plugin.getLocaleManager().getMessage("config-editor.updated",
+                            Placeholder.unparsed("path", configPath),
+                            Placeholder.unparsed("value", String.valueOf(newValue))));
+                    openSettingsGui(player);
                 }
             } catch (Exception e) {
                 plugin.getLogger().log(Level.SEVERE, "Failed to save settings", e);
                 if (player.isOnline()) {
-                    plugin.getSchedulerAdapter().runTaskForPlayer(player, () -> {
-                        player.sendMessage(plugin.getLocaleManager().getMessage("config-editor.save-failed",
-                                Placeholder.unparsed("error", e.getMessage())));
-                    });
+                    player.sendMessage(plugin.getLocaleManager().getMessage("config-editor.save-failed",
+                            Placeholder.unparsed("error", String.valueOf(e.getMessage()))));
                 }
             }
         });

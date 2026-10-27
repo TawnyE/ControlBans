@@ -44,10 +44,14 @@ public class AltsGuiManager {
     public static class AltsHolder extends ControlBansHolder {
         private final OfflinePlayer target;
         private final int page;
+        private final int maxPage;
+        private final UUID viewerUuid;
 
-        public AltsHolder(OfflinePlayer target, int page) {
+        public AltsHolder(OfflinePlayer target, int page, int maxPage, UUID viewerUuid) {
             this.target = target;
             this.page = page;
+            this.maxPage = maxPage;
+            this.viewerUuid = viewerUuid;
         }
 
         public OfflinePlayer getTarget() {
@@ -57,6 +61,16 @@ public class AltsGuiManager {
         public int getPage() {
             return page;
         }
+
+        public int getMaxPage() {
+            return maxPage;
+        }
+
+        @Override
+        public UUID getViewerUuid() { return viewerUuid; }
+
+        @Override
+        public MenuType getMenuType() { return MenuType.ALTS; }
     }
 
     public void openAltsGui(Player viewer, OfflinePlayer target, int page) {
@@ -80,7 +94,7 @@ public class AltsGuiManager {
                                 List<ItemStack> loadedItems = itemFutures.stream().map(CompletableFuture::join).toList();
 
                                 plugin.getSchedulerAdapter().runTaskForPlayer(viewer, () -> {
-                                    Inventory inv = Bukkit.createInventory(new AltsHolder(target, currentPage), 54,
+                                    Inventory inv = Bukkit.createInventory(new AltsHolder(target, currentPage, maxPage, viewer.getUniqueId()), 54,
                                             plugin.getLocaleManager().getMessage("gui.alts.title",
                                                     Placeholder.unparsed("player", targetName),
                                                     Placeholder.unparsed("page", String.valueOf(currentPage)),

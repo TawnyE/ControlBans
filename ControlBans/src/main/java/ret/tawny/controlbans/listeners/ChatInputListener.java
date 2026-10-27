@@ -60,6 +60,14 @@ public class ChatInputListener implements Listener {
         awaitingInput.put(player.getUniqueId(), callback);
     }
 
+    public void clearAll() {
+        awaitingInput.clear();
+    }
+
+    public void cancelFor(Player player) {
+        if (player != null) awaitingInput.remove(player.getUniqueId());
+    }
+
     @EventHandler(priority = EventPriority.LOWEST)
     public void onChat(AsyncChatEvent event) {
         Player player = event.getPlayer();
@@ -78,5 +86,10 @@ public class ChatInputListener implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         awaitingInput.remove(event.getPlayer().getUniqueId());
+        try {
+            if (plugin.getPunishUiManager() != null) {
+                plugin.getPunishUiManager().handleQuit(event.getPlayer().getUniqueId());
+            }
+        } catch (Throwable ignored) {}
     }
 }

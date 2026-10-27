@@ -7,6 +7,7 @@ import ret.tawny.controlbans.ControlBansPlugin;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 public class SchedulerAdapter {
@@ -51,9 +52,18 @@ public class SchedulerAdapter {
         }
     }
 
+    public void runTaskTimer(Runnable task, long delayTicks, long periodTicks) {
+        if (isFolia) {
+            Bukkit.getGlobalRegionScheduler().runAtFixedRate(plugin, t -> task.run(), delayTicks, periodTicks);
+        } else {
+            Bukkit.getScheduler().runTaskTimer(plugin, task, delayTicks, periodTicks);
+        }
+    }
+
     public void runTaskLaterAsync(Runnable task, long delayTicks) {
         if (isFolia) {
-            Bukkit.getGlobalRegionScheduler().runDelayed(plugin, t -> task.run(), delayTicks);
+            // Elite: on Folia, GlobalRegionScheduler is NOT async — use AsyncScheduler for true async delay
+            Bukkit.getAsyncScheduler().runDelayed(plugin, t -> task.run(), delayTicks * 50, TimeUnit.MILLISECONDS);
         } else {
             Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, task, delayTicks);
         }
@@ -78,18 +88,40 @@ public class SchedulerAdapter {
     }
 
     public void runTaskAsynchronously(Runnable task) {
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, task);
+        runTaskAsyncNow(task);
+    }
+
+    public void runTaskAsyncNow(Runnable task) {
+        if (isFolia) {
+            Bukkit.getAsyncScheduler().runNow(plugin, t -> task.run());
+        } else {
+            Bukkit.getScheduler().runTaskAsynchronously(plugin, task);
+        }
+    }
+
+    public void runTaskTimerAsync(Runnable task, long delayTicks, long periodTicks) {
+        if (isFolia) {
+            Bukkit.getAsyncScheduler().runAtFixedRate(plugin, t -> task.run(), delayTicks * 50, periodTicks * 50, TimeUnit.MILLISECONDS);
+        } else {
+            Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, task, delayTicks, periodTicks);
+        }
     }
 
     public <T> CompletableFuture<T> callSync(Supplier<T> supplier) {
         CompletableFuture<T> future = new CompletableFuture<>();
-        runTask(() -> {
-            try {
-                future.complete(supplier.get());
-            } catch (Throwable throwable) {
-                future.completeExceptionally(throwable);
-            }
-        });
+        try {
+            runTask(() -> {
+                try {
+                    future.complete(supplier.get());
+                } catch (Throwable throwable) {
+                    future.completeExceptionally(throwable);
+                }
+            });
+        } catch (Throwable t) {
+            // Plugin disabled / scheduler shut down — runTask above threw before
+            // scheduling, so complete exceptionally instead of hanging forever.
+            future.completeExceptionally(t);
+        }
         return future;
     }
 

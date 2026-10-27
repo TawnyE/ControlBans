@@ -35,6 +35,17 @@ public class ControlBansCommand extends CommandBase {
             case "export" -> handleExport(sender, args);
             case "database" -> handleDatabase(sender, args);
             case "rollback" -> handleRollback(sender, args);
+            case "gui" -> {
+                if (sender instanceof Player player) {
+                    if (!player.hasPermission("controlbans.punish")) {
+                        player.sendMessage(locale.getMessage("errors.no-permission"));
+                        return true;
+                    }
+                    plugin.getMainMenuGuiManager().openMainMenu(player);
+                } else {
+                    sender.sendMessage(locale.getMessage("errors.command-from-console-error"));
+                }
+            }
             case "settings" -> {
                 if (sender instanceof Player player) {
                     if (!player.hasPermission("controlbans.admin")) {
@@ -94,7 +105,7 @@ public class ControlBansCommand extends CommandBase {
             }
 
             List<Punishment> toRollback = punishments.stream()
-                    .filter(p -> p.isActive() && p.getStaffName() != null && p.getStaffName().equalsIgnoreCase(staffName))
+                    .filter(p -> p.isActive() && !p.isExpired() && p.getStaffName() != null && p.getStaffName().equalsIgnoreCase(staffName))
                     .filter(p -> p.getCreatedTime() >= cutoffTime)
                     .toList();
 
@@ -294,7 +305,7 @@ public class ControlBansCommand extends CommandBase {
     @Override
     public List<String> onTab(CommandSender sender, String[] args) {
         if (args.length == 1) {
-            return Stream.of("reload", "import", "export", "settings", "database", "rollback")
+            return Stream.of("reload", "import", "export", "gui", "settings", "database", "rollback")
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
                     .collect(Collectors.toList());
         }

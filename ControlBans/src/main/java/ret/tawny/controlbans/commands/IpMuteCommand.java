@@ -26,47 +26,59 @@ public class IpMuteCommand extends CommandBase {
             return true;
         }
 
-        boolean silent = args[0].equalsIgnoreCase("-s");
-        int argOffset = silent ? 1 : 0;
+        boolean silent = detectSilentFlag(args);
+        String[] cleanArgs = stripSilentFlag(args);
 
-        if (args.length <= argOffset + 1) {
+        if (cleanArgs.length <= 1) {
             sender.sendMessage(locale.getMessage("errors.invalid-arguments", usagePlaceholder("/" + label + " [-s] <player|ip> <time> [reason]")));
             return true;
         }
 
-        String target = args[argOffset];
-        String durationStr = args[argOffset + 1];
+        String target = cleanArgs[0];
+        String durationStr = cleanArgs[1];
         long duration;
-        try {
-            duration = TimeUtil.parseDuration(durationStr);
-        } catch (IllegalArgumentException e) {
-            if (durationStr.equalsIgnoreCase("0") || durationStr.equalsIgnoreCase("perm") || durationStr.equalsIgnoreCase("permanent")) {
-                duration = -1;
-            } else {
+        if (durationStr.equalsIgnoreCase("0") || durationStr.equalsIgnoreCase("0s")
+                || durationStr.equalsIgnoreCase("perm") || durationStr.equalsIgnoreCase("permanent")) {
+            duration = -1;
+        } else {
+            try {
+                duration = TimeUtil.parseDuration(durationStr);
+            } catch (IllegalArgumentException e) {
+                sender.sendMessage(locale.getMessage("errors.invalid-duration"));
+                return true;
+            }
+        }
+        if (duration != -1) {
+            long max = plugin.getConfigManager().getMaxTempMuteDuration();
+            if (duration > max) duration = max;
+            if (duration <= 0) {
                 sender.sendMessage(locale.getMessage("errors.invalid-duration"));
                 return true;
             }
         }
 
         StringJoiner reasonJoiner = new StringJoiner(" ");
-        for (int i = argOffset + 2; i < args.length; i++) {
-            reasonJoiner.add(args[i]);
+        for (int i = 2; i < cleanArgs.length; i++) {
+            reasonJoiner.add(cleanArgs[i]);
         }
         String reason = reasonJoiner.toString().isEmpty() ? "IP Mute" : reasonJoiner.toString();
 
         punishmentService.ipMutePlayer(target, duration, reason, getSenderUuid(sender), sender.getName(), silent)
                 .whenComplete((success, throwable) -> {
                     if (throwable != null) {
-                        if ((throwable.getMessage() != null && throwable.getMessage().contains("no-ip-on-record")) ||
-                            (throwable.getCause() != null && throwable.getCause().getMessage() != null && throwable.getCause().getMessage().contains("no-ip-on-record"))) {
-                            sender.sendMessage(locale.getMessage("errors.no-ip-on-record", playerPlaceholder(target)));
+                        String message = throwable.getMessage() != null ? throwable.getMessage()
+                                : throwable.getCause() != null && throwable.getCause().getMessage() != null ? throwable.getCause().getMessage() : "";
+                        if (message.contains("no-ip-on-record")) {
+                            sender.sendMessage(locale.getMessage("errors.no-ip-on-record", playerAndTargetPlaceholders(target)));
+                        } else if (message.contains("unsafe-ip")) {
+                            sender.sendMessage(locale.getMessage("errors.unsafe-ip"));
                         } else {
                             sender.sendMessage(locale.getMessage("errors.database-error"));
                         }
                     } else if (success) {
                         sender.sendMessage(locale.getMessage("success.ipmute"));
                     } else {
-                        sender.sendMessage(locale.getMessage("errors.player-not-found", playerPlaceholder(target)));
+                        sender.sendMessage(locale.getMessage("errors.player-not-found", playerAndTargetPlaceholders(target)));
                     }
                 });
         return true;

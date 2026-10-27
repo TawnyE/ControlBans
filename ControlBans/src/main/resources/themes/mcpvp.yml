@@ -1,0 +1,45 @@
+
+prefix: "<gold><bold>MCPVP</bold> <dark_gray>»"
+
+screens:
+  ban:
+    - ""
+    - "<red>You are banned from this server!"
+    - "<gray>Reason: <yellow><reason>"
+    - "<gray>Date: <gold><date>"
+    - "<gray>Appeal: <aqua><appeal>"                       # set your appeal link in config.yml (appeals.appeal-link)
+    - ""
+  tempban:
+    - ""
+    - "<red>You are banned for <white><duration><red> from this server!"
+    - "<gray>Reason: <yellow><reason>"
+    - "<gray>Date: <gold><date>"
+    - "<gray>Appeal: <aqua><appeal>"
+    - ""
+  ip_ban:
+    - ""
+    - "<red>You are banned from this server! <gray>(IP)"
+    - "<gray>Reason: <yellow><reason>"
+    - "<gray>Date: <gold><date>"
+    - "<gray>Appeal: <aqua><appeal>"
+    - ""
+  ip_tempban:
+    - ""
+    - "<red>You are banned for <white><duration><red> from this server! <gray>(IP)"
+    - "<gray>Reason: <yellow><reason>"
+    - "<gray>Date: <gold><date>"
+    - "<gray>Appeal: <aqua><appeal>"
+    - ""
+  kick:
+    - ""
+    - "<red>You have been kicked!"
+    - "<gray>Reason: <yellow><reason>"
+    - ""
+  mute:
+    - "<red>You are muted."
+    - "<gray>Reason: <yellow><reason>"
+  tempmute:
+    - "<red>You are muted for <white><duration><red>."
+    - "<gray>Reason: <yellow><reason>"
+  warn:
+    - "<gold>You have been warned: <yellow><reason>"

@@ -1,0 +1,47 @@
+
+prefix: "<red><bold>BANNED</bold> <dark_gray>»"
+
+screens:
+  ban:
+    - ""
+    - "<red><bold>BANNED</bold></red>"
+    - ""
+    - "<red>Reason: <light_purple><reason>"
+    - "<red>Duration: <light_purple>Permanent"
+    - "<white>Appeal at <underlined><appeal>"                # set your appeal link in config.yml (appeals.appeal-link)
+    - ""
+  tempban:
+    - ""
+    - "<red><bold>TEMPORARILY BANNED</bold></red>"
+    - ""
+    - "<red>Reason: <light_purple><reason>"
+    - "<red>Expires in: <light_purple><duration>"
+    - "<white>Appeal at <underlined><appeal>"
+    - ""
+  ip_ban:
+    - ""
+    - "<red><bold>IP BANNED</bold></red>"
+    - ""
+    - "<red>Reason: <light_purple><reason>"
+    - "<white>Appeal at <underlined><appeal>"
+    - ""
+  ip_tempban:
+    - ""
+    - "<red><bold>IP TEMPORARILY BANNED</bold></red>"
+    - ""
+    - "<red>Reason: <light_purple><reason>"
+    - "<red>Expires in: <light_purple><duration>"
+    - "<white>Appeal at <underlined><appeal>"
+    - ""
+  kick:
+    - ""
+    - "<red><bold>KICKED</bold></red>"
+    - ""
+    - "<red>Reason: <light_purple><reason>"
+    - ""
+  mute:
+    - "<red><bold>MUTED</bold> <red>Reason: <light_purple><reason>"
+  tempmute:
+    - "<red><bold>MUTED</bold> <red>Reason: <light_purple><reason> <gray>(<duration>)"
+  warn:
+    - "<red><bold>WARNING</bold> <red>Reason: <light_purple><reason>"

@@ -29,6 +29,11 @@ public class ReportCommand extends CommandBase {
             return true;
         }
 
+        if (!plugin.getConfigManager().isReportEnabled()) {
+            sender.sendMessage(locale.getMessage("report.disabled"));
+            return true;
+        }
+
         if (args.length < 1) {
             sender.sendMessage(locale.getMessage("report.usage"));
             return true;
@@ -62,23 +67,20 @@ public class ReportCommand extends CommandBase {
                     player.getUniqueId(),
                     player.getName(),
                     targetName,
-                    reason
-            );
+                    target.getUniqueId(),
+                    reason,
+                    null
+            ).whenComplete((submitted, throwable) -> {
+                if (throwable != null) {
+                    plugin.getLogger().log(java.util.logging.Level.WARNING, "Failed to submit report", throwable);
+                }
+            });
         });
         return true;
     }
 
     private CompletableFuture<OfflinePlayer> resolveTarget(String name) {
-        Player online = Bukkit.getPlayerExact(name);
-        if (online != null) return CompletableFuture.completedFuture(online);
-
-        return plugin.getStorage().getUuidByName(name).thenCompose(uuid -> {
-            if (uuid != null) return CompletableFuture.completedFuture(Bukkit.getOfflinePlayer(uuid));
-            return CompletableFuture.supplyAsync(() -> {
-                UUID mojangUuid = ret.tawny.controlbans.util.UuidUtil.lookupUuid(name);
-                return mojangUuid != null ? Bukkit.getOfflinePlayer(mojangUuid) : null;
-            });
-        });
+        return plugin.getPunishmentService().getPlayerResolver().getOfflineTarget(name);
     }
 
     @Override

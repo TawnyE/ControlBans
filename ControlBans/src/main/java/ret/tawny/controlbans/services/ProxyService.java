@@ -22,8 +22,6 @@ public class ProxyService {
     private static final int MAX_QUEUE_SIZE = 1024;
 
     private final Queue<byte[]> queuedMessages = new ConcurrentLinkedQueue<>();
-    private volatile boolean directDispatchSupported = true;
-
     public ProxyService(ControlBansPlugin plugin, SchedulerAdapter scheduler) {
         this.plugin = plugin;
         this.scheduler = scheduler;
@@ -94,14 +92,14 @@ public class ProxyService {
     }
 
     private boolean tryDispatch(byte[] payload, Player preferredMessenger) {
-        if (sendDirectly(payload)) {
-            return true;
-        }
-
+        // NOTE: CraftServer#sendPluginMessage silently does nothing when the server
+        // has no online players, and CraftPlayer#sendPluginMessage silently drops
+        // the message when the player has not registered the channel. Neither throws,
+        // so "direct dispatch" could never report failure — messages vanished.
+        // Every send therefore goes through a verified player carrier, or queues.
         if (preferredMessenger != null && sendThroughPlayer(preferredMessenger, payload)) {
             return true;
         }
-
         return sendThroughAnyPlayer(payload, preferredMessenger);
     }
 
@@ -123,6 +121,13 @@ public class ProxyService {
             return false;
         }
 
+        // A player that has not registered the channel would silently swallow
+        // the message (CraftPlayer drops it before it reaches the wire), so
+        // treat them as an unusable carrier instead of reporting success.
+        if (!player.getListeningPluginChannels().contains(CHANNEL)) {
+            return false;
+        }
+
         try {
             player.sendPluginMessage(plugin, CHANNEL, payload);
             return true;
@@ -130,6 +135,19 @@ public class ProxyService {
             plugin.getLogger().log(Level.FINE, "Failed to relay proxy plugin message through player " + player.getName(), exception);
             return false;
         }
+    }
+
+    /**
+     * Hook for per-player channel setup on join. The modern Paper API exposes no
+     * way to register an outgoing channel server-side (the old Player#addChannel
+     * is gone): CraftPlayer only forwards a plugin message when the CLIENT has
+     * registered the channel. On proxy networks Velocity relays channel
+     * registrations for proxy-registered channels, so this hook is intentionally
+     * a no-op placeholder; it exists so the join path has a single, documented
+     * place that explains the constraint.
+     */
+    public void registerPlayerChannels(Player player) {
+        // intentionally empty — see javadoc
     }
 
     public void flushQueuedMessages() {
@@ -143,6 +161,14 @@ public class ProxyService {
         }
 
         scheduler.runTaskForPlayer(player, () -> flushQueuedMessagesInternal(player));
+    }
+
+    public void clearQueue() {
+        int dropped = queuedMessages.size();
+        queuedMessages.clear();
+        if (dropped > 0) {
+            plugin.getLogger().fine("Cleared " + dropped + " queued proxy message(s) on reload.");
+        }
     }
 
     private void flushQueuedMessagesInternal() {
@@ -167,22 +193,4 @@ public class ProxyService {
         }
     }
 
-    private boolean sendDirectly(byte[] payload) {
-        if (!directDispatchSupported) {
-            return false;
-        }
-
-        try {
-            plugin.getServer().sendPluginMessage(plugin, CHANNEL, payload);
-            return true;
-        } catch (IllegalArgumentException | IllegalStateException exception) {
-            directDispatchSupported = false;
-            plugin.getLogger().log(Level.FINE, "Direct proxy dispatch is not supported on this server; falling back to player messenger.", exception);
-            return false;
-        } catch (Throwable throwable) {
-            directDispatchSupported = false;
-            plugin.getLogger().log(Level.WARNING, "Unexpected failure sending proxy message directly; falling back to player messenger.", throwable);
-            return false;
-        }
-    }
 }

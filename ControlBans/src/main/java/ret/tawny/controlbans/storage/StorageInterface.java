@@ -1,6 +1,7 @@
 package ret.tawny.controlbans.storage;
 
 import ret.tawny.controlbans.model.Punishment;
+import ret.tawny.controlbans.model.ScheduledPunishment;
 
 import java.util.List;
 import java.util.Optional;
@@ -20,9 +21,11 @@ public interface StorageInterface {
     CompletableFuture<Void> insertVoiceMute(Punishment punishment);
 
     CompletableFuture<Optional<Punishment>> getActiveBan(UUID uuid);
+    CompletableFuture<Optional<Punishment>> getActiveBanByName(String name);
     CompletableFuture<Optional<Punishment>> getActiveMute(UUID uuid);
     CompletableFuture<Optional<Punishment>> getActiveVoiceMute(UUID uuid);
     CompletableFuture<Optional<Punishment>> getActiveIpBan(String ip);
+    CompletableFuture<Optional<Punishment>> getActiveIpBanById(String punishmentId);
     CompletableFuture<Optional<Punishment>> getActiveIpMute(String ip);
     CompletableFuture<Optional<Punishment>> getPunishmentById(String id);
 
@@ -53,10 +56,14 @@ public interface StorageInterface {
     CompletableFuture<Void> addAppeal(String punishmentId, UUID uuid, String message, long timestamp);
     CompletableFuture<Long> getLastAppealTime(UUID uuid);
     CompletableFuture<Integer> getAppealCount(UUID uuid, long sinceTimestamp);
+    CompletableFuture<List<ret.tawny.controlbans.services.AppealService.Appeal>> getAppeals();
+    CompletableFuture<Boolean> updateAppealStatus(int appealId, String status);
 
-    CompletableFuture<Void> insertReport(String id, UUID reporterUuid, String reporterName, String targetName, String reason, long timestamp, String status);
+    CompletableFuture<Void> insertReport(String id, UUID reporterUuid, String reporterName, String targetName, UUID targetUuid, String reason, String category, long timestamp, String status);
     CompletableFuture<List<ret.tawny.controlbans.services.ReportService.Report>> getReports();
     CompletableFuture<List<ret.tawny.controlbans.services.ReportService.Report>> getReportsByReporter(UUID reporterUuid);
+    CompletableFuture<Optional<ret.tawny.controlbans.services.ReportService.Report>> getReport(String id);
+    CompletableFuture<Boolean> deleteReport(String id);
     CompletableFuture<Boolean> updateReportStatus(String id, String status);
 
     CompletableFuture<Void> addNote(UUID targetUuid, String staffName, String noteText, long timestamp);
@@ -64,4 +71,11 @@ public interface StorageInterface {
     CompletableFuture<List<ret.tawny.controlbans.services.NoteService.PlayerNote>> getNotes(UUID targetUuid);
 
     CompletableFuture<Void> importPunishment(Punishment punishment);
+
+CompletableFuture<Void> saveScheduledPunishment(ScheduledPunishment scheduled);
+CompletableFuture<Optional<ScheduledPunishment>> getScheduledPunishment(String scheduleId);
+CompletableFuture<List<ScheduledPunishment>> getAllScheduledPunishments();
+CompletableFuture<List<ScheduledPunishment>> getDueScheduledPunishments(long atOrBefore);
+CompletableFuture<Void> removeScheduledPunishment(String scheduleId);
+CompletableFuture<Void> removeScheduledPunishmentsForTarget(UUID targetUuid);
 }

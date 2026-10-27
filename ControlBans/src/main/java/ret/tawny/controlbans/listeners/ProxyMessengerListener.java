@@ -62,6 +62,11 @@ public class ProxyMessengerListener implements PluginMessageListener {
             if (plugin.getPlayerChatListener() != null) {
                 plugin.getPlayerChatListener().invalidateMuteCache(playerUuid);
             }
+            if (plugin.getVoiceChatService() != null) {
+                try {
+                    plugin.getVoiceChatService().invalidate(playerUuid);
+                } catch (Exception ignored) {}
+            }
             plugin.getLogger().fine("Received instruction from proxy to invalidate cache for UUID: " + playerUuid);
         } catch (IllegalArgumentException e) {
             plugin.getLogger().warning("Received invalid UUID for cache invalidation from proxy.");

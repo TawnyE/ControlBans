@@ -16,12 +16,20 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.logging.Level;
 
 public class DataExportService {
 
     private final ControlBansPlugin plugin;
     private final PunishmentService punishmentService;
     private final Gson gson;
+    private final ExecutorService ioExecutor = Executors.newFixedThreadPool(2, runnable -> {
+        Thread t = new Thread(runnable, "ControlBans-Export");
+        t.setDaemon(true);
+        return t;
+    });
 
     public DataExportService(ControlBansPlugin plugin, PunishmentService punishmentService) {
         this.plugin = plugin;
@@ -37,7 +45,7 @@ public class DataExportService {
     }
 
     public CompletableFuture<File> exportFiltered(PunishmentType type) {
-        return punishmentService.getAllPunishments().thenApply(punishments -> {
+        return punishmentService.getAllPunishments().thenApplyAsync(punishments -> {
             try {
                 File exportDir = new File(plugin.getDataFolder(), "exports");
                 if (!exportDir.exists()) {
@@ -85,11 +93,10 @@ public class DataExportService {
                         .info("Exported " + filteredList.size() + " punishment records to " + exportFile.getName());
                 return exportFile;
             } catch (Exception e) {
-                plugin.getLogger().severe("Failed to export punishment data: " + e.getMessage());
-                e.printStackTrace();
+                plugin.getLogger().log(Level.WARNING, "Failed to export punishment data", e);
                 return null;
             }
-        });
+        }, ioExecutor);
     }
 
     public CompletableFuture<ImportResult> importFromFile(File file) {
@@ -99,9 +106,10 @@ public class DataExportService {
                     return new ImportResult(false, 0, 0, "File not found: " + file.getName());
                 }
 
-                int imported = 0;
-                int failed = 0;
-                List<String> errors = new ArrayList<>();
+                List<CompletableFuture<Void>> imports = new ArrayList<>();
+                List<String> errors = java.util.Collections.synchronizedList(new ArrayList<>());
+                java.util.concurrent.atomic.AtomicInteger imported = new java.util.concurrent.atomic.AtomicInteger();
+                java.util.concurrent.atomic.AtomicInteger failed = new java.util.concurrent.atomic.AtomicInteger();
 
                 try (FileInputStream fis = new FileInputStream(file);
                      InputStreamReader isr = new InputStreamReader(fis, StandardCharsets.UTF_8);
@@ -117,10 +125,18 @@ public class DataExportService {
                                 try {
                                     ExportRecord record = gson.fromJson(reader, ExportRecord.class);
                                     Punishment punishment = fromExportRecord(record);
-                                    punishmentService.importPunishment(punishment).join();
-                                    imported++;
+                                    imports.add(punishmentService.importPunishment(punishment).whenComplete((v, ex) -> {
+                                        if (ex != null) {
+                                            failed.incrementAndGet();
+                                            if (errors.size() < 10) {
+                                                errors.add("Failed to import record: " + ex.getMessage());
+                                            }
+                                        } else {
+                                            imported.incrementAndGet();
+                                        }
+                                    }));
                                 } catch (Exception e) {
-                                    failed++;
+                                    failed.incrementAndGet();
                                     if (errors.size() < 10) {
                                         errors.add("Failed to import record: " + e.getMessage());
                                     }
@@ -134,19 +150,23 @@ public class DataExportService {
                     reader.endObject();
                 }
 
-                String message = "Imported " + imported + " records" + (failed > 0 ? ", " + failed + " failed" : "");
+                // Wait once for all imports instead of joining per record
+                CompletableFuture.allOf(imports.toArray(new CompletableFuture[0])).join();
+
+                int importedCount = imported.get();
+                int failedCount = failed.get();
+                String message = "Imported " + importedCount + " records" + (failedCount > 0 ? ", " + failedCount + " failed" : "");
                 if (!errors.isEmpty()) {
                     message += "\nFirst " + errors.size() + " errors:\n" + String.join("\n", errors);
                 }
 
-                plugin.getLogger().info("Import complete: " + imported + " success, " + failed + " failed");
-                return new ImportResult(true, imported, failed, message);
+                plugin.getLogger().info("Import complete: " + importedCount + " success, " + failedCount + " failed");
+                return new ImportResult(true, importedCount, failedCount, message);
             } catch (Exception e) {
-                plugin.getLogger().severe("Failed to import punishment data: " + e.getMessage());
-                e.printStackTrace();
+                plugin.getLogger().log(Level.WARNING, "Failed to import punishment data", e);
                 return new ImportResult(false, 0, 0, "Import failed: " + e.getMessage());
             }
-        });
+        }, ioExecutor);
     }
 
     public List<File> listExportFiles() {
@@ -157,6 +177,18 @@ public class DataExportService {
 
         File[] files = exportDir.listFiles((dir, name) -> name.endsWith(".json"));
         return files != null ? List.of(files) : List.of();
+    }
+
+    public void shutdown() {
+        ioExecutor.shutdown();
+        try {
+            if (!ioExecutor.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS)) {
+                ioExecutor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            ioExecutor.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
     }
 
     private ExportRecord toExportRecord(Punishment p) {
@@ -184,7 +216,7 @@ public class DataExportService {
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Unknown punishment type '" + r.type + "' for record " + r.punishmentId);
         }
-        UUID targetUuid = r.targetUuid != null ? UUID.fromString(r.targetUuid) : UUID.nameUUIDFromBytes("unknown".getBytes());
+        UUID targetUuid = r.targetUuid != null ? UUID.fromString(r.targetUuid) : UUID.nameUUIDFromBytes("unknown".getBytes(java.nio.charset.StandardCharsets.UTF_8));
 
         return Punishment.builder()
                 .punishmentId(r.punishmentId)

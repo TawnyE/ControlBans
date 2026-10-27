@@ -13,7 +13,6 @@ import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
-import org.slf4j.Logger;
 
 import com.google.inject.Inject;
 import java.io.ByteArrayInputStream;
@@ -24,25 +23,30 @@ import java.util.Locale;
 @Plugin(
         id = "controlbans",
         name = "ControlBans",
-        version = "5.0",
+        version = "6.3-hf1",
         authors = {"Tawny"}
 )
 public class VelocityEntryPoint {
 
     private final ProxyServer server;
-    private final Logger logger;
     private static final MinecraftChannelIdentifier CHANNEL = MinecraftChannelIdentifier.create("controlbans", "main");
 
+    // IMPORTANT: never inject an slf4j Logger here. The shaded jar relocates
+    // org.slf4j, so the constructor parameter would be a private relocated type
+    // that Velocity's Guice module cannot bind — the plugin then fails to load
+    // with "[Guice/MissingImplementation]: No implementation for Logger was bound".
+    // The platform logger keeps the entry point dependency-free.
+    private static final System.Logger LOGGER = System.getLogger("ControlBans");
+
     @Inject
-    public VelocityEntryPoint(ProxyServer server, Logger logger) {
+    public VelocityEntryPoint(ProxyServer server) {
         this.server = server;
-        this.logger = logger;
     }
 
     @Subscribe
     public void onProxyInitialization(ProxyInitializeEvent event) {
         server.getChannelRegistrar().register(CHANNEL);
-        logger.info("ControlBans Velocity extension enabled (Internal).");
+        LOGGER.log(System.Logger.Level.INFO, "ControlBans Velocity extension enabled (Internal).");
     }
 
     @Subscribe
@@ -66,11 +70,17 @@ public class VelocityEntryPoint {
 
             String action = json.get("action").getAsString().toUpperCase(Locale.ROOT);
 
+            boolean handled = true;
             switch (action) {
                 case "KICK_PLAYER" -> handleKick(json);
                 case "BROADCAST" -> handleBroadcast(json);
                 case "STAFF_ALERT" -> handleStaffAlert(json);
                 case "INVALIDATE_CACHE" -> handleCacheInvalidation(json, sourceConnection, event.getData());
+                default -> handled = false;
+            }
+            if (handled) {
+                // Consume the message so it isn't forwarded to players/other servers
+                event.setResult(PluginMessageEvent.ForwardResult.handled());
             }
         } catch (IOException | JsonParseException ignored) {}
     }

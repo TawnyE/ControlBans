@@ -10,6 +10,10 @@ import java.util.concurrent.CompletableFuture;
 
 public class AppealService {
 
+    public static final String STATUS_PENDING = "PENDING";
+    public static final String STATUS_APPROVED = "APPROVED";
+    public static final String STATUS_DENIED = "DENIED";
+
     private static final int MAX_MESSAGE_LENGTH = 2000;
 
     private final StorageInterface storage;
@@ -75,6 +79,26 @@ public class AppealService {
             message = message.substring(0, MAX_MESSAGE_LENGTH);
         }
         return message;
+    }
+
+    /**
+     * All submitted appeals, regardless of status, newest first.
+     */
+    public CompletableFuture<java.util.List<Appeal>> getAppeals() {
+        return storage.getAppeals();
+    }
+
+    /**
+     * Marks an appeal APPROVED/DENIED/PENDING. Returns false if no appeal with that id exists.
+     */
+    public CompletableFuture<Boolean> updateAppealStatus(int appealId, String status) {
+        return storage.updateAppealStatus(appealId, status);
+    }
+
+    /**
+     * Immutable snapshot of one submitted appeal.
+     */
+    public record Appeal(int id, String punishmentId, UUID targetUuid, String message, long createdAt, String status) {
     }
 
     public enum AppealStatus {

@@ -43,10 +43,12 @@ public class FreezeCommand extends CommandBase {
         plugin.getFreezeManager().toggleFreeze(uuid);
 
         boolean frozen = plugin.getFreezeManager().isFrozen(uuid);
-        String status = frozen ? locale.getRawMessage("freeze.frozen") : locale.getRawMessage("freeze.unfrozen");
+        net.kyori.adventure.text.Component status = frozen
+                ? locale.getMessage("freeze.frozen")
+                : locale.getMessage("freeze.unfrozen");
 
         sender.sendMessage(locale.getMessage("freeze.status", Placeholder.unparsed("player", target.getName()),
-                Placeholder.unparsed("status", status)));
+                Placeholder.component("status", status)));
 
         String alertKey = frozen ? "freeze" : "unfreeze";
         plugin.getNotificationService().sendStaffAlertForAction(alertKey, target.getName(), sender.getName());

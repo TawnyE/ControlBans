@@ -1,8 +1,6 @@
 package ret.tawny.controlbans.commands;
 
-import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 import ret.tawny.controlbans.ControlBansPlugin;
 
 import java.util.List;
@@ -20,27 +18,25 @@ public class BanSkinCommand extends CommandBase {
             sender.sendMessage(locale.getMessage("errors.no-permission"));
             return true;
         }
-
         if (args.length < 1) {
             sender.sendMessage(locale.getMessage("errors.invalid-arguments", usagePlaceholder("/" + label + " <player>")));
             return true;
         }
+        String targetName = args[0];
 
-        Player target = Bukkit.getPlayer(args[0]);
-        if (target == null || !target.isOnline()) {
-            sender.sendMessage(locale.getMessage("errors.player-offline", playerPlaceholder(args[0])));
-            return true;
-        }
-
-        boolean success = plugin.getSkinBanService().banSkin(target);
-
-        if (success) {
-            sender.sendMessage(locale.getMessage("skinban.success-ban", playerPlaceholder(target.getName())));
-            target.sendMessage(locale.getMessage("skinban.player-notification"));
-        } else {
-            sender.sendMessage(locale.getMessage("skinban.already-banned", playerPlaceholder(target.getName())));
-        }
-
+        punishmentService.getPlayerResolver().getPlayerUuid(targetName).whenComplete((uuid, throwable) ->
+                plugin.getSchedulerAdapter().runTask(() -> {
+                    if (throwable != null || uuid == null) {
+                        sender.sendMessage(locale.getMessage("errors.player-not-found", playerPlaceholder(targetName)));
+                        return;
+                    }
+                    if (plugin.getSkinBanService().isSkinBanned(uuid)) {
+                        sender.sendMessage(locale.getMessage("skins.already-banned", playerPlaceholder(targetName)));
+                        return;
+                    }
+                    plugin.getSkinBanService().banSkin(uuid);
+                    sender.sendMessage(locale.getMessage("skins.banned", playerPlaceholder(targetName)));
+                }));
         return true;
     }
 

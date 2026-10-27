@@ -1,6 +1,11 @@
 success:
   shadowmute-secret: "<gray>[<white>Shadow mute applied secretly<gray>]"
 
+escalation:
+  applied: "<#7FFF7F>✔ <#AAFFAA>Applied preset <white><preset><#AAFFAA> to <white><player><#AAFFAA> (<white><count><#AAFFAA> action(s))."
+  applied-actions: "<#B0B0B0>Applied: <gray><actions>"
+  error: "<#FF6B6B>✘ <#FF8E8E>Error applying preset: <white><error>"
+
 broadcasts:
   tempvoicemute: "<gradient:#9C27B0:#BA68C8><bold>VOICE MUTE</bold></gradient> <dark_gray>| <white><player> <#CE93D8>voice muted by <white><staff> <#CE93D8>for <#FFD93D><duration><#CE93D8>."
 
@@ -12,7 +17,103 @@ config-editor:
   updated: "<#7FFF7F>Updated <white><path><#7FFF7F> to <white><value><#7FFF7F>."
   save-failed: "<#FF6B6B>Failed to save configuration: <white><error>"
 
+report:
+  disabled: "<#FF6B6B>✘ <#FF8E8E>The report system is currently disabled."
+
+alts:
+  join-alert: "<red>[Alts]</red> <white><player> <gray>joined while sharing an IP with</gray> <white><count></white> <gray>banned account(s):</gray> <white><banned_players>"
+
+appeals:
+  approved-player-notify: "<#7FFF7F>✔ <#AAFFAA>Your appeal was approved. Your mute has been lifted."
+  denied-player-notify: "<#FF6B6B>✘ <#FF8E8E>Your appeal was denied. Your mute remains active."
+  approved-staff: "<#7FFF7F>✔ <#AAFFAA>Appeal approved. <white><player><#AAFFAA> unmuted."
+  approved-no-mute: "<#FFD93D>⚠ Appeal approved, but <white><player><#FFD93D> is not currently muted."
+  denied-staff: "<#7FFF7F>✔ <#AAFFAA>Appeal for <white><player><#AAFFAA> denied."
+
+skins:
+  banned: "<#7FFF7F>✔ <#AAFFAA>Skin of <white><player><#AAFFAA> has been forced to the default skin."
+  unbanned: "<#7FFF7F>✔ <#AAFFAA>Skin ban removed for <white><player><#AAFFAA>."
+  not-banned: "<#FF6B6B>✘ <#FF8E8E>Player '<white><player><#FF8E8E>' is not skin banned."
+  already-banned: "<#FF6B6B>✘ <#FF8E8E>Player '<white><player><#FF8E8E>' is already skin banned."
+
 gui:
+  report-creator:
+    title: "<#FF6B6B>Report <white><player>"
+    click-to-select:
+      - "<#8BC4EA>▶ Click to select</#8BC4EA>"
+    custom-reason-name: "<#B0E0E6>✎ Write your own reason"
+    custom-reason-lore:
+      - "<gray>Type a custom report reason"
+      - "<gray>in chat."
+      - " "
+      - "<#8BC4EA>▶ Click to write</#8BC4EA>"
+    prompt-chat-message: "<#FFD93D>Report >> <white>Type the reason for reporting <yellow><player> <white>in chat, or type '<yellow>cancel<white>'."
+    cancelled: "<#FF6B6B>Report cancelled."
+  staff-reports:
+    title: "<#FFD93D>Reports <gray>(<filter>) <white><page><gray>/<white><maxpage>"
+    detail-title: "<#FFD93D>Report: <white><target>"
+    item-name: "<#8BC4EA><target>"
+    item-lore:
+      - "<#B0B0B0>Reporter: <white><reporter>"
+      - "<#B0B0B0>Category: <white><category>"
+      - "<status>"
+      - "<#B0B0B0><time> ago (<gray><date><#B0B0B0>)"
+      - "<#B0B0B0>Reason: <white><reason>"
+      - " "
+      - "<#FFD93D>▶ Click to manage"
+    status-pending: "<#F1C40F>⌛ PENDING"
+    status-resolved: "<#2ECC71>✔ RESOLVED"
+    status-rejected: "<#E74C3C>✘ REJECTED"
+    filter-name: "<#FFD93D>Filter: <white><filter>"
+    filter-lore:
+      - "<gray>Click to cycle:"
+      - "<gray>ALL → PENDING → RESOLVED → REJECTED"
+    back: "<#8BC4EA>◀ Back to list"
+    target-head-name: "<#8BC4EA>Target: <white><player>"
+    reporter-head-name: "<#B0E0E6>Reporter: <white><player>"
+    teleport-hint:
+      - "<gray>Left-click: teleport to <white><player>"
+    info-name: "<#FFD93D>Report Details"
+    info-id: "<#B0B0B0>ID: <white><id>"
+    info-reason-line: "<#B0B0B0>Reason: <white><reason>"
+    info-category: "<#B0B0B0>Category: <white><category>"
+    info-date: "<#B0B0B0>Date: <white><date>"
+    info-status: "<#B0B0B0>Status: <white><status>"
+    action-resolve: "<#2ECC71>✔ Mark Resolved"
+    action-reopen: "<#F1C40F>↺ Reopen (Pending)"
+    action-reject: "<#E74C3C>✘ Reject"
+    action-delete: "<#E74C3C>Delete report"
+    action-delete-confirm: "<#FF5555>⚠ Click again to confirm delete"
+    deleted: "<#7FFF7F>✔ <#AAFFAA>Report <white><id><#AAFFAA> deleted."
+    report-not-found: "<#FF6B6B>✘ <#FF8E8E>That report no longer exists."
+    teleported: "<#7FFF7F>✔ <#AAFFAA>Teleported to <white><player><#AAFFAA>."
+    player-not-online: "<#FF6B6B>✘ <#FF8E8E><white><player><#FF8E8E> is not online."
+  appeals:
+    title: "<#FFD93D>Appeals <white><page><gray>/<white><maxpage>"
+    detail-title: "<#FFD93D>Appeal: <white><player>"
+    item-name: "<#8BC4EA><player>"
+    item-lore:
+      - "<status>"
+      - "<#B0B0B0>Message: <white><message>"
+      - "<#B0B0B0>Date: <gray><date>"
+      - " "
+      - "<#FFD93D>▶ Click to review"
+    status-pending: "<#F1C40F>⌛ PENDING"
+    status-approved: "<#2ECC71>✔ APPROVED"
+    status-denied: "<#E74C3C>✘ DENIED"
+    empty: "<#2ECC71>✔ No appeals submitted"
+    back: "<#8BC4EA>◀ Back to list"
+    head-name: "<#8BC4EA>Appellant: <white><player>"
+    info-name: "<#FFD93D>Appeal Details"
+    info-id: "<#B0B0B0>Appeal ID: <white><id>"
+    info-mute-reason: "<#B0B0B0>Mute reason: <white><reason> <gray>(<id>)"
+    info-mute-none: "<#B0B0B0>Mute: <gray>none active"
+    info-message-line: "<#B0B0B0>Appeal: <white><message>"
+    info-date: "<#B0B0B0>Date: <white><date>"
+    info-status: "<#B0B0B0>Status: <white><status>"
+    action-approve: "<#2ECC71>✔ Approve & Unmute"
+    action-deny: "<#E74C3C>✘ Deny"
+    appeal-not-found: "<#FF6B6B>✘ <#FF8E8E>That appeal no longer exists."
   history:
     summary-total: "<#FFD93D>Total Punishments: <count>"
     summary-bans: "<#B0B0B0>Bans: <red><count></red>"
@@ -62,6 +163,7 @@ gui:
   my-reports:
     title: "My Reports (<page>/<maxpage>)"
     item-name: "<#8BC4EA>Report: <white><target>"
+    item-category: "<#B0B0B0>Category: <white><category>"
     item-lore:
       - "<#B0B0B0>Reason: <white><reason>"
       - "<#B0B0B0>Date: <white><date>"
@@ -85,6 +187,23 @@ gui:
     prompt-example-duration: "<#B0B0B0>Example: 1d Hacking"
     prompt-cancel: "<#B0B0B0>Type 'cancel' to abort."
     prompt-cancelled: "<#FF6B6B>Cancelled."
+  punish-dialog:
+    category-title: "<red>⛏ Punish · <player></red>"
+    category-body: "<gray>Select a category. Options outside your rank or duration limit are disabled.</gray>"
+    category-text: "✎ In-game chat"
+    category-text-tooltip: "<gray>Punish text chat offenses.</gray>"
+    category-voice: "☎ Voice chat"
+    category-voice-tooltip: "<gray>Punish voice chat offenses.</gray>"
+    category-both: "⚔ Chat & Voice"
+    category-both-tooltip: "<gray>Apply every action of the preset (text + voice).</gray>"
+    preset-title: "<red>⚖ <category> · <player></red>"
+    preset-body: "<gray>Select an offense. Everything in the preset is applied at once. Add notes below.</gray>"
+    preset-actions-list: "<dark_gray>Actions: <gray><actions>"
+    preset-click-hint: "<gray>Click to select</gray>"
+    notes-prompt: "<gray>Optional notes (leave empty or type '<yellow>skip</yellow>' for none):"
+    notes-skip: "skip"
+    no-presets: "<#FF6B6B>No escalation presets are configured."
+    session-expired: "<#FF6B6B>Your punish session expired. Re-open the menu with /punish <player>."
 
 admin:
   rollback:
@@ -93,6 +212,42 @@ admin:
     none-found: "<#FFD93D>Rollback >> <#FF8E8E>No active punishments found for that staff member in the requested timeframe."
     found: "<#FFD93D>Rollback >> <white><count><#B0B0B0> punishments found. Reverting..."
     success: "<#7FFF7F>Rollback >> <white><count><#AAFFAA> action(s) reverted."
+
+scheduled:
+  list-empty: "<#7FFF7F>✔ No scheduled punishments."
+  list-header: "<gradient:#FF9800:#FFB74D><bold>Scheduled Punishments</bold></gradient> <#B0B0B0>(<#FFD93D><count><#B0B0B0>)"
+  list-entry: "<#B0B0B0>• <#FFD93D><id> <#B0B0B0>- <white><type> <gray>on <white><target> <#B0B0B0>- <#555555><time>"
+  cancelled: "<#7FFF7F>✔ <#AAFFAA>Cancelled scheduled punishment <white><id><#AAFFAA>."
+  not-found: "<#FF6B6B>✘ <#FF8E8E>Scheduled punishment <white><id><#FF8E8E> not found."
+  check-header: "<gradient:#FF9800:#FFB74D><bold>Scheduled Punishment <id></bold></gradient>"
+  check-type: "<#B0B0B0>  Type: <white><type>"
+  check-target: "<#B0B0B0>  Target: <white><target>"
+  check-reason: "<#B0B0B0>  Reason: <white><reason>"
+  check-time: "<#B0B0B0>  Execute: <white><time>"
+  check-staff: "<#B0B0B0>  Staff: <white><staff>"
+
+bulkpunish:
+  starting: "<#5DADE2>⏳ <#8BC4EA>Punishing <white><count><#8BC4EA> player(s) immediately..."
+  scheduling: "<#5DADE2>⏳ <#8BC4EA>Scheduling punishments for <white><count><#8BC4EA> player(s)..."
+  scheduled: "<#7FFF7F>✔ <#AAFFAA>Scheduled punishments for <white><count><#AAFFAA> player(s)."
+  complete: "<#7FFF7F>✔ <#AAFFAA>Bulk punishment complete. <white><success><#AAFFAA>/<white><failed><#AAFFAA> successful."
+  cancelled: "<#FF6B6B>✘ <#FF8E8E>Bulk punishment cancelled."
+  no-session: "<#FF6B6B>✘ <#FF8E8E>You don't have an active session."
+  invalid-action: "<#FF6B6B>✘ <#FF8E8E>Invalid punishment type."
+  invalid-targets: "<#FF6B6B>✘ <#FF8E8E>Please provide at least one player name."
+  prompt-action: "<#FFD93D>Select punishment type: <white>ban, tempban, mute, tempmute, kick, warn, voicemute, tempvoicemute, ipban, ipmute</#FFD93D>"
+  prompt-targets: "<#FFD93D>Enter player names separated by spaces:</#FFD93D>"
+  prompt-duration: "<#FFD93D>Enter duration (e.g. 30d, 7d, 1h):</#FFD93D>"
+  prompt-reason: "<#FFD93D>Enter the reason (or type 'none'):</#FFD93D>"
+  prompt-schedule: "<#FFD93D>Schedule time (e.g. 1h = 1 hour from now, or type 'now'/'skip'):</#FFD93D>"
+  confirm-header: "<gradient:#FF9800:#FFB74D><bold>Review Your Bulk Punishment</bold></gradient>"
+  confirm-action: "<#B0B0B0>  Action: <white><action>"
+  confirm-targets: "<#B0B0B0>  Targets: <white><players>"
+  confirm-duration: "<#B0B0B0>  Duration: <white><duration>"
+  confirm-reason: "<#B0B0B0>  Reason: <white><reason>"
+  confirm-schedule: "<#B0B0B0>  Schedule: <#FFD93D><time>"
+  confirm-immediate: "<#B0B0B0>  Execution: <green>Immediate"
+  confirm-prompt: "<#7FFF7F>Type '<white>yes<#7FFF7F>' to confirm or '<white>no<#7FFF7F>' to cancel."
 
 staff-alerts:
   prefix: "<gradient:#E74C3C:#C0392B><bold>⚠ STAFF</bold></gradient> <dark_gray>┃"

@@ -1,0 +1,176 @@
+# ==============================================================================
+# CONTROLBANS — ESCALATION PRESETS (used by /punish)
+# ==============================================================================
+# One preset = one "offense package" that can fire MULTIPLE punishments at once.
+# Example: preset "racism" applies a permanent MUTE and a permanent VOICEMUTE.
+#
+# ── HOW STAFF USE IT ──
+#   /punish <player>            → opens the punish UI:
+#        screen 1: pick a chat category (In-Game Chat / Voice Chat / Both)
+#        screen 2: pick a preset from this file (+ optional notes)
+#   /punish <player> <presetId> [notes...]  → applies a preset directly
+#        (with the BOTH category, e.g. /punish Steve racism he used a slur)
+#
+# ── CATEGORY FILTERING ──
+#   Choosing "Voice Chat" only runs VOICEMUTE/TEMPVOICEMUTE actions.
+#   Choosing "In-Game Chat" runs everything EXCEPT voice actions.
+#   Choosing "Both" runs ALL actions of the preset.
+#
+# ── ACTION FORMAT ──
+#   "<TYPE>"              for permanent punishments (e.g. "MUTE")
+#   "<TYPE> <duration>"   for temporary punishments (e.g. "TEMPBAN 7d")
+#
+#   Valid types: BAN, TEMPBAN, IPBAN, MUTE, TEMPMUTE, IPMUTE, WARN, KICK,
+#                VOICEMUTE, TEMPVOICEMUTE
+#   Duration formats: 30m, 1h, 12h, 1d, 7d, 30d ...
+#
+#   ⚠ Avoid two actions of the same family in one preset (e.g. "MUTE" and
+#     "TEMPMUTE 1h"): the duplicate-punishment guard (same as /ban, /mute,
+#     /voicemute) blocks the second one because the player is already muted.
+#     Use different types — that's what a preset is for.
+#
+# ── FIELDS ──
+#   display-name: label shown in the UI (MiniMessage colors allowed)
+#   description:  tooltip text
+#   icon:         any Bukkit Material name for the GUI icon
+#   permission:   (optional) extra permission required to USE this preset.
+#                 Empty = no extra permission beyond controlbans.punish.
+#   reason:       punishment reason prefix ("PresetId: <reason> | staff notes")
+#   targets:      which category tabs the preset appears under:
+#                 [text], [voice], or [text, voice]
+#
+# Invalid actions are skipped with a console warning at startup — the server
+# still boots and other presets keep working. Missing keys are back-filled
+# from the bundled defaults on boot; your own edits are never overwritten.
+# ==============================================================================
+
+presets:
+  racism:
+    display-name: "☠ Racism / Hate Speech"
+    description: "Slurs or hate speech in chat or voice"
+    icon: "RED_CANDLE"
+    permission: ""
+    reason: "Hate speech"
+    targets: [text, voice]
+    actions:
+      - "MUTE"
+      - "VOICEMUTE"
+
+  spam:
+    display-name: "⚡ Spamming"
+    description: "Flooding chat or voice"
+    icon: "ORANGE_CANDLE"
+    permission: ""
+    reason: "Spamming"
+    targets: [text, voice]
+    actions:
+      - "TEMPMUTE 1h"
+      - "TEMPVOICEMUTE 1h"
+
+  toxicity:
+    display-name: "☣ Toxic Behaviour"
+    description: "Being rude or hostile to other players"
+    icon: "REDSTONE"
+    permission: ""
+    reason: "Toxicity"
+    targets: [text, voice]
+    actions:
+      - "WARN"
+      - "TEMPMUTE 12h"
+
+  harassment:
+    display-name: "☹ Harassment"
+    description: "Targeting or bullying other players"
+    icon: "PURPLE_CANDLE"
+    permission: ""
+    reason: "Harassment"
+    targets: [text, voice]
+    actions:
+      - "TEMPMUTE 3d"
+      - "TEMPVOICEMUTE 3d"
+
+  advertising:
+    display-name: "✉ Advertising"
+    description: "Advertising other servers or services"
+    icon: "PAPER"
+    permission: ""
+    reason: "Advertising"
+    targets: [text, voice]
+    actions:
+      - "TEMPMUTE 7d"
+      - "TEMPVOICEMUTE 7d"
+
+  cheating:
+    display-name: "⚔ Cheating / X-Ray"
+    description: "Unfair modifications (killaura, fly, x-ray)"
+    icon: "DIAMOND_SWORD"
+    permission: ""
+    reason: "Cheating"
+    targets: [text]
+    actions:
+      - "TEMPBAN 30d"
+
+  griefing:
+    display-name: "⛏ Griefing"
+    description: "Destroying or stealing other players' builds"
+    icon: "TNT"
+    permission: ""
+    reason: "Griefing"
+    targets: [text]
+    actions:
+      - "TEMPBAN 7d"
+      - "KICK"
+
+  impersonation:
+    display-name: "✎ Impersonation"
+    description: "Pretending to be staff or another player"
+    icon: "NAME_TAG"
+    permission: ""
+    reason: "Impersonation"
+    targets: [text]
+    actions:
+      - "TEMPBAN 14d"
+      - "WARN"
+
+  exploit:
+    display-name: "⚙ Exploiting"
+    description: "Abusing bugs or duping items"
+    icon: "COMMAND_BLOCK"
+    permission: ""
+    reason: "Exploiting"
+    targets: [text]
+    actions:
+      - "TEMPBAN 30d"
+      - "KICK"
+
+  teaming:
+    display-name: "⚑ Teaming"
+    description: "Teaming in solo game modes"
+    icon: "LEAD"
+    permission: ""
+    reason: "Teaming"
+    targets: [text]
+    actions:
+      - "WARN"
+      - "TEMPBAN 3d"
+
+  ban-evasion:
+    display-name: "⛔ Ban Evasion"
+    description: "Evading an active punishment with alts"
+    icon: "BARRIER"
+    permission: "controlbans.mod"
+    reason: "Ban evasion"
+    targets: [text]
+    actions:
+      - "BAN"
+
+  inappropriate-skin:
+    display-name: "⚠ Inappropriate Skin"
+    description: "Offensive or explicit skin"
+    icon: "PAINTING"
+    permission: ""
+    reason: "Inappropriate skin"
+    targets: [text]
+    actions:
+      - "KICK"
+      - "TEMPBAN 1d"

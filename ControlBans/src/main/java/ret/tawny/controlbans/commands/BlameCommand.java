@@ -80,7 +80,7 @@ public class BlameCommand extends CommandBase {
             }
 
             lines.add(Component.empty());
-            lines.add(locale.getMessage("banlist.page-info",
+            lines.add(locale.getMessage("blame.page-info",
                     Placeholder.unparsed("page", String.valueOf(currentPage)),
                     Placeholder.unparsed("maxpage", String.valueOf(maxPage))));
 

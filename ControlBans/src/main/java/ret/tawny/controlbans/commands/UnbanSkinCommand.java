@@ -1,7 +1,5 @@
 package ret.tawny.controlbans.commands;
 
-import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import ret.tawny.controlbans.ControlBansPlugin;
 
@@ -16,32 +14,37 @@ public class UnbanSkinCommand extends CommandBase {
 
     @Override
     public boolean execute(CommandSender sender, String[] args) {
-        if (!sender.hasPermission("controlbans.banskin")) {
+        if (!sender.hasPermission("controlbans.unbanskin")) {
             sender.sendMessage(locale.getMessage("errors.no-permission"));
             return true;
         }
-
         if (args.length < 1) {
             sender.sendMessage(locale.getMessage("errors.invalid-arguments", usagePlaceholder("/" + label + " <player>")));
             return true;
         }
+        String targetName = args[0];
 
-        @SuppressWarnings("deprecation")
-        OfflinePlayer target = Bukkit.getOfflinePlayer(args[0]);
-
-        if (!plugin.getSkinBanService().isSkinBanned(target.getUniqueId())) {
-            sender.sendMessage(locale.getMessage("skinban.not-banned", playerPlaceholder(target.getName())));
-            return true;
-        }
-
-        plugin.getSkinBanService().unbanSkin(target);
-        sender.sendMessage(locale.getMessage("skinban.success-unban", playerPlaceholder(target.getName())));
-
+        punishmentService.getPlayerResolver().getPlayerUuid(targetName).whenComplete((uuid, throwable) ->
+                plugin.getSchedulerAdapter().runTask(() -> {
+                    if (throwable != null || uuid == null) {
+                        sender.sendMessage(locale.getMessage("errors.player-not-found", playerPlaceholder(targetName)));
+                        return;
+                    }
+                    if (!plugin.getSkinBanService().isSkinBanned(uuid)) {
+                        sender.sendMessage(locale.getMessage("skins.not-banned", playerPlaceholder(targetName)));
+                        return;
+                    }
+                    plugin.getSkinBanService().unbanSkin(uuid);
+                    sender.sendMessage(locale.getMessage("skins.unbanned", playerPlaceholder(targetName)));
+                }));
         return true;
     }
 
     @Override
     public List<String> onTab(CommandSender sender, String[] args) {
+        if (args.length == 1) {
+            return getPlayerSuggestions(args[0]);
+        }
         return List.of();
     }
 }

@@ -17,6 +17,12 @@ import java.util.logging.Level;
 
 public class ReportService {
 
+    public static final String STATUS_PENDING = "PENDING";
+    public static final String STATUS_RESOLVED = "RESOLVED";
+    public static final String STATUS_REJECTED = "REJECTED";
+    /** Legacy status treated as rejected for display/purge purposes. */
+    public static final String STATUS_DISMISSED_LEGACY = "DISMISSED";
+
     private final ControlBansPlugin plugin;
     private final StorageInterface storage;
     private final Map<UUID, Long> lastReportTime = new ConcurrentHashMap<>();
@@ -41,7 +47,7 @@ public class ReportService {
             if (loaded != null && !loaded.isEmpty()) {
                 CompletableFuture<Void> all = CompletableFuture.completedFuture(null);
                 for (Report r : loaded) {
-                    all = all.thenCompose(v -> storage.insertReport(r.id(), r.reporterUuid(), r.reporterName(), r.targetName(), r.reason(), r.timestamp(), r.status()));
+                    all = all.thenCompose(v -> storage.insertReport(r.id(), r.reporterUuid(), r.reporterName(), r.targetName(), r.targetUuid(), r.reason(), r.category(), r.timestamp(), r.status()));
                 }
                 all.thenRun(() -> {
                     reportsFile.renameTo(new File(plugin.getDataFolder(), "reports.json.migrated"));
@@ -58,63 +64,94 @@ public class ReportService {
         }
     }
 
-    public boolean submitReport(UUID reporterUuid, String reporterName, String targetName, String reason) {
-        long lastTime = lastReportTime.getOrDefault(reporterUuid, 0L);
-        long now = System.currentTimeMillis();
-        long cooldownMs = 60_000L;
+    public CompletableFuture<Boolean> submitReport(UUID reporterUuid, String reporterName, String targetName, String reason) {
+        return submitReport(reporterUuid, reporterName, targetName, null, reason, null);
+    }
 
-        if (now - lastTime < cooldownMs) {
+    public CompletableFuture<Boolean> submitReport(UUID reporterUuid, String reporterName, String targetName, UUID targetUuid, String reason, String category) {
+        if (!plugin.getConfigManager().isReportEnabled()) {
+            Player p = plugin.getServer().getPlayer(reporterUuid);
+            if (p != null) {
+                p.sendMessage(plugin.getLocaleManager().getMessage("report.disabled"));
+            }
+            return CompletableFuture.completedFuture(false);
+        }
+
+        long now = System.currentTimeMillis();
+        long cooldownMs = Math.max(0L, plugin.getConfigManager().getReportCooldownSeconds()) * 1000L;
+        long duplicateWindowMs = Math.max(0L, plugin.getConfigManager().getReportDuplicateWindowSeconds()) * 1000L;
+
+        if (reporterName != null && reporterName.equalsIgnoreCase(targetName)) {
+            Player p = plugin.getServer().getPlayer(reporterUuid);
+            if (p != null) {
+                p.sendMessage(plugin.getLocaleManager().getMessage("report.self-report"));
+            }
+            return CompletableFuture.completedFuture(false);
+        }
+
+        java.util.concurrent.atomic.AtomicBoolean allowed = new java.util.concurrent.atomic.AtomicBoolean(false);
+        lastReportTime.compute(reporterUuid, (k, old) -> {
+            if (old != null && now - old < cooldownMs) {
+                return old; // still on cooldown
+            }
+            allowed.set(true);
+            return now;
+        });
+        if (!allowed.get()) {
+            long lastTime = lastReportTime.getOrDefault(reporterUuid, now - cooldownMs);
             long remaining = (cooldownMs - (now - lastTime)) / 1000;
             Player p = plugin.getServer().getPlayer(reporterUuid);
             if (p != null) {
                 p.sendMessage(plugin.getLocaleManager().getMessage("report.cooldown",
                         net.kyori.adventure.text.minimessage.tag.resolver.Placeholder.unparsed("duration", remaining + "s")));
             }
-            return false;
+            return CompletableFuture.completedFuture(false);
         }
 
-        storage.getReportsByReporter(reporterUuid).thenAccept(reports -> {
+        return storage.getReportsByReporter(reporterUuid).thenCompose(reports -> {
             for (Report r : reports) {
-                if (r.targetName().equalsIgnoreCase(targetName) && (now - r.timestamp()) < 300_000L) {
+                if (r.targetName().equalsIgnoreCase(targetName) && (now - r.timestamp()) < duplicateWindowMs) {
+                    lastReportTime.remove(reporterUuid);
                     Player p = plugin.getServer().getPlayer(reporterUuid);
                     if (p != null) {
                         p.sendMessage(plugin.getLocaleManager().getMessage("report.already-reported"));
                     }
-                    return;
+                    return CompletableFuture.completedFuture(false);
                 }
             }
 
-            Report report = new Report(UUID.randomUUID().toString(), reporterUuid, reporterName, targetName, reason, now, "PENDING");
-            storage.insertReport(report.id(), report.reporterUuid(), report.reporterName(), report.targetName(), report.reason(), report.timestamp(), report.status())
-                    .thenRun(() -> {
-                        lastReportTime.put(reporterUuid, now);
-                        notifyStaff(report);
-                        Player p = plugin.getServer().getPlayer(reporterUuid);
-                        if (p != null) {
-                            p.sendMessage(plugin.getLocaleManager().getMessage("report.submitted",
-                                    net.kyori.adventure.text.minimessage.tag.resolver.Placeholder.unparsed("player", targetName)));
-                        }
+            Report report = new Report(UUID.randomUUID().toString(), reporterUuid, reporterName, targetName, targetUuid, reason, normalizeCategory(category), now, STATUS_PENDING);
+            return storage.insertReport(report.id(), report.reporterUuid(), report.reporterName(), report.targetName(), report.targetUuid(), report.reason(), report.category(), report.timestamp(), report.status())
+                    .thenApply(v -> {
+                        plugin.getSchedulerAdapter().runTask(() -> {
+                            notifyStaff(report);
+                            Player p = plugin.getServer().getPlayer(reporterUuid);
+                            if (p != null) {
+                                p.sendMessage(plugin.getLocaleManager().getMessage("report.submitted",
+                                        net.kyori.adventure.text.minimessage.tag.resolver.Placeholder.unparsed("player", targetName)));
+                            }
+                        });
+                        return true;
                     });
         });
-
-        return true;
     }
 
     private void notifyStaff(Report report) {
-        plugin.getSchedulerAdapter().runTask(() -> {
-            net.kyori.adventure.text.Component message = plugin.getLocaleManager().getMessage("report.staff-alert",
-                    net.kyori.adventure.text.minimessage.tag.resolver.Placeholder.unparsed("reporter", report.reporterName()),
-                    net.kyori.adventure.text.minimessage.tag.resolver.Placeholder.unparsed("player", report.targetName()),
-                    net.kyori.adventure.text.minimessage.tag.resolver.Placeholder.unparsed("reason", report.reason()));
+        net.kyori.adventure.text.Component message = plugin.getLocaleManager().getMessage("report.staff-alert",
+                net.kyori.adventure.text.minimessage.tag.resolver.Placeholder.unparsed("reporter", report.reporterName()),
+                net.kyori.adventure.text.minimessage.tag.resolver.Placeholder.unparsed("player", report.targetName()),
+                net.kyori.adventure.text.minimessage.tag.resolver.Placeholder.unparsed("reason", report.reason()));
+        String perm = plugin.getConfigManager().getReportNotifyPermission();
 
-            for (var player : plugin.getServer().getOnlinePlayers()) {
-                if (player.hasPermission("controlbans.alerts.receive")) {
-                    player.sendMessage(message);
-                }
+        for (var player : plugin.getServer().getOnlinePlayers()) {
+            if (player.hasPermission("controlbans.alerts.receive") || player.hasPermission(perm)) {
+                player.sendMessage(message);
             }
-        });
+        }
 
-        plugin.getIntegrationService().onReport(report);
+        try {
+            if (plugin.getIntegrationService() != null) plugin.getIntegrationService().onReport(report);
+        } catch (Exception ignored) {}
     }
 
     public CompletableFuture<List<Report>> getReports() {
@@ -129,13 +166,32 @@ public class ReportService {
         return storage.updateReportStatus(id, status);
     }
 
+    public CompletableFuture<Optional<Report>> getReport(String id) {
+        return storage.getReport(id);
+    }
+
+    public CompletableFuture<Boolean> deleteReport(String id) {
+        return storage.deleteReport(id);
+    }
+
+    private static String normalizeCategory(String category) {
+        return (category == null || category.isBlank()) ? "other" : category;
+    }
+
+    /** Legacy "DISMISSED" is displayed as REJECTED. */
+    public static String displayStatus(String status) {
+        if (status == null) return STATUS_PENDING;
+        return STATUS_DISMISSED_LEGACY.equalsIgnoreCase(status) ? STATUS_REJECTED : status.toUpperCase();
+    }
+
     public void cleanupPlayer(UUID uuid) {
         lastReportTime.remove(uuid);
     }
 
-    public record Report(String id, UUID reporterUuid, String reporterName, String targetName, String reason, long timestamp, String status) {
+    public record Report(String id, UUID reporterUuid, String reporterName, String targetName, UUID targetUuid, String reason, String category, long timestamp, String status) {
         public Report {
-            if (status == null) status = "PENDING";
+            if (status == null) status = STATUS_PENDING;
+            category = normalizeCategory(category);
         }
     }
 }

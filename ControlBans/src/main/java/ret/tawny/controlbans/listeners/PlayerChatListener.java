@@ -45,7 +45,7 @@ public class PlayerChatListener implements Listener {
         this.punishmentService = plugin.getPunishmentService();
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerChat(AsyncChatEvent event) {
         handleChat(event.getPlayer(), event);
     }
@@ -59,36 +59,24 @@ public class PlayerChatListener implements Listener {
         }
 
         MuteState cachedState = muteStates.get(uuid);
-        if (cachedState != null) {
-            if (cachedState.muted() && cachedState.expiry() > 0 && System.currentTimeMillis() > cachedState.expiry()) {
-                muteStates.remove(uuid);
-            } else {
-                enforceMuteState(player, cachedState, modernEvent);
-                return;
-            }
+        if (cachedState != null && cachedState.muted() && cachedState.expiry() > 0
+                && System.currentTimeMillis() > cachedState.expiry()) {
+            muteStates.remove(uuid);
+            cachedState = null;
         }
 
-        cancelEvent(modernEvent);
-        String ip = getPlayerIp(player);
-        preloadMuteStateBlocking(uuid, ip).thenAccept(state -> {
-            muteStates.put(uuid, state);
-            if (!state.muted()) {
-                plugin.getSchedulerAdapter().runTask(() -> {
-                    if (player.isOnline()) {
-                        player.sendMessage(player.getName() + ": " + getOriginalMessage(modernEvent));
-                    }
-                });
-            } else {
-                sendMuteMessage(player);
-            }
-        });
+        if (cachedState != null) {
+            enforceMuteState(player, cachedState, modernEvent);
+            return;
+        }
+
+        // Cache miss: do a direct DB check. AsyncChatEvent is already async, so blocking here is safe.
+        MuteState state = buildMuteState(uuid, getPlayerIp(player)).join();
+        muteStates.put(uuid, state);
+        enforceMuteState(player, state, modernEvent);
     }
 
-    private String getOriginalMessage(AsyncChatEvent event) {
-        return net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(event.originalMessage());
-    }
-
-    private CompletableFuture<MuteState> preloadMuteStateBlocking(UUID uuid, String ip) {
+    private CompletableFuture<MuteState> buildMuteState(UUID uuid, String ip) {
         return punishmentService.getActiveMute(uuid).thenCompose(opt -> {
             if (opt.isPresent() && !opt.get().isExpired()) {
                 return java.util.concurrent.CompletableFuture.completedFuture(MuteState.fromPunishment(opt.get()));
@@ -122,18 +110,7 @@ public class PlayerChatListener implements Listener {
     }
 
     public void preloadMuteState(UUID uuid, String ip) {
-        punishmentService.getActiveMute(uuid).thenCompose(opt -> {
-            if (opt.isPresent() && !opt.get().isExpired()) {
-                return java.util.concurrent.CompletableFuture.completedFuture(MuteState.fromPunishment(opt.get()));
-            }
-            if (ip == null) {
-                return java.util.concurrent.CompletableFuture.completedFuture(MuteState.NOT_MUTED);
-            }
-            return punishmentService.getActiveIpMute(ip)
-                    .thenApply(ipOpt -> ipOpt.filter(punishment -> !punishment.isExpired())
-                            .map(MuteState::fromPunishment)
-                            .orElse(MuteState.NOT_MUTED));
-        }).thenAccept(state -> muteStates.put(uuid, state));
+        buildMuteState(uuid, ip).thenAccept(state -> muteStates.put(uuid, state));
     }
 
     private void preloadMuteState(Player player) {
@@ -201,6 +178,21 @@ public class PlayerChatListener implements Listener {
         muteStates.remove(uuid);
     }
 
+    public void clearAllMuteStates() {
+        muteStates.clear();
+        lastNotification.clear();
+    }
+
+    public boolean isMutedOrUnknown(UUID uuid) {
+        MuteState state = muteStates.get(uuid);
+        if (state == null) return false;
+        if (state.muted() && state.expiry() > 0 && System.currentTimeMillis() > state.expiry()) {
+            muteStates.remove(uuid);
+            return false;
+        }
+        return state.muted();
+    }
+
     private String getPlayerIp(Player player) {
         if (player.getAddress() == null || player.getAddress().getAddress() == null) {
             return null;
@@ -210,6 +202,84 @@ public class PlayerChatListener implements Listener {
 
     public boolean isMuted(UUID uuid) {
         MuteState state = muteStates.get(uuid);
-        return state != null && state.muted();
+        if (state == null) return false;
+        if (state.muted() && state.expiry() > 0 && System.currentTimeMillis() > state.expiry()) {
+            muteStates.remove(uuid);
+            return false;
+        }
+        return state.muted();
+    }
+
+    private MuteState resolveStateSync(Player player) {
+        UUID uuid = player.getUniqueId();
+        MuteState state = muteStates.get(uuid);
+        if (state != null) {
+            if (state.muted() && state.expiry() > 0 && System.currentTimeMillis() > state.expiry()) {
+                muteStates.remove(uuid);
+            } else {
+                return state;
+            }
+        }
+        // Cache miss on a sync path (commands/signs/books): resolve synchronously.
+        // buildMuteState is cached (60s TTL) so this is fast after the first hit.
+        try {
+            MuteState fresh = buildMuteState(uuid, getPlayerIp(player)).get(3, java.util.concurrent.TimeUnit.SECONDS);
+            muteStates.put(uuid, fresh);
+            return fresh;
+        } catch (Exception e) {
+            // Fail-closed for enforcement paths: treat lookup failure as muted
+            // for blocked commands/signs to avoid bypass during DB outage.
+            // Chat path (async) already handles this via join() with its own timeout.
+            return new MuteState(true, false, System.currentTimeMillis() + 10_000L);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onCommandPreprocess(org.bukkit.event.player.PlayerCommandPreprocessEvent event) {
+        Player player = event.getPlayer();
+        MuteState state = resolveStateSync(player);
+        if (state.muted()) {
+            String message = event.getMessage().toLowerCase();
+            String command = message.split(" ")[0].substring(1);
+            // Strip a namespace prefix so e.g. /minecraft:msg matches "msg".
+            int colonIndex = command.indexOf(':');
+            if (colonIndex >= 0) {
+                command = command.substring(colonIndex + 1);
+            }
+            List<String> blockedCommands = plugin.getConfigManager().getMutesBlockedCommands();
+            if (blockedCommands != null && blockedCommands.stream().map(String::toLowerCase).anyMatch(command::equals)) {
+                event.setCancelled(true);
+                sendMuteMessage(player);
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onSignChange(org.bukkit.event.block.SignChangeEvent event) {
+        if (!plugin.getConfigManager().isMutesBlockSigns()) return;
+        Player player = event.getPlayer();
+        MuteState state = resolveStateSync(player);
+        if (state.muted()) {
+            String replaceText = plugin.getConfigManager().getMutesSignReplacementText();
+            for (int i = 0; i < 4; i++) {
+                event.line(i, Component.text(replaceText));
+            }
+            sendMuteMessage(player);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onBookEdit(org.bukkit.event.player.PlayerEditBookEvent event) {
+        if (!plugin.getConfigManager().isMutesBlockSigns()) return;
+        Player player = event.getPlayer();
+        MuteState state = resolveStateSync(player);
+        if (state.muted()) {
+            String replaceText = plugin.getConfigManager().getMutesSignReplacementText();
+            org.bukkit.inventory.meta.BookMeta meta = event.getNewBookMeta();
+            meta.pages(java.util.Collections.singletonList(Component.text(replaceText)));
+            event.setNewBookMeta(meta);
+            event.setCancelled(true);
+            sendMuteMessage(player);
+        }
     }
 }

@@ -6,7 +6,7 @@ import ret.tawny.controlbans.util.TimeUtil;
 
 import java.util.List;
 import java.util.StringJoiner;
-import java.util.concurrent.CompletionException;
+import java.util.UUID;
 
 public class TempBanCommand extends CommandBase {
 
@@ -26,50 +26,64 @@ public class TempBanCommand extends CommandBase {
             return true;
         }
 
-        boolean silent = args[0].equalsIgnoreCase("-s");
-        int targetIndex = silent ? 1 : 0;
+        boolean silent = detectSilentFlag(args);
+        String[] cleanArgs = stripSilentFlag(args);
+        int targetIndex = 0;
 
-        if (args.length <= targetIndex + 1) {
+        if (cleanArgs.length <= targetIndex + 1) {
             sender.sendMessage(locale.getMessage("errors.invalid-arguments", usagePlaceholder("/" + label + " [-s] <player> <time> [reason]")));
             return true;
         }
 
-        String targetName = args[targetIndex];
-        String durationStr = args[targetIndex + 1];
+        MultiTargetResult parsed = parseMultiTargets(cleanArgs, targetIndex, true);
+        List<String> targets = parsed.targets();
+        int reasonStart = parsed.reasonStart();
 
-        // Case 1: Duration string is a template trigger (starts with #)
-        if (durationStr.startsWith("#")) {
-            var templateService = punishmentService.getTemplateService();
-            StringJoiner reasonJoiner = new StringJoiner(" ");
-            for (int i = targetIndex + 1; i < args.length; i++) {
-                reasonJoiner.add(args[i]);
+        if (targets.isEmpty()) {
+            sender.sendMessage(locale.getMessage("errors.invalid-arguments", usagePlaceholder("/" + label + " [-s] <player> <time> [reason]")));
+            return true;
+        }
+
+        if (reasonStart < 1 || reasonStart > cleanArgs.length) {
+            sender.sendMessage(locale.getMessage("errors.invalid-duration"));
+            return true;
+        }
+        String durationStr = cleanArgs[reasonStart - 1];
+        StringJoiner reasonJoiner = new StringJoiner(" ");
+        for (int i = reasonStart; i < cleanArgs.length; i++) {
+            reasonJoiner.add(cleanArgs[i]);
+        }
+        String reason = reasonJoiner.toString().isEmpty() ? null : reasonJoiner.toString();
+
+        // Template support only for single target
+        if (targets.size() == 1) {
+            String targetName = targets.get(0);
+
+            long duration;
+            try {
+                duration = TimeUtil.parseDuration(durationStr);
+            } catch (IllegalArgumentException e) {
+                sender.sendMessage(locale.getMessage("errors.invalid-duration"));
+                return true;
             }
-            String reason = reasonJoiner.toString();
 
-            var templateOpt = templateService.findTemplate(reason);
-            if (templateOpt.isPresent()) {
-                var template = templateOpt.get();
-                if (template.getPermission() != null && !sender.hasPermission(template.getPermission())) {
-                    sender.sendMessage(locale.getMessage("errors.no-permission"));
-                    return true;
-                }
-                String customReason = reason.replace("#" + template.getKey(), "").trim();
-                if (customReason.equalsIgnoreCase(reason)) {
-                    customReason = reason.replaceAll("(?i)#" + template.getKey(), "").trim();
-                }
-                final String notes = customReason.isEmpty() ? null : customReason;
-                punishmentService.applyTemplatePunishment(targetName, template, notes, getSenderUuid(sender), sender.getName(), silent)
-                    .whenComplete((unused, throwable) -> {
+            punishmentService.tempBanPlayer(targetName, duration, reason, getSenderUuid(sender), sender.getName(), silent, false)
+                    .whenComplete((appliedDuration, throwable) -> {
                         if (throwable != null) {
                             handlePunishmentError(throwable, sender, targetName);
                         } else {
-                            sender.sendMessage(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize("<green>Applied template </green>" + template.getDisplayName() + "<green> to " + targetName + "</green>"));
+                            long shown = appliedDuration != null ? appliedDuration : duration;
+                            String shownStr = shown == -1 ? "permanent" : TimeUtil.formatDuration(shown);
+                            sender.sendMessage(locale.getMessage("success.tempban",
+                                    playerPlaceholder(targetName),
+                                    durationPlaceholder(shownStr)
+                            ));
                         }
                     });
-                return true;
-            }
+            return true;
         }
 
+        // Multi-target mode (no template support)
         long duration;
         try {
             duration = TimeUtil.parseDuration(durationStr);
@@ -78,49 +92,25 @@ public class TempBanCommand extends CommandBase {
             return true;
         }
 
-        StringJoiner reasonJoiner = new StringJoiner(" ");
-        for (int i = targetIndex + 2; i < args.length; i++) {
-            reasonJoiner.add(args[i]);
-        }
-        String reason = reasonJoiner.toString().isEmpty() ? null : reasonJoiner.toString();
+        UUID staffUuid = getSenderUuid(sender);
+        String staffName = sender.getName();
 
-        // Case 2: Reason is a template trigger
-        if (reason != null) {
-            var templateOpt = punishmentService.getTemplateService().findTemplate(reason);
-            if (templateOpt.isPresent()) {
-                var template = templateOpt.get();
-                if (template.getPermission() != null && !sender.hasPermission(template.getPermission())) {
-                    sender.sendMessage(locale.getMessage("errors.no-permission"));
-                    return true;
-                }
-                String customReason = reason.replace("#" + template.getKey(), "").trim();
-                if (customReason.equalsIgnoreCase(reason)) {
-                    customReason = reason.replaceAll("(?i)#" + template.getKey(), "").trim();
-                }
-                final String notes = customReason.isEmpty() ? null : customReason;
-                punishmentService.applyTemplatePunishment(targetName, template, notes, getSenderUuid(sender), sender.getName(), silent)
-                    .whenComplete((unused, throwable) -> {
+        for (String target : targets) {
+            final long requestedDuration = duration;
+            punishmentService.tempBanPlayer(target, requestedDuration, reason, staffUuid, staffName, silent, false)
+                    .whenComplete((appliedDuration, throwable) -> {
                         if (throwable != null) {
-                            handlePunishmentError(throwable, sender, targetName);
+                            handlePunishmentError(throwable, sender, target);
                         } else {
-                            sender.sendMessage(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize("<green>Applied template </green>" + template.getDisplayName() + "<green> to " + targetName + "</green>"));
+                            long shown = appliedDuration != null ? appliedDuration : requestedDuration;
+                            String shownStr = shown == -1 ? "permanent" : TimeUtil.formatDuration(shown);
+                            sender.sendMessage(locale.getMessage("success.tempban",
+                                    playerPlaceholder(target),
+                                    durationPlaceholder(shownStr)
+                            ));
                         }
                     });
-                return true;
-            }
         }
-
-        punishmentService.tempBanPlayer(targetName, duration, reason, getSenderUuid(sender), sender.getName(), silent, false)
-                .whenComplete((unused, throwable) -> {
-                    if (throwable != null) {
-                        handlePunishmentError(throwable, sender, targetName);
-                    } else {
-                        sender.sendMessage(locale.getMessage("success.tempban",
-                                playerPlaceholder(targetName),
-                                durationPlaceholder(TimeUtil.formatDuration(duration))
-                        ));
-                    }
-                });
         return true;
     }
 
@@ -137,18 +127,7 @@ public class TempBanCommand extends CommandBase {
 
         int timeIndex = isSilent ? 2 : 1;
         if (argIndex == timeIndex) {
-            if (currentArg.startsWith("#")) {
-                return getTemplateSuggestions(currentArg);
-            }
-            List<String> list = new java.util.ArrayList<>(getTimeSuggestions(currentArg));
-            if ("#".startsWith(currentArg)) {
-                list.add("#");
-            }
-            return list;
-        }
-
-        if (argIndex == timeIndex + 1) {
-            return getTemplateSuggestions(currentArg);
+            return getTimeSuggestions(currentArg);
         }
         return List.of();
     }

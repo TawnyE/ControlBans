@@ -28,6 +28,11 @@ public class AppealCommand extends CommandBase {
             return true;
         }
 
+        if (!sender.hasPermission("controlbans.appeal")) {
+            player.sendMessage(locale.getMessage("errors.no-permission"));
+            return true;
+        }
+
         AppealService appealService = plugin.getAppealService();
         if (appealService == null || !plugin.getConfigManager().isAppealsEnabled()) {
             player.sendMessage(locale.getMessage("appeals.disabled"));

@@ -5,12 +5,18 @@ import org.bstats.charts.DrilldownPie;
 import org.bstats.charts.SimplePie;
 import org.bukkit.plugin.java.JavaPlugin;
 import ret.tawny.controlbans.commands.*;
+import ret.tawny.controlbans.api.ControlBansAPI;
 import ret.tawny.controlbans.commands.gui.AltsGuiManager;
+import ret.tawny.controlbans.commands.gui.AppealsGuiManager;
 import ret.tawny.controlbans.commands.gui.HistoryGuiManager;
-import ret.tawny.controlbans.commands.gui.PunishGuiManager;
-import ret.tawny.controlbans.commands.gui.SettingsGuiManager;
-import ret.tawny.controlbans.commands.gui.ReportGuiManager;
+import ret.tawny.controlbans.commands.gui.MainMenuGuiManager;
 import ret.tawny.controlbans.commands.gui.MyReportsGuiManager;
+import ret.tawny.controlbans.commands.gui.OnlinePlayersGuiManager;
+import ret.tawny.controlbans.commands.gui.PunishGuiManager;
+import ret.tawny.controlbans.commands.gui.ReportGuiManager;
+import ret.tawny.controlbans.commands.gui.SettingsGuiManager;
+import ret.tawny.controlbans.commands.gui.StaffHistoryGuiManager;
+import ret.tawny.controlbans.commands.gui.StaffReportsGuiManager;
 import ret.tawny.controlbans.config.ConfigManager;
 import ret.tawny.controlbans.config.ConfigUpdater;
 import ret.tawny.controlbans.listeners.*;
@@ -18,9 +24,8 @@ import ret.tawny.controlbans.config.LocaleValidator;
 import ret.tawny.controlbans.locale.LocaleManager;
 import ret.tawny.controlbans.services.*;
 import ret.tawny.controlbans.storage.DatabaseManager;
-import ret.tawny.controlbans.storage.MongoManager;
-import ret.tawny.controlbans.storage.RedisManager;
 import ret.tawny.controlbans.storage.StorageInterface;
+import ret.tawny.controlbans.ui.PunishUiManager;
 import ret.tawny.controlbans.util.SchedulerAdapter;
 import ret.tawny.controlbans.util.UpdateChecker;
 
@@ -48,18 +53,24 @@ public class ControlBansPlugin extends JavaPlugin {
     private PunishGuiManager punishGuiManager;
     private ReportGuiManager reportGuiManager;
     private MyReportsGuiManager myReportsGuiManager;
+    private MainMenuGuiManager mainMenuGuiManager;
+    private OnlinePlayersGuiManager onlinePlayersGuiManager;
+    private StaffHistoryGuiManager staffHistoryGuiManager;
+    private StaffReportsGuiManager staffReportsGuiManager;
+    private AppealsGuiManager appealsGuiManager;
+    private SkinBanService skinBanService;
     private AppealService appealService;
     private CacheService cacheService;
-    private VoidJailService voidJailService;
-    private SkinBanService skinBanService;
     private VoiceChatService voiceChatService;
+    private EscalationService escalationService;
+    private PunishUiManager punishUiManager;
     private ChatInputListener chatInputListener;
-    private RedisManager redisManager;
     private FreezeManager freezeManager;
     private ChatManager chatManager;
     private DataExportService dataExportService;
     private ReportService reportService;
     private NoteService noteService;
+    private ScheduledService scheduledService;
     private UpdateChecker updateChecker;
 
     private PlayerChatListener playerChatListener;
@@ -79,7 +90,12 @@ public class ControlBansPlugin extends JavaPlugin {
             this.updateChecker = new UpdateChecker(this);
             schedulerAdapter.runTaskLaterAsync(updateChecker::check, 30L * 20L);
         } catch (Exception e) {
-            getLogger().log(Level.SEVERE, "A critical error occurred during plugin initialization.", e);
+            String msg = e.getMessage();
+            if (msg != null && msg.contains("ControlBans could not connect to the database")) {
+                getLogger().log(Level.SEVERE, "Plugin disabled due to database connection failure. Fix the issues shown above and restart the server.");
+            } else {
+                getLogger().log(Level.SEVERE, "A critical error occurred during plugin initialization.", e);
+            }
             getServer().getPluginManager().disablePlugin(this);
         }
     }
@@ -91,19 +107,52 @@ public class ControlBansPlugin extends JavaPlugin {
         registerCommands();
         registerListeners();
         initializeOptionalServices();
+
+        if (scheduledService != null) {
+            scheduledService.loadScheduledPunishments();
+            scheduledService.startChecker();
+        }
     }
 
     @Override
     public void onDisable() {
+        ControlBansAPI.clearProvider();
         getLogger().info("Disabling ControlBans...");
         try {
             getServer().getMessenger().unregisterOutgoingPluginChannel(this);
             getServer().getMessenger().unregisterIncomingPluginChannel(this);
 
+            if (voiceChatService != null) {
+                try {
+                    voiceChatService.shutdown();
+                } catch (Throwable ignored) {}
+                voiceChatService = null;
+            }
+            try {
+                ret.tawny.controlbans.services.DiscordSRVIntegration.unregister(this);
+            } catch (Throwable ignored) {}
+
+            if (freezeManager != null) {
+                try {
+                    freezeManager.clearAll();
+                } catch (Throwable ignored) {}
+            }
+            if (chatInputListener != null) {
+                try {
+                    chatInputListener.clearAll();
+                } catch (Throwable ignored) {}
+            }
+            if (dataExportService != null) {
+                try {
+                    dataExportService.shutdown();
+                } catch (Throwable ignored) {}
+            }
+            try {
+                ret.tawny.controlbans.services.PlayerResolver.shutdown();
+            } catch (Throwable ignored) {}
+
             if (integrationService != null)
                 integrationService.shutdown();
-            if (redisManager != null)
-                redisManager.shutdown();
 
             if (storage != null)
                 storage.shutdown();
@@ -126,42 +175,42 @@ public class ControlBansPlugin extends JavaPlugin {
 
         initializeStorage();
 
-        if (configManager.isRedisEnabled()) {
-            redisManager = new RedisManager(this, configManager);
-            redisManager.initialize();
-        }
-
         cacheService = new CacheService(configManager);
 
         punishmentService = new PunishmentService(this, storage, cacheService);
+        escalationService = new EscalationService(this);
         altService = new AltService(this, storage, cacheService);
         appealService = new AppealService(storage, configManager);
         reportService = new ReportService(this);
         noteService = new NoteService(this);
 
-        voidJailService = new VoidJailService(this);
-        skinBanService = new SkinBanService(this);
-
         historyGuiManager = new HistoryGuiManager(this);
         altsGuiManager = new AltsGuiManager(this);
         punishGuiManager = new PunishGuiManager(this);
+        punishUiManager = new PunishUiManager(this, punishGuiManager);
         reportGuiManager = new ReportGuiManager(this);
         myReportsGuiManager = new MyReportsGuiManager(this);
+        mainMenuGuiManager = new MainMenuGuiManager(this);
+        onlinePlayersGuiManager = new OnlinePlayersGuiManager(this);
+        staffHistoryGuiManager = new StaffHistoryGuiManager(this);
+        staffReportsGuiManager = new StaffReportsGuiManager(this);
+        appealsGuiManager = new AppealsGuiManager(this);
+        skinBanService = new SkinBanService(this);
+
+        // Public API provider: immutable snapshots over the internal services.
+        ControlBansAPI.setProvider(new ApiProvider(this));
 
         chatInputListener = new ChatInputListener(this);
         settingsGuiManager = new SettingsGuiManager(this, chatInputListener);
 
         freezeManager = new FreezeManager(this);
         chatManager = new ChatManager(this);
+        scheduledService = new ScheduledService(this);
     }
 
     private void initializeStorage() {
         String dbType = configManager.getDatabaseType();
-        if (dbType.equalsIgnoreCase("mongodb")) {
-            storage = new MongoManager(this, configManager);
-        } else {
-            storage = new DatabaseManager(this, configManager);
-        }
+        storage = new DatabaseManager(this, configManager);
         storage.initialize();
         getLogger().info("Storage initialized using " + dbType + ".");
     }
@@ -177,8 +226,6 @@ public class ControlBansPlugin extends JavaPlugin {
             Map<String, Integer> integrations = new HashMap<>();
             if (configManager.isDiscordEnabled())
                 integrations.put("DiscordSRV", 1);
-            if (configManager.isMCBlacklistEnabled())
-                integrations.put("MCBlacklist", 1);
             if (integrations.isEmpty())
                 integrations.put("None", 1);
             map.put("Integrations", integrations);
@@ -208,16 +255,12 @@ public class ControlBansPlugin extends JavaPlugin {
         new AltsCommand(this, altsGuiManager).register();
         new AppealCommand(this).register();
         new ControlBansCommand(this).register();
-        new VoidJailCommand(this).register();
-        new UnvoidJailCommand(this).register();
-        new BanSkinCommand(this).register();
-        new UnbanSkinCommand(this).register();
         new VoiceMuteCommand(this).register();
         new TempVoiceMuteCommand(this).register();
         new VoiceUnmuteCommand(this).register();
         new FreezeCommand(this).register();
         new ChatCommand(this).register();
-        new PunishCommand(this, punishGuiManager).register();
+        new PunishCommand(this).register();
         new ReportCommand(this).register();
         new ReportsCommand(this).register();
         new BanlistCommand(this).register();
@@ -225,6 +268,11 @@ public class ControlBansPlugin extends JavaPlugin {
         new BlameCommand(this).register();
         new NoteCommand(this).register();
         new StaffCommand(this).register();
+        new ScheduledPunishmentCommand(this).register();
+        new BulkPunishmentCommand(this).register();
+        new AppealsCommand(this).register();
+        new BanSkinCommand(this).register();
+        new UnbanSkinCommand(this).register();
         getLogger().info("Commands registered");
     }
 
@@ -235,10 +283,9 @@ public class ControlBansPlugin extends JavaPlugin {
         new ProxyMessengerListener(this);
         getServer().getPluginManager().registerEvents(playerChatListener, this);
         getServer().getPluginManager()
-                .registerEvents(new GuiListener(historyGuiManager, altsGuiManager, settingsGuiManager, punishGuiManager, reportGuiManager, myReportsGuiManager, this), this);
-        getServer().getPluginManager().registerEvents(new VoidJailListener(this), this);
+                .registerEvents(new GuiListener(historyGuiManager, altsGuiManager, settingsGuiManager, punishGuiManager, reportGuiManager, myReportsGuiManager, mainMenuGuiManager, onlinePlayersGuiManager, staffHistoryGuiManager, staffReportsGuiManager, appealsGuiManager, this), this);
+        getServer().getPluginManager().registerEvents(new SkinBanListener(this, skinBanService), this);
         getServer().getPluginManager().registerEvents(new FreezeListener(this, freezeManager), this);
-        getServer().getPluginManager().registerEvents(new SkinBanListener(this), this);
         getServer().getPluginManager().registerEvents(chatInputListener, this);
         getServer().getPluginManager().registerEvents(chatManager, this);
         getLogger().info("Listeners registered");
@@ -290,12 +337,40 @@ public class ControlBansPlugin extends JavaPlugin {
             ConfigUpdater.update(this);
             configManager.loadConfig();
             localeManager.reload();
+            // TimeUtil already reconfigured via ConfigManager.loadConfig()
 
-            if (voidJailService != null) {
-                voidJailService.loadJailLocation();
-            }
             if (cacheService != null) {
                 cacheService.invalidateAll();
+            }
+            if (playerChatListener != null) {
+                playerChatListener.clearAllMuteStates();
+            }
+            if (voiceChatService != null) {
+                // Drop stale voice states; they reload lazily via updateStatus on next packet/join.
+                try {
+                    for (org.bukkit.entity.Player p : getServer().getOnlinePlayers()) {
+                        voiceChatService.invalidate(p.getUniqueId());
+                    }
+                } catch (Exception ignored) {}
+            }
+            if (chatManager != null) {
+                try {
+                    chatManager.reloadState();
+                } catch (Exception ignored) {}
+            }
+            if (scheduledService != null) {
+                try {
+                    scheduledService.loadScheduledPunishments();
+                } catch (Exception ignored) {}
+            }
+            if (proxyService != null) {
+                try {
+                    proxyService.clearQueue();
+                } catch (Exception ignored) {}
+            }
+            // Invalidate the escalation preset cache so /reload picks up new presets without restart
+            if (escalationService != null) {
+                escalationService.invalidateCache();
             }
 
             if (integrationService == null) {
@@ -328,7 +403,11 @@ public class ControlBansPlugin extends JavaPlugin {
                     }
                 }
             } else if (voiceChatService != null) {
-                getLogger().warning("Voice Chat integration was disabled in config. Restart the server to fully unload it.");
+                try {
+                    voiceChatService.shutdown();
+                } catch (Exception ignored) {}
+                voiceChatService = null;
+                getLogger().info("Voice Chat integration unloaded via reload.");
             }
 
             getLogger().info("ControlBans configuration reloaded successfully. Database backend changes still require a full server restart.");
@@ -354,7 +433,7 @@ public class ControlBansPlugin extends JavaPlugin {
     }
 
     public DatabaseManager getDatabaseManager() {
-        return (storage instanceof DatabaseManager) ? (DatabaseManager) storage : null;
+        return (DatabaseManager) storage;
     }
 
     public PunishmentService getPunishmentService() {
@@ -393,16 +472,16 @@ public class ControlBansPlugin extends JavaPlugin {
         return cacheService;
     }
 
-    public VoidJailService getVoidJailService() {
-        return voidJailService;
-    }
-
-    public SkinBanService getSkinBanService() {
-        return skinBanService;
-    }
-
     public VoiceChatService getVoiceChatService() {
         return voiceChatService;
+    }
+
+    public EscalationService getEscalationService() {
+        return escalationService;
+    }
+
+    public PunishUiManager getPunishUiManager() {
+        return punishUiManager;
     }
 
     public SettingsGuiManager getSettingsGuiManager() {
@@ -419,10 +498,6 @@ public class ControlBansPlugin extends JavaPlugin {
 
     public MyReportsGuiManager getMyReportsGuiManager() {
         return myReportsGuiManager;
-    }
-
-    public RedisManager getRedisManager() {
-        return redisManager;
     }
 
     public ChatInputListener getChatInputListener() {
@@ -449,11 +524,39 @@ public class ControlBansPlugin extends JavaPlugin {
         return reportService;
     }
 
+    public ScheduledService getScheduledService() {
+        return scheduledService;
+    }
+
     public NoteService getNoteService() {
         return noteService;
     }
 
     public UpdateChecker getUpdateChecker() {
         return updateChecker;
+    }
+
+    public MainMenuGuiManager getMainMenuGuiManager() {
+        return mainMenuGuiManager;
+    }
+
+    public OnlinePlayersGuiManager getOnlinePlayersGuiManager() {
+        return onlinePlayersGuiManager;
+    }
+
+    public StaffHistoryGuiManager getStaffHistoryGuiManager() {
+        return staffHistoryGuiManager;
+    }
+
+    public StaffReportsGuiManager getStaffReportsGuiManager() {
+        return staffReportsGuiManager;
+    }
+
+    public AppealsGuiManager getAppealsGuiManager() {
+        return appealsGuiManager;
+    }
+
+    public SkinBanService getSkinBanService() {
+        return skinBanService;
     }
 }

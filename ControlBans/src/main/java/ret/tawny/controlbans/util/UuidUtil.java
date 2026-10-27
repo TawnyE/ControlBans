@@ -36,6 +36,8 @@ public final class UuidUtil {
         try {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create("https://api.mojang.com/users/profiles/minecraft/" + playerName))
+                    .timeout(java.time.Duration.ofSeconds(5))
+                    .header("User-Agent", "ControlBans/6.0")
                     .GET()
                     .build();
 

@@ -5,6 +5,7 @@ import ret.tawny.controlbans.ControlBansPlugin;
 
 import java.util.List;
 import java.util.StringJoiner;
+import java.util.UUID;
 import java.util.concurrent.CompletionException;
 
 public class MuteCommand extends CommandBase {
@@ -25,53 +26,55 @@ public class MuteCommand extends CommandBase {
             return true;
         }
 
-        boolean silent = args[0].equalsIgnoreCase("-s");
-        int targetIndex = silent ? 1 : 0;
-        if (args.length <= targetIndex) {
+        boolean silent = detectSilentFlag(args);
+        String[] cleanArgs = stripSilentFlag(args);
+        int targetIndex = 0;
+        if (cleanArgs.length <= targetIndex) {
             sender.sendMessage(locale.getMessage("errors.invalid-arguments", usagePlaceholder("/" + label + " [-s] <player> [reason]")));
             return true;
         }
 
-        String targetName = args[targetIndex];
+        MultiTargetResult parsed = parseMultiTargets(cleanArgs, targetIndex, false);
+        List<String> targets = parsed.targets();
         StringJoiner reasonJoiner = new StringJoiner(" ");
-        for (int i = targetIndex + 1; i < args.length; i++) {
-            reasonJoiner.add(args[i]);
+        for (int i = parsed.reasonStart(); i < cleanArgs.length; i++) {
+            reasonJoiner.add(cleanArgs[i]);
         }
         String reason = reasonJoiner.toString().isEmpty() ? null : reasonJoiner.toString();
 
-        if (reason != null) {
-            var templateOpt = punishmentService.getTemplateService().findTemplate(reason);
-            if (templateOpt.isPresent()) {
-                var template = templateOpt.get();
-                if (template.getPermission() != null && !sender.hasPermission(template.getPermission())) {
-                    sender.sendMessage(locale.getMessage("errors.no-permission"));
-                    return true;
-                }
-                String customReason = reason.replace("#" + template.getKey(), "").trim();
-                if (customReason.equalsIgnoreCase(reason)) {
-                    customReason = reason.replaceAll("(?i)#" + template.getKey(), "").trim();
-                }
-                final String notes = customReason.isEmpty() ? null : customReason;
-                punishmentService.applyTemplatePunishment(targetName, template, notes, getSenderUuid(sender), sender.getName(), silent)
+        if (targets.isEmpty()) {
+            sender.sendMessage(locale.getMessage("errors.invalid-arguments", usagePlaceholder("/" + label + " [-s] <player> [reason]")));
+            return true;
+        }
+
+        UUID staffUuid = getSenderUuid(sender);
+        String staffName = sender.getName();
+
+        // Template support only for single target
+        if (targets.size() == 1) {
+            String targetName = targets.get(0);
+
+            punishmentService.mutePlayer(targetName, reason, staffUuid, staffName, silent)
                     .whenComplete((unused, throwable) -> {
                         if (throwable != null) {
                             handlePunishmentError(throwable, sender, targetName);
                         } else {
-                            sender.sendMessage(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize("<green>Applied template </green>" + template.getDisplayName() + "<green> to " + targetName + "</green>"));
+                            sender.sendMessage(locale.getMessage("success.mute", playerPlaceholder(targetName)));
                         }
                     });
-                return true;
-            }
+            return true;
         }
 
-        punishmentService.mutePlayer(targetName, reason, getSenderUuid(sender), sender.getName(), silent)
-                .whenComplete((unused, throwable) -> {
-                    if (throwable != null) {
-                        handlePunishmentError(throwable, sender, targetName);
-                    } else {
-                        sender.sendMessage(locale.getMessage("success.mute", playerPlaceholder(targetName)));
-                    }
-                });
+        for (String target : targets) {
+            punishmentService.mutePlayer(target, reason, staffUuid, staffName, silent)
+                    .whenComplete((unused, throwable) -> {
+                        if (throwable != null) {
+                            handlePunishmentError(throwable, sender, target);
+                        } else {
+                            sender.sendMessage(locale.getMessage("success.mute", playerPlaceholder(target)));
+                        }
+                    });
+        }
         return true;
     }
 
@@ -83,9 +86,6 @@ public class MuteCommand extends CommandBase {
 
         if (argIndex == targetIndex) {
             return getPlayerSuggestions(args[argIndex]);
-        }
-        if (argIndex == targetIndex + 1) {
-            return getTemplateSuggestions(args[argIndex]);
         }
         return List.of();
     }

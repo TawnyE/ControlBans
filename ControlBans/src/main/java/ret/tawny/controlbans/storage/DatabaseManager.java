@@ -5,9 +5,9 @@ import com.zaxxer.hikari.HikariDataSource;
 import ret.tawny.controlbans.ControlBansPlugin;
 import ret.tawny.controlbans.config.ConfigManager;
 import ret.tawny.controlbans.model.Punishment;
+import ret.tawny.controlbans.model.ScheduledPunishment;
 import ret.tawny.controlbans.storage.dao.PunishmentDao;
 
-import java.io.File;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -29,7 +29,9 @@ public class DatabaseManager implements StorageInterface {
     private final ConfigManager config;
     private HikariDataSource dataSource;
     private ExecutorService asyncExecutor;
+    private ExecutorService fallbackExecutor;
     private final PunishmentDao punishmentDao;
+    private volatile boolean shutdown;
     private static final AtomicInteger EXECUTOR_THREAD_ID = new AtomicInteger();
 
     public DatabaseManager(ControlBansPlugin plugin, ConfigManager config) {
@@ -52,7 +54,48 @@ public class DatabaseManager implements StorageInterface {
             new java.util.concurrent.LinkedBlockingQueue<>(500),
             threadFactory,
             (runnable, executor) -> {
-                plugin.getLogger().log(Level.WARNING, "Database task queue full (500 tasks). Task discarded to prevent main-thread freeze. Consider increasing pool size or optimizing queries.");
+                if (plugin.getConfigManager().isDebugLoggingEnabled()) {
+                    plugin.getLogger().fine("Database task queue full (500 tasks); diverting task to fallback executor to avoid data loss.");
+                } else {
+                    plugin.getLogger().log(Level.WARNING, "Database task queue full (500 tasks); diverting task to fallback executor to avoid data loss. Consider increasing database.pool.maximum-pool-size or reducing punishment burst.");
+                }
+                try {
+                    fallbackExecutor.execute(runnable);
+                } catch (java.util.concurrent.RejectedExecutionException e) {
+                    plugin.getLogger().log(Level.SEVERE, "Fallback executor rejected DB task — possible data loss", e);
+                }
+            }
+        );
+        // Bounded fallback to avoid OOM under sustained burst (500 cap + CallerRuns-like backpressure)
+        this.fallbackExecutor = new java.util.concurrent.ThreadPoolExecutor(
+            1, 1,
+            0L, TimeUnit.MILLISECONDS,
+            new java.util.concurrent.LinkedBlockingQueue<>(500),
+            runnable -> {
+                Thread thread = new Thread(runnable, "ControlBans-DB-Fallback");
+                thread.setDaemon(true);
+                return thread;
+            },
+            (runnable, exec) -> {
+                // Never run JDBC on the caller thread for the primary path, but as a
+                // last resort (fallback also full) run on a dedicated overflow thread
+                // rather than dropping the task and hanging its future forever.
+                try {
+                    if (!exec.getQueue().offer(runnable, 500, TimeUnit.MILLISECONDS)) {
+                        plugin.getLogger().log(Level.SEVERE, "Fallback DB queue full after 500ms wait — running on overflow thread "
+                                + runnable.getClass().getName() + ". Increase pool size or reduce burst.");
+                        Thread overflow = new Thread(runnable, "ControlBans-DB-Overflow");
+                        overflow.setDaemon(true);
+                        overflow.start();
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    plugin.getLogger().log(Level.SEVERE, "Interrupted while enqueueing DB task — running on overflow thread "
+                            + runnable.getClass().getName(), e);
+                    Thread overflow = new Thread(runnable, "ControlBans-DB-Overflow");
+                    overflow.setDaemon(true);
+                    overflow.start();
+                }
             }
         );
     }
@@ -65,40 +108,89 @@ public class DatabaseManager implements StorageInterface {
             startJanitor();
             plugin.getLogger().info("SQL Database initialized successfully");
         } catch (Exception e) {
-            plugin.getLogger().log(Level.SEVERE, "Failed to initialize database", e);
-            throw new RuntimeException("Database initialization failed", e);
+            plugin.getLogger().log(Level.WARNING, "");
+            plugin.getLogger().log(Level.WARNING, "╔══════════════════════════════════════════════════════════════╗");
+            plugin.getLogger().log(Level.WARNING, "║  ControlBans — Database Connection Failed                   ║");
+            plugin.getLogger().log(Level.WARNING, "╠══════════════════════════════════════════════════════════════╣");
+            plugin.getLogger().log(Level.WARNING, "║  Could not connect to the database. Check the following:   ║");
+            plugin.getLogger().log(Level.WARNING, "║                                                              ║");
+            plugin.getLogger().log(Level.WARNING, "║  1. Is your MySQL server running? (or SQLite file writable?)║");
+            plugin.getLogger().log(Level.WARNING, "║  2. Are the host/port in config.yml correct?                ║");
+            plugin.getLogger().log(Level.WARNING, "║  3. Does the database and user exist?                       ║");
+            plugin.getLogger().log(Level.WARNING, "║  4. Is the database reachable from this server?             ║");
+            plugin.getLogger().log(Level.WARNING, "║                                                              ║");
+            plugin.getLogger().log(Level.WARNING, "║  Host: " + config.getDatabaseHost() + ":" + config.getDatabasePort() + "  Database: " + config.getDatabaseName() + "║");
+            plugin.getLogger().log(Level.WARNING, "╚══════════════════════════════════════════════════════════════╝");
+            plugin.getLogger().log(Level.WARNING, "");
+            plugin.getLogger().log(Level.WARNING, "Database failure details: " + e.getMessage());
+            throw new RuntimeException("ControlBans could not connect to the database. Verify your config.yml database settings and ensure the database server is running.", e);
         }
     }
 
     private void startJanitor() {
-        plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, () -> {
-            int banDays = plugin.getConfig().getInt("database.janitor.ban-retention-days", 30);
-            int kickDays = plugin.getConfig().getInt("database.janitor.kick-retention-days", 90);
-            int warnDays = plugin.getConfig().getInt("database.janitor.warning-retention-days", 90);
-            int reportDays = plugin.getConfig().getInt("database.janitor.report-retention-days", 60);
+        plugin.getSchedulerAdapter().runTaskTimerAsync(() -> {
+            if (shutdown || dataSource == null || dataSource.isClosed()) {
+                return;
+            }
+            int banDays = config.getJanitorBanRetentionDays();
+            int kickDays = config.getJanitorKickRetentionDays();
+            int warnDays = config.getJanitorWarningRetentionDays();
+            int reportDays = config.getJanitorReportRetentionDays();
 
-            long banRetention = System.currentTimeMillis() - (banDays * 24L * 60 * 60 * 1000);
-            long kickRetention = System.currentTimeMillis() - (kickDays * 24L * 60 * 60 * 1000);
-            long warningRetention = System.currentTimeMillis() - (warnDays * 24L * 60 * 60 * 1000);
-            long reportRetention = System.currentTimeMillis() - (reportDays * 24L * 60 * 60 * 1000);
+            long now = System.currentTimeMillis();
+            long banRetention, kickRetention, warningRetention, reportRetention;
+            try {
+                banRetention = now - Math.multiplyExact((long) banDays, 24L * 60 * 60 * 1000);
+                kickRetention = now - Math.multiplyExact((long) kickDays, 24L * 60 * 60 * 1000);
+                warningRetention = now - Math.multiplyExact((long) warnDays, 24L * 60 * 60 * 1000);
+                reportRetention = now - Math.multiplyExact((long) reportDays, 24L * 60 * 60 * 1000);
+            } catch (ArithmeticException e) {
+                plugin.getLogger().warning("[Database Janitor] Retention overflow, skipping cycle: " + e.getMessage());
+                return;
+            }
 
-            try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            // Use PreparedStatement with parameters to avoid SQL concatenation and allow index use
+            try (Connection conn = getConnection()) {
                 int deletedBans = 0;
                 for (String table : new String[]{"controlbans_bans", "controlbans_mutes", "controlbans_voicemutes"}) {
-                    deletedBans += stmt.executeUpdate("DELETE FROM " + table + " WHERE until > 0 AND until < " + banRetention);
+                    try (java.sql.PreparedStatement ps = conn.prepareStatement("DELETE FROM " + table + " WHERE until > 0 AND until < ?")) {
+                        ps.setLong(1, banRetention);
+                        deletedBans += ps.executeUpdate();
+                    }
                 }
-                if (deletedBans > 0) plugin.getLogger().info("[Database Janitor] Purged " + deletedBans + " ancient temporary punishments.");
+                if (deletedBans > 0) {
+                    if (plugin.getConfigManager().isDebugLoggingEnabled()) {
+                        plugin.getLogger().info("[Database Janitor] Purged " + deletedBans + " ancient temporary punishments.");
+                    } else {
+                        plugin.getLogger().fine("[Database Janitor] Purged " + deletedBans + " ancient temporary punishments.");
+                    }
+                }
 
-                int deletedKicks = stmt.executeUpdate("DELETE FROM controlbans_kicks WHERE time < " + kickRetention);
+                int deletedKicks;
+                try (java.sql.PreparedStatement ps = conn.prepareStatement("DELETE FROM controlbans_kicks WHERE time < ?")) {
+                    ps.setLong(1, kickRetention);
+                    deletedKicks = ps.executeUpdate();
+                }
                 if (deletedKicks > 0) plugin.getLogger().info("[Database Janitor] Purged " + deletedKicks + " old kicks.");
 
-                int deletedWarnings = stmt.executeUpdate("DELETE FROM controlbans_warnings WHERE (until > 0 AND until < " + warningRetention + ") OR (active = FALSE AND time < " + warningRetention + ")");
+                int deletedWarnings;
+                try (java.sql.PreparedStatement ps = conn.prepareStatement("DELETE FROM controlbans_warnings WHERE (until > 0 AND until < ?) OR (active = FALSE AND time < ?)")) {
+                    ps.setLong(1, warningRetention);
+                    ps.setLong(2, warningRetention);
+                    deletedWarnings = ps.executeUpdate();
+                }
                 if (deletedWarnings > 0) plugin.getLogger().info("[Database Janitor] Purged " + deletedWarnings + " old warnings.");
 
-                int deletedReports = stmt.executeUpdate("DELETE FROM controlbans_reports WHERE (status = 'RESOLVED' OR status = 'DISMISSED') AND time < " + reportRetention);
+                int deletedReports;
+                try (java.sql.PreparedStatement ps = conn.prepareStatement("DELETE FROM controlbans_reports WHERE (status = 'RESOLVED' OR status = 'REJECTED' OR status = 'DISMISSED') AND time < ?")) {
+                    ps.setLong(1, reportRetention);
+                    deletedReports = ps.executeUpdate();
+                }
                 if (deletedReports > 0) plugin.getLogger().info("[Database Janitor] Purged " + deletedReports + " old resolved/dismissed reports.");
             } catch (SQLException e) {
-                plugin.getLogger().warning("[Database Janitor] Cleanup failed: " + e.getMessage());
+                if (!shutdown) {
+                    plugin.getLogger().log(Level.WARNING, "[Database Janitor] Cleanup failed", e);
+                }
             }
         }, 20L * 60 * 5, 20L * 60 * 60 * 24);
     }
@@ -110,38 +202,47 @@ public class DatabaseManager implements StorageInterface {
 
         HikariConfig hikariConfig = new HikariConfig();
         String databaseType = config.getDatabaseType().toLowerCase();
+        boolean isSqlite = "sqlite".equals(databaseType);
 
         switch (databaseType) {
-            case "mysql", "mariadb" -> setupMySQLDataSource(hikariConfig);
-            case "postgresql" -> setupPostgreSQLDataSource(hikariConfig);
-            case "sqlite" -> setupSQLiteDataSource(hikariConfig);
-            case "h2" -> setupH2DataSource(hikariConfig);
+            case "mysql", "mariadb" -> setupMysqlDataSource(hikariConfig);
+            case "sqlite" -> setupSqliteDataSource(hikariConfig);
             default -> {
-                plugin.getLogger().warning("Invalid database type '" + databaseType + "', defaulting to SQLite.");
-                setupSQLiteDataSource(hikariConfig);
+                plugin.getLogger().warning("Invalid database type '" + databaseType + "', defaulting to SQLite. Valid options: sqlite, mysql, mariadb.");
+                setupSqliteDataSource(hikariConfig);
+                isSqlite = true;
             }
         }
 
-        hikariConfig.setMaximumPoolSize(config.getPoolMaximumSize());
-        hikariConfig.setMinimumIdle(config.getPoolMinimumIdle());
-        hikariConfig.setConnectionTimeout(config.getConnectionTimeout());
-        hikariConfig.setIdleTimeout(config.getIdleTimeout());
-        hikariConfig.setMaxLifetime(config.getMaxLifetime());
+        // Elite: don't override SQLite's single-connection setting (1 writer) — pooling 10 would cause SQLITE_BUSY
+        if (!isSqlite) {
+            int poolMaximumSize = config.getPoolMaximumSize();
+            if (databaseType.equals("mysql") || databaseType.equals("mariadb")) {
+                poolMaximumSize = Math.min(poolMaximumSize, 10);
+            }
+            hikariConfig.setMaximumPoolSize(poolMaximumSize);
+            hikariConfig.setMinimumIdle(Math.min(config.getPoolMinimumIdle(), poolMaximumSize));
+            hikariConfig.setConnectionTimeout(config.getConnectionTimeout());
+            hikariConfig.setIdleTimeout(config.getIdleTimeout());
+            hikariConfig.setMaxLifetime(config.getMaxLifetime());
+        } else {
+            // SQLite: keep 1/1, but still apply validated timeouts
+            hikariConfig.setConnectionTimeout(config.getConnectionTimeout());
+            hikariConfig.setIdleTimeout(config.getIdleTimeout());
+            hikariConfig.setMaxLifetime(config.getMaxLifetime());
+        }
         hikariConfig.setValidationTimeout(5000);
 
-        if ("sqlite".equals(databaseType)) {
-            int desiredPoolSize = config.getPoolMaximumSize();
-            hikariConfig.setMaximumPoolSize(Math.max(1, Math.min(desiredPoolSize, 3)));
-        }
-
         dataSource = new HikariDataSource(hikariConfig);
-        plugin.getLogger().info("Database connection pool initialized for " + databaseType.toUpperCase());
+        plugin.getLogger().info("Database connection pool initialized for " + databaseType.toUpperCase() + (isSqlite ? " (single connection, WAL)" : ""));
     }
 
-    private void setupMySQLDataSource(HikariConfig hikariConfig) {
-        hikariConfig.setDriverClassName("com.mysql.cj.jdbc.Driver");
+    private void setupMysqlDataSource(HikariConfig hikariConfig) {
+        hikariConfig.setDriverClassName(resolveDriverClass(
+                "ret.tawny.controlbans.libs.mysql.cj.jdbc.Driver",
+                "com.mysql.cj.jdbc.Driver"));
         hikariConfig.setJdbcUrl(
-                String.format("jdbc:mysql://%s:%d/%s?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC",
+                String.format("jdbc:mysql://%s:%d/%s?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&useUnicode=true&characterEncoding=UTF-8",
                         config.getDatabaseHost(), config.getDatabasePort(), config.getDatabaseName()));
         hikariConfig.setUsername(config.getDatabaseUsername());
         hikariConfig.setPassword(config.getDatabasePassword());
@@ -150,40 +251,33 @@ public class DatabaseManager implements StorageInterface {
         hikariConfig.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
     }
 
-    private void setupPostgreSQLDataSource(HikariConfig hikariConfig) {
-        hikariConfig.setDriverClassName("org.postgresql.Driver");
-        hikariConfig.setJdbcUrl(String.format("jdbc:postgresql://%s:%d/%s",
-                config.getDatabaseHost(), config.getDatabasePort(), config.getDatabaseName()));
-        hikariConfig.setUsername(config.getDatabaseUsername());
-        hikariConfig.setPassword(config.getDatabasePassword());
+    private void setupSqliteDataSource(HikariConfig hikariConfig) {
+        // SQLite is never relocated — org.sqlite core loads native libs and breaks if renamed.
+        hikariConfig.setDriverClassName("org.sqlite.JDBC");
+        String sqliteFile = config.getDatabaseSqliteFile();
+        // Honor absolute paths as documented in config.yml instead of blindly
+        // joining them onto the data folder (which produces garbage like
+        // "<dataFolder>/C:\Users\...\file.db").
+        java.io.File dbFile = new java.io.File(sqliteFile);
+        if (!dbFile.isAbsolute()) {
+            dbFile = new java.io.File(plugin.getDataFolder(), sqliteFile);
+        }
+        if (dbFile.getParentFile() != null) {
+            dbFile.getParentFile().mkdirs();
+        }
+        String absolutePath = dbFile.getAbsolutePath();
+        hikariConfig.setJdbcUrl("jdbc:sqlite:" + absolutePath);
+        hikariConfig.setMaximumPoolSize(1);
+        hikariConfig.setMinimumIdle(1);
+        hikariConfig.setConnectionInitSql("PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000; PRAGMA synchronous=NORMAL;");
     }
 
-    private void setupSQLiteDataSource(HikariConfig hikariConfig) {
-        File dataFolder = plugin.getDataFolder();
-        if (!dataFolder.exists()) {
-            dataFolder.mkdirs();
-        }
-        String dbPath = new File(dataFolder, config.getSqliteFile()).getAbsolutePath();
-        hikariConfig.setJdbcUrl("jdbc:sqlite:" + dbPath);
-        hikariConfig.addDataSourceProperty("journal_mode", "WAL");
-        hikariConfig.addDataSourceProperty("synchronous", "NORMAL");
-    }
-
-    private void setupH2DataSource(HikariConfig hikariConfig) {
-        File dataFolder = plugin.getDataFolder();
-        if (!dataFolder.exists()) {
-            dataFolder.mkdirs();
-        }
-        String dbPath = new File(dataFolder, config.getH2File()).getAbsolutePath();
-        if (dbPath.endsWith(".h2.db")) {
-            dbPath = dbPath.substring(0, dbPath.length() - 6);
-        }
-        hikariConfig.setDriverClassName("org.h2.Driver");
-        hikariConfig.setJdbcUrl("jdbc:h2:" + dbPath + ";MODE=MySQL;DATABASE_TO_LOWER=TRUE");
-        hikariConfig.setUsername("sa");
-        hikariConfig.setPassword("");
-        hikariConfig.addDataSourceProperty("cachePrepStmts", "true");
-        hikariConfig.addDataSourceProperty("prepStmtCacheSize", "250");
+    private String resolveDriverClass(String shaded, String unshaded) {
+        try {
+            Class.forName(shaded);
+            return shaded;
+        } catch (ClassNotFoundException ignored) {}
+        return unshaded;
     }
 
     private void createTables() {
@@ -240,6 +334,10 @@ public class DatabaseManager implements StorageInterface {
     }
 
     @Override
+    public CompletableFuture<Optional<Punishment>> getActiveBanByName(String name) {
+        return executeQueryAsync(conn -> punishmentDao.getActiveBanByName(conn, name));
+    }
+
     public CompletableFuture<Optional<Punishment>> getActiveIpBan(String ip) {
         return executeQueryAsync(conn -> punishmentDao.getActiveIpBan(conn, ip));
     }
@@ -247,6 +345,11 @@ public class DatabaseManager implements StorageInterface {
     @Override
     public CompletableFuture<Optional<Punishment>> getActiveIpMute(String ip) {
         return executeQueryAsync(conn -> punishmentDao.getActiveIpMute(conn, ip));
+    }
+
+    @Override
+    public CompletableFuture<Optional<Punishment>> getActiveIpBanById(String punishmentId) {
+        return executeQueryAsync(conn -> punishmentDao.getActiveIpBanById(conn, punishmentId));
     }
 
     @Override
@@ -360,11 +463,21 @@ public class DatabaseManager implements StorageInterface {
     }
 
     @Override
+    public CompletableFuture<List<ret.tawny.controlbans.services.AppealService.Appeal>> getAppeals() {
+        return executeQueryAsync(punishmentDao::getAppeals);
+    }
+
+    @Override
+    public CompletableFuture<Boolean> updateAppealStatus(int appealId, String status) {
+        return executeQueryAsync(conn -> punishmentDao.updateAppealStatus(conn, appealId, status));
+    }
+
+    @Override
     public CompletableFuture<Void> importPunishment(Punishment punishment) {
         return executeAsync(conn -> {
             switch (punishment.getType()) {
-                case BAN, TEMPBAN, IPBAN -> punishmentDao.insertBan(conn, punishment);
-                case MUTE, TEMPMUTE -> punishmentDao.insertMute(conn, punishment);
+                case BAN, TEMPBAN, IPBAN, TEMPIPBAN -> punishmentDao.insertBan(conn, punishment);
+                case MUTE, TEMPMUTE, IPMUTE, TEMPIPMUTE -> punishmentDao.insertMute(conn, punishment);
                 case KICK -> punishmentDao.insertKick(conn, punishment);
                 case WARN -> punishmentDao.insertWarning(conn, punishment);
                 case VOICEMUTE, TEMPVOICEMUTE -> punishmentDao.insertVoiceMute(conn, punishment);
@@ -373,8 +486,38 @@ public class DatabaseManager implements StorageInterface {
     }
 
     @Override
-    public CompletableFuture<Void> insertReport(String id, UUID reporterUuid, String reporterName, String targetName, String reason, long timestamp, String status) {
-        return executeAsync(conn -> punishmentDao.insertReport(conn, id, reporterUuid, reporterName, targetName, reason, timestamp, status));
+    public CompletableFuture<Void> saveScheduledPunishment(ScheduledPunishment scheduled) {
+        return executeAsync(conn -> punishmentDao.insertScheduled(conn, scheduled));
+    }
+
+    @Override
+    public CompletableFuture<Optional<ScheduledPunishment>> getScheduledPunishment(String scheduleId) {
+        return executeQueryAsync(conn -> punishmentDao.getScheduled(conn, scheduleId));
+    }
+
+    @Override
+    public CompletableFuture<List<ScheduledPunishment>> getAllScheduledPunishments() {
+        return executeQueryAsync(punishmentDao::getAllScheduled);
+    }
+
+    @Override
+    public CompletableFuture<List<ScheduledPunishment>> getDueScheduledPunishments(long atOrBefore) {
+        return executeQueryAsync(conn -> punishmentDao.getDueScheduled(conn, atOrBefore));
+    }
+
+    @Override
+    public CompletableFuture<Void> removeScheduledPunishment(String scheduleId) {
+        return executeAsync(conn -> punishmentDao.removeScheduled(conn, scheduleId));
+    }
+
+    @Override
+    public CompletableFuture<Void> removeScheduledPunishmentsForTarget(UUID targetUuid) {
+        return executeAsync(conn -> punishmentDao.removeScheduledForTarget(conn, targetUuid));
+    }
+
+    @Override
+    public CompletableFuture<Void> insertReport(String id, UUID reporterUuid, String reporterName, String targetName, UUID targetUuid, String reason, String category, long timestamp, String status) {
+        return executeAsync(conn -> punishmentDao.insertReport(conn, id, reporterUuid, reporterName, targetName, targetUuid, reason, category, timestamp, status));
     }
 
     @Override
@@ -385,6 +528,16 @@ public class DatabaseManager implements StorageInterface {
     @Override
     public CompletableFuture<List<ret.tawny.controlbans.services.ReportService.Report>> getReportsByReporter(UUID reporterUuid) {
         return executeQueryAsync(conn -> punishmentDao.getReportsByReporter(conn, reporterUuid));
+    }
+
+    @Override
+    public CompletableFuture<java.util.Optional<ret.tawny.controlbans.services.ReportService.Report>> getReport(String id) {
+        return executeQueryAsync(conn -> punishmentDao.getReport(conn, id));
+    }
+
+    @Override
+    public CompletableFuture<Boolean> deleteReport(String id) {
+        return executeQueryAsync(conn -> punishmentDao.deleteReport(conn, id));
     }
 
     @Override
@@ -409,6 +562,9 @@ public class DatabaseManager implements StorageInterface {
 
     public CompletableFuture<Void> executeAsync(DatabaseOperation operation) {
         return CompletableFuture.runAsync(() -> {
+            if (shutdown) {
+                throw new java.util.concurrent.CancellationException("Database shutting down — operation cancelled");
+            }
             try (Connection connection = getConnection()) {
                 operation.execute(connection);
             } catch (SQLException e) {
@@ -419,6 +575,9 @@ public class DatabaseManager implements StorageInterface {
 
     public <T> CompletableFuture<T> executeQueryAsync(DatabaseQuery<T> query) {
         return CompletableFuture.supplyAsync(() -> {
+            if (shutdown) {
+                throw new java.util.concurrent.CancellationException("Database shutting down — query cancelled");
+            }
             try (Connection connection = getConnection()) {
                 return query.execute(connection);
             } catch (SQLException e) {
@@ -433,20 +592,41 @@ public class DatabaseManager implements StorageInterface {
 
     @Override
     public void shutdown() {
+        if (shutdown) {
+            return;
+        }
+        shutdown = true;
+
+        if (asyncExecutor != null) {
+            asyncExecutor.shutdown();
+            try {
+                if (!asyncExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
+                    asyncExecutor.shutdownNow();
+                    if (!asyncExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
+                        plugin.getLogger().warning("Async database executor did not shut down cleanly.");
+                    }
+                }
+            } catch (InterruptedException e) {
+                asyncExecutor.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
+        }
+
+        if (fallbackExecutor != null) {
+            fallbackExecutor.shutdown();
+            try {
+                if (!fallbackExecutor.awaitTermination(10, TimeUnit.SECONDS)) {
+                    fallbackExecutor.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                fallbackExecutor.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
+        }
+
         if (dataSource != null && !dataSource.isClosed()) {
             dataSource.close();
             plugin.getLogger().info("Database connection pool shut down");
-        }
-
-        if (asyncExecutor != null) {
-            asyncExecutor.shutdownNow();
-            try {
-                if (!asyncExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
-                    plugin.getLogger().warning("Async database executor did not shut down cleanly.");
-                }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
         }
     }
 

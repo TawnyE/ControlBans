@@ -20,6 +20,27 @@ public class DiscordSRVHookListener {
 
         if (plugin.getPlayerChatListener() != null && plugin.getPlayerChatListener().isMuted(player.getUniqueId())) {
             event.setCancelled(true);
+            return;
         }
+        // Cache-miss fallback: direct (cached) DB check so Discord can't bypass a mute
+        // for players who never chatted in-game. Short timeout, fail-open on error
+        // (in-game enforcement remains authoritative).
+        try {
+            boolean muted = plugin.getPunishmentService().getActiveMute(player.getUniqueId())
+                    .get(1500, java.util.concurrent.TimeUnit.MILLISECONDS)
+                    .filter(p -> !p.isExpired()).isPresent();
+            if (muted) {
+                event.setCancelled(true);
+                return;
+            }
+            String ip = player.getAddress() != null && player.getAddress().getAddress() != null
+                    ? player.getAddress().getAddress().getHostAddress() : null;
+            if (ip != null) {
+                boolean ipMuted = plugin.getPunishmentService().getActiveIpMute(ip)
+                        .get(1500, java.util.concurrent.TimeUnit.MILLISECONDS)
+                        .filter(p -> !p.isExpired()).isPresent();
+                if (ipMuted) event.setCancelled(true);
+            }
+        } catch (Exception ignored) {}
     }
 }

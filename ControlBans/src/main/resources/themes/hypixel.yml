@@ -1,0 +1,57 @@
+# Chat prefix (MiniMessage gradient). Plain red-gray Hypixel-ish beacon style.
+prefix: "<red><bold>ControlBans</bold> <gray>»"
+
+screens:
+  # Permanent ban: Hypixel bans are usually framed as temporary with a long
+  # duration; we mirror the same layout here.
+  ban:
+    - ""
+    - "<red>You are permanently banned from this server!"
+    - ""
+    - "<gray>Reason: <white><reason>"
+    - "<gray>Find out more: <aqua><underlined><appeal>"      # put your appeal URL in config.yml (appeals.appeal-link)
+    - "<gray>Ban ID: <white>#<id>"
+    - "<gray>Sharing your Ban ID may affect the processing of your appeal!"
+    - ""
+  # Signature tempban screen:
+  #   "You are temporarily banned for <duration> from this server!"
+  tempban:
+    - ""
+    - "<red>You are temporarily banned for <white><duration><red> from this server!"
+    - ""
+    - "<gray>Reason: <white><reason>"
+    - "<gray>Find out more: <aqua><underlined><appeal>"      # put your appeal URL in config.yml (appeals.appeal-link)
+    - "<gray>Ban ID: <white>#<id>"
+    - "<gray>Sharing your Ban ID may affect the processing of your appeal!"
+    - ""
+  ip_ban:
+    - ""
+    - "<red>You are permanently banned from this server!"
+    - ""
+    - "<gray>Reason: <white><reason>"
+    - "<gray>Find out more: <aqua><underlined><appeal>"
+    - "<gray>Ban ID: <white>#<id>"
+    - ""
+  ip_tempban:
+    - ""
+    - "<red>You are temporarily banned for <white><duration><red> from this server!"
+    - ""
+    - "<gray>Reason: <white><reason>"
+    - "<gray>Find out more: <aqua><underlined><appeal>"
+    - "<gray>Ban ID: <white>#<id>"
+    - ""
+  kick:
+    - ""
+    - "<red>You were kicked from this server!"
+    - ""
+    - "<gray>Reason: <white><reason>"
+    - ""
+  mute:
+    - "<red>You are currently muted for <white><reason><red>."
+    - "<gray>Muted by: <white><staff>"
+  tempmute:
+    - "<red>You are temporarily muted for <white><duration><red>."
+    - "<gray>Reason: <white><reason>"
+  warn:
+    - "<yellow><bold>WARNING</bold> <gray>A staff member has warned you:"
+    - "<white><reason>"

@@ -27,17 +27,29 @@ public class FreezeManager {
             frozenPlayers.add(uuid);
             Player player = Bukkit.getPlayer(uuid);
             if (player != null) {
-                player.sendMessage(plugin.getLocaleManager().getMessage("freeze.frozen-title"));
-                player.sendMessage(plugin.getLocaleManager().getMessage("freeze.frozen-discord"));
-                player.sendMessage(plugin.getLocaleManager().getMessage("freeze.frozen-logout-warning"));
+                final Player finalPlayer = player;
+                plugin.getSchedulerAdapter().runTaskForPlayer(finalPlayer, () -> {
+                    finalPlayer.sendMessage(plugin.getLocaleManager().getMessage("freeze.frozen-title"));
+                    String discord = plugin.getConfigManager().getFreezeDiscord();
+                    finalPlayer.sendMessage(plugin.getLocaleManager().getMessage("freeze.frozen-discord",
+                            net.kyori.adventure.text.minimessage.tag.resolver.Placeholder.unparsed("discord", discord)));
+                    finalPlayer.sendMessage(plugin.getLocaleManager().getMessage("freeze.frozen-logout-warning"));
+                });
             }
         } else {
             frozenPlayers.remove(uuid);
             Player player = Bukkit.getPlayer(uuid);
             if (player != null) {
-                player.sendMessage(plugin.getLocaleManager().getMessage("freeze.unfrozen"));
+                final Player finalPlayer = player;
+                plugin.getSchedulerAdapter().runTaskForPlayer(finalPlayer, () -> {
+                    finalPlayer.sendMessage(plugin.getLocaleManager().getMessage("freeze.unfrozen"));
+                });
             }
         }
+    }
+
+    public void clearAll() {
+        frozenPlayers.clear();
     }
 
     public void toggleFreeze(UUID uuid) {

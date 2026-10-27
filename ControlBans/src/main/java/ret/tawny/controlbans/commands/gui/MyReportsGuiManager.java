@@ -18,6 +18,7 @@ import ret.tawny.controlbans.util.TimeUtil;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class MyReportsGuiManager {
 
@@ -36,6 +37,10 @@ public class MyReportsGuiManager {
         public MyReportsHolder(Player owner, int page) { this.owner = owner; this.page = page; }
         public Player getOwner() { return owner; }
         public int getPage() { return page; }
+        @Override
+        public UUID getViewerUuid() { return owner.getUniqueId(); }
+        @Override
+        public MenuType getMenuType() { return MenuType.REPORTS; }
     }
 
     public void openMyReportsGui(Player viewer, int page) {
@@ -68,7 +73,7 @@ public class MyReportsGuiManager {
     }
 
     private ItemStack createReportItem(ReportService.Report r) {
-        String status = r.status().toUpperCase();
+        String status = ReportService.displayStatus(r.status());
         Material material = Material.PAPER;
         if (status.equals("RESOLVED")) material = Material.EMERALD;
         else if (status.equals("REJECTED")) material = Material.REDSTONE;
@@ -85,14 +90,20 @@ public class MyReportsGuiManager {
             default -> locale.getMessage("gui.my-reports.status-pending");
         };
 
+        String category = r.category() != null ? r.category() : "other";
+
         TagResolver placeholders = TagResolver.builder()
                 .resolver(Placeholder.unparsed("reason", r.reason()))
                 .resolver(Placeholder.unparsed("date", TimeUtil.formatDate(r.timestamp())))
+                .resolver(Placeholder.unparsed("category", category))
                 .resolver(Placeholder.component("status", statusComponent))
                 .resolver(Placeholder.unparsed("id", r.id() != null ? r.id().substring(0, Math.min(r.id().length(), 8)) : "unknown"))
                 .build();
 
-        meta.lore(locale.getMessageList("gui.my-reports.item-lore", placeholders));
+        List<Component> lore = new ArrayList<>();
+        lore.add(locale.getMessage("gui.my-reports.item-category", placeholders));
+        lore.addAll(locale.getMessageList("gui.my-reports.item-lore", placeholders));
+        meta.lore(lore);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
         item.setItemMeta(meta);
         return item;

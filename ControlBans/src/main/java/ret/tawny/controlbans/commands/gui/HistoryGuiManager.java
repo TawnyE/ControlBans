@@ -1,6 +1,8 @@
 package ret.tawny.controlbans.commands.gui;
 
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import org.bukkit.Bukkit;
@@ -23,13 +25,14 @@ import ret.tawny.controlbans.util.TimeUtil;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Predicate;
 
 public class HistoryGuiManager {
 
     private final ControlBansPlugin plugin;
     private final PunishmentService punishmentService;
     private final LocaleManager locale;
-    private static final int ITEMS_PER_PAGE = 45;
+    private static final int ITEMS_PER_PAGE = 36;
 
     public HistoryGuiManager(ControlBansPlugin plugin) {
         this.plugin = plugin;
@@ -40,51 +43,105 @@ public class HistoryGuiManager {
     public static class HistoryHolder extends ControlBansHolder {
         private final OfflinePlayer target;
         private final int page;
-        public HistoryHolder(OfflinePlayer target, int page) { this.target = target; this.page = page; }
+        private final Filter filter;
+        private final UUID viewerUuid;
+
+        public HistoryHolder(OfflinePlayer target, int page, Filter filter, UUID viewerUuid) {
+            this.target = target;
+            this.page = page;
+            this.filter = filter;
+            this.viewerUuid = viewerUuid;
+        }
+
         public OfflinePlayer getTarget() { return target; }
         public int getPage() { return page; }
+        public Filter getFilter() { return filter; }
+
+        @Override
+        public UUID getViewerUuid() { return viewerUuid; }
+
+        @Override
+        public MenuType getMenuType() { return MenuType.HISTORY; }
+    }
+
+    public record Filter(String name, String key, Material icon) {
+        public static final Filter ALL = new Filter("All", "all", Material.COMPASS);
+        public static final Filter ACTIVE = new Filter("Active Only", "active", Material.REDSTONE_TORCH);
+        public static final Filter BANS = new Filter("Bans", "bans", Material.RED_WOOL);
+        public static final Filter MUTES = new Filter("Mutes", "mutes", Material.BLUE_WOOL);
+        public static final Filter WARNINGS = new Filter("Warnings", "warnings", Material.YELLOW_WOOL);
+
+        public static final List<Filter> ALL_FILTERS = List.of(ALL, ACTIVE, BANS, MUTES, WARNINGS);
+    }
+
+    public void openHistoryGui(Player viewer, OfflinePlayer target) {
+        openHistoryGui(viewer, target, 1, Filter.ALL);
     }
 
     public void openHistoryGui(Player viewer, OfflinePlayer target, int page) {
+        openHistoryGui(viewer, target, page, Filter.ALL);
+    }
+
+    public void openHistoryGui(Player viewer, OfflinePlayer target, int page, Filter filter) {
         int startPage = Math.max(1, page);
         punishmentService.getPunishmentHistory(target.getUniqueId(), 200).thenAccept(punishments -> {
             punishments.sort(Comparator.comparingLong(Punishment::getCreatedTime).reversed());
 
-            CompletableFuture.supplyAsync(() -> {
-                int maxPage = Math.max(1, (int) Math.ceil((double) punishments.size() / ITEMS_PER_PAGE));
-                int currentPage = startPage > maxPage ? maxPage : startPage;
+            Predicate<Punishment> filterPredicate = switch (filter.key()) {
+                case "active" -> p -> p.isActive() && !p.isExpired();
+                case "bans" -> p -> p.getType().isBan();
+                case "mutes" -> p -> p.getType().isMute();
+                case "warnings" -> p -> p.getType() == PunishmentType.WARN;
+                default -> p -> true;
+            };
 
-                List<ItemStack> items = new ArrayList<>();
-                int startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-                int endIndex = Math.min(startIndex + ITEMS_PER_PAGE, punishments.size());
+            List<Punishment> filtered = punishments.stream()
+                    .filter(filterPredicate)
+                    .toList();
 
-                for (int i = startIndex; i < endIndex; i++) {
-                    items.add(createPunishmentItem(punishments.get(i)));
+            int maxPage = Math.max(1, (int) Math.ceil((double) filtered.size() / ITEMS_PER_PAGE));
+            int currentPage = startPage > maxPage ? maxPage : startPage;
+
+            List<ItemStack> items = new ArrayList<>();
+            int startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+            int endIndex = Math.min(startIndex + ITEMS_PER_PAGE, filtered.size());
+
+            for (int i = startIndex; i < endIndex; i++) {
+                items.add(createPunishmentItem(filtered.get(i)));
+            }
+
+            ItemStack headItem = createPlayerHeadItem(target, filtered);
+
+            plugin.getSchedulerAdapter().runTaskForPlayer(viewer, () -> {
+                Component title = locale.getMessage("gui.history.title",
+                        Placeholder.unparsed("player", target.getName() != null ? target.getName() : locale.getRawMessage("gui.history.unknown-player")),
+                        Placeholder.unparsed("page", String.valueOf(currentPage)),
+                        Placeholder.unparsed("maxpage", String.valueOf(maxPage)));
+
+                Inventory inv = Bukkit.createInventory(new HistoryHolder(target, currentPage, filter, viewer.getUniqueId()), 54, title);
+
+                for (int i = 0; i < items.size(); i++) {
+                    inv.setItem(i, items.get(i));
                 }
 
-                ItemStack headItem = createPlayerHeadItem(target, punishments);
-                return new GuiData(items, headItem, maxPage, currentPage);
-            }).thenAccept(data -> {
-                plugin.getSchedulerAdapter().runTaskForPlayer(viewer, () -> {
-                    Component title = locale.getMessage("gui.history.title",
-                            Placeholder.unparsed("player", target.getName() != null ? target.getName() : locale.getRawMessage("gui.history.unknown-player")),
-                            Placeholder.unparsed("page", String.valueOf(data.currentPage)),
-                            Placeholder.unparsed("maxpage", String.valueOf(data.maxPage)));
+                int[] filterSlots = {46, 47, 48, 50, 51};
+                for (int i = 0; i < Filter.ALL_FILTERS.size(); i++) {
+                    Filter f = Filter.ALL_FILTERS.get(i);
+                    boolean isSelected = f.key().equals(filter.key());
+                    inv.setItem(filterSlots[i], createFilterItem(f, isSelected));
+                }
 
-                    Inventory inv = Bukkit.createInventory(new HistoryHolder(target, data.currentPage), 54, title);
+                inv.setItem(45, (currentPage > 1) ? createNavItem("gui.nav-previous") : createFillerGlass());
+                inv.setItem(49, headItem);
+                inv.setItem(53, (currentPage < maxPage) ? createNavItem("gui.nav-next") : createFillerGlass());
 
-                    for (int i = 0; i < data.items.size(); i++) {
-                        inv.setItem(i, data.items.get(i));
-                    }
+                ItemStack filler = createFillerGlass();
+                for (int i = 0; i < 54; i++) {
+                    if (inv.getItem(i) == null) inv.setItem(i, filler);
+                }
 
-                    inv.setItem(45, (data.currentPage > 1) ? createNavItem("gui.nav-previous") : createFillerGlass());
-                    inv.setItem(49, data.headItem);
-                    inv.setItem(53, (data.currentPage < data.maxPage) ? createNavItem("gui.nav-next") : createFillerGlass());
-
-                    viewer.openInventory(inv);
-                });
+                viewer.openInventory(inv);
             });
-
         }).exceptionally(ex -> {
             viewer.sendMessage(locale.getMessage("errors.database-error"));
             plugin.getLogger().warning("Failed to fetch history for GUI: " + ex.getMessage());
@@ -92,7 +149,23 @@ public class HistoryGuiManager {
         });
     }
 
-    private record GuiData(List<ItemStack> items, ItemStack headItem, int maxPage, int currentPage) {}
+    private ItemStack createFilterItem(Filter filter, boolean selected) {
+        ItemStack item = new ItemStack(filter.icon());
+        ItemMeta meta = item.getItemMeta();
+        if (selected) {
+            meta.displayName(MiniMessage.miniMessage().deserialize("<green><bold>\u2713 " + filter.name() + "</bold></green>")
+                    .decoration(TextDecoration.ITALIC, false));
+            meta.addEnchant(Enchantment.UNBREAKING, 1, true);
+            meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+        } else {
+            meta.displayName(MiniMessage.miniMessage().deserialize("<gray>" + filter.name() + "</gray>")
+                    .decoration(TextDecoration.ITALIC, false));
+            meta.lore(List.of(MiniMessage.miniMessage().deserialize("<yellow>Click to filter</yellow>")
+                    .decoration(TextDecoration.ITALIC, false)));
+        }
+        item.setItemMeta(meta);
+        return item;
+    }
 
     private ItemStack createPunishmentItem(Punishment p) {
         Material material = switch (p.getType()) {

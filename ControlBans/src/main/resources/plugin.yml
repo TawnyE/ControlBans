@@ -1,5 +1,5 @@
 name: ControlBans
-version: 5.6
+version: 6.3-hf1
 main: ret.tawny.controlbans.ControlBansPlugin
 description: Advanced, next-generation punishment system for Minecraft networks.
 api-version: "1.20"
@@ -77,9 +77,14 @@ commands:
     usage: /appeal <message>
     permission: controlbans.appeal
     aliases: [cbappeal]
+  appeals:
+    description: Review submitted mute appeals
+    usage: /appeals
+    permission: controlbans.appeal.review
+    aliases: [cbappeals]
   controlbans:
     description: Main ControlBans command for admin tasks like imports and reloads
-    usage: /controlbans <reload|import|export|settings|database>
+    usage: /controlbans <reload|import|export|settings|database|gui|rollback>
     permission: controlbans.admin
     aliases: [cb]
   ipban:
@@ -92,26 +97,6 @@ commands:
     usage: /ipmute [-s] <player|ip> <time> [reason]
     permission: controlbans.mute.ip
     aliases: [imute, cbipmute]
-  voidjail:
-    description: Send a player to the void jail.
-    usage: /voidjail <player>
-    permission: controlbans.voidjail
-    aliases: [vjail, cbvoidjail]
-  unvoidjail:
-    description: Release a player from the void jail.
-    usage: /unvoidjail <player>
-    permission: controlbans.voidjail
-    aliases: [unvjail, cbunvoidjail]
-  banskin:
-    description: Removes a player's skin, forcing the default skin.
-    usage: /banskin <player> [reason]
-    permission: controlbans.banskin
-    aliases: [cbbanskin]
-  unbanskin:
-    description: Restores a player's ability to use their custom skin.
-    usage: /unbanskin <player>
-    permission: controlbans.banskin
-    aliases: [cbunbanskin]
   voicemute:
     description: Mute a player in voice chat.
     usage: /voicemute [-s] <player> [reason]
@@ -138,8 +123,8 @@ commands:
     permission: controlbans.chat
     aliases: [cchat, cbchat]
   punish:
-    description: Open the punishment GUI
-    usage: /punish <player>
+    description: Open the punishment UI (escalation presets)
+    usage: /punish <player> [preset] [notes]
     permission: controlbans.punish
     aliases: [ p, gui, cbpunish ]
   unipban:
@@ -187,11 +172,36 @@ commands:
     usage: /staff
     permission: controlbans.staff
     aliases: [ online, staffonline, cbstaff ]
+  scheduledpunishment:
+    description: List and manage scheduled punishments
+    usage: /scheduledpunishment <list|cancel|check> [args]
+    permission: controlbans.scheduled
+    aliases: [ sp, scheduled, cbscheduled ]
+  bulkpunishment:
+    description: Punish multiple players at once, optionally on a schedule
+    usage: /bulkpunishment <action> [--schedule <time>] [--silent] <players...> / [reason]
+    permission: controlbans.bulkpunish
+    aliases: [ bp, bulkp, cbbulk ]
+  banskin:
+    description: Force a player's skin to the default skin
+    usage: /banskin <player>
+    permission: controlbans.banskin
+    aliases: [ skinban, cbbanskin ]
+  unbanskin:
+    description: Restore normal skin behavior for a player
+    usage: /unbanskin <player>
+    permission: controlbans.unbanskin
+    aliases: [ unskinban, cbunbanskin ]
 
 permissions:
   controlbans.*:
     description: Access to all ControlBans commands
     children:
+      controlbans.scheduled: true
+      controlbans.bulkpunish: true
+      controlbans.banskin: true
+      controlbans.unbanskin: true
+      controlbans.bypass.alts: true
       controlbans.ban: true
       controlbans.tempban: true
       controlbans.unban: true
@@ -206,6 +216,7 @@ permissions:
       controlbans.check: true
       controlbans.alts: true
       controlbans.appeal: true
+      controlbans.appeal.review: true
       controlbans.admin: true
       controlbans.admin.rollback: true
       controlbans.admin.export: true
@@ -217,8 +228,6 @@ permissions:
       controlbans.mute.ip: true
       controlbans.notify.silent: true
       controlbans.alerts.receive: true
-      controlbans.voidjail: true
-      controlbans.banskin: true
       controlbans.voicemute: true
       controlbans.tempvoicemute: true
       controlbans.voiceunmute: true
@@ -229,6 +238,7 @@ permissions:
       controlbans.unipmute: true
       controlbans.report: true
       controlbans.report.resolve: true
+      controlbans.report.view: true
       controlbans.banlist: true
       controlbans.mutelist: true
       controlbans.blame: true
@@ -237,6 +247,9 @@ permissions:
       controlbans.bypass.chat: true
       controlbans.bypass.spam: true
       controlbans.bypass.caps: true
+      controlbans.stealth: true
+      controlbans.mod: true
+      controlbans.exempt.freeze: false
   controlbans.ban:
     description: Permission to ban players
     default: op
@@ -279,6 +292,15 @@ permissions:
   controlbans.appeal:
     description: Allows players to submit mute appeals
     default: true
+  controlbans.appeal.review:
+    description: Permission to review and resolve mute appeals.
+    default: op
+  controlbans.banskin:
+    description: Permission to force a player's skin to the default skin.
+    default: op
+  controlbans.unbanskin:
+    description: Permission to remove a skin ban.
+    default: op
   controlbans.admin:
     description: Permission for administrative commands (reload, etc.)
     default: op
@@ -305,6 +327,9 @@ permissions:
   controlbans.exempt:
     description: Exemption from punishments
     default: false
+  controlbans.exempt.freeze:
+    description: Exemption from being frozen.
+    default: false
   controlbans.ban.ip:
     description: Permission to ban by IP address.
     default: op
@@ -316,12 +341,6 @@ permissions:
     default: op
   controlbans.alerts.receive:
     description: Receives staff-only moderation alerts.
-    default: op
-  controlbans.voidjail:
-    description: Permission to use the void jail commands.
-    default: op
-  controlbans.banskin:
-    description: Permission to use the skin banning commands.
     default: op
   controlbans.voicemute:
     description: Permission to mute players in voice chat.
@@ -353,6 +372,9 @@ permissions:
   controlbans.report.resolve:
     description: Permission to review and resolve reports.
     default: op
+  controlbans.report.view:
+    description: Permission to view the staff reports GUI.
+    default: op
   controlbans.banlist:
     description: Permission to view active bans.
     default: op
@@ -376,4 +398,19 @@ permissions:
     default: op
   controlbans.bypass.caps:
     description: Bypass caps normalization.
+    default: op
+  controlbans.bypass.alts:
+    description: Exempt account and all accounts sharing its IP from alt-account tracking.
+    default: op
+  controlbans.stealth:
+    description: Use stealth mode (IP obfuscation) for punishments.
+    default: op
+  controlbans.mod:
+    description: Access to restricted escalation presets (e.g. ban-evasion).
+    default: op
+  controlbans.scheduled:
+    description: Permission to list and manage scheduled punishments.
+    default: op
+  controlbans.bulkpunish:
+    description: Permission to use bulk punishment commands.
     default: op

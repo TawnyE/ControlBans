@@ -5,6 +5,8 @@ import ret.tawny.controlbans.ControlBansPlugin;
 
 import java.util.List;
 import java.util.StringJoiner;
+import java.util.UUID;
+import java.util.concurrent.CompletionException;
 
 public class VoiceMuteCommand extends CommandBase {
 
@@ -24,37 +26,46 @@ public class VoiceMuteCommand extends CommandBase {
             return true;
         }
 
-        boolean silent = args[0].equalsIgnoreCase("-s");
-        int targetIndex = silent ? 1 : 0;
-        if (args.length <= targetIndex) {
+        boolean silent = detectSilentFlag(args);
+        String[] cleanArgs = stripSilentFlag(args);
+        int targetIndex = 0;
+        if (cleanArgs.length <= targetIndex) {
             sender.sendMessage(locale.getMessage("errors.invalid-arguments", usagePlaceholder("/" + label + " [-s] <player> [reason]")));
             return true;
         }
 
-        String targetName = args[targetIndex];
+        MultiTargetResult parsed = parseMultiTargets(cleanArgs, targetIndex, false);
+        List<String> targets = parsed.targets();
         StringJoiner reasonJoiner = new StringJoiner(" ");
-        for (int i = targetIndex + 1; i < args.length; i++) {
-            reasonJoiner.add(args[i]);
+        for (int i = parsed.reasonStart(); i < cleanArgs.length; i++) {
+            reasonJoiner.add(cleanArgs[i]);
         }
         String reason = reasonJoiner.toString().isEmpty() ? null : reasonJoiner.toString();
 
+        if (targets.isEmpty()) {
+            sender.sendMessage(locale.getMessage("errors.invalid-arguments", usagePlaceholder("/" + label + " [-s] <player> [reason]")));
+            return true;
+        }
 
-        punishmentService.voiceMutePlayer(targetName, reason, getSenderUuid(sender), sender.getName(), silent)
-                .whenComplete((unused, throwable) -> {
-                    if (throwable != null) {
-                        handlePunishmentError(throwable, sender, targetName);
-                    } else {
-                        sender.sendMessage(locale.getMessage("success.voicemute", playerPlaceholder(targetName)));
-                    }
-                });
+        UUID staffUuid = getSenderUuid(sender);
+        String staffName = sender.getName();
+
+        for (String target : targets) {
+            punishmentService.voiceMutePlayer(target, reason, staffUuid, staffName, silent)
+                    .whenComplete((unused, throwable) -> {
+                        if (throwable != null) {
+                            handlePunishmentError(throwable, sender, target);
+                        } else {
+                            sender.sendMessage(locale.getMessage("success.voicemute", playerPlaceholder(target)));
+                        }
+                    });
+        }
         return true;
     }
 
     @Override
     public List<String> onTab(CommandSender sender, String[] args) {
-        if (args.length == 1 || (args.length == 2 && args[0].equalsIgnoreCase("-s"))) {
-            return getPlayerSuggestions(args[args.length - 1]);
-        }
-        return List.of();
+        int argIndex = args.length - 1;
+        return getPlayerSuggestions(args[argIndex]);
     }
 }

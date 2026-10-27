@@ -46,18 +46,18 @@ public class ImportService {
     public void importFromEssentials(CommandSender sender) {
         CompletableFuture.runAsync(() -> {
             if (Bukkit.getPluginManager().getPlugin("Essentials") == null) {
-                sender.sendMessage(locale.getMessage("import.essentials-not-installed"));
+                tell(sender, locale.getMessage("import.essentials-not-installed"));
                 return;
             }
             File essentialsDataFolder = Bukkit.getPluginManager().getPlugin("Essentials").getDataFolder();
             File userdataFolder = new File(essentialsDataFolder, "userdata");
 
             if (!userdataFolder.exists() || !userdataFolder.isDirectory()) {
-                sender.sendMessage(locale.getMessage("import.essentials-userdata-not-found"));
+                tell(sender, locale.getMessage("import.essentials-userdata-not-found"));
                 return;
             }
 
-            sender.sendMessage(locale.getMessage("import.essentials-starting"));
+            tell(sender, locale.getMessage("import.essentials-starting"));
 
             AtomicInteger count = new AtomicInteger(0);
             Semaphore semaphore = new Semaphore(MAX_CONCURRENT_IMPORTS);
@@ -83,10 +83,10 @@ public class ImportService {
 
                 CompletableFuture.allOf(importTasks.toArray(new CompletableFuture[0])).join();
 
-                sender.sendMessage(locale.getMessage("import.essentials-success", Placeholder.unparsed("count", String.valueOf(count.get()))));
+                tell(sender, locale.getMessage("import.essentials-success", Placeholder.unparsed("count", String.valueOf(count.get()))));
 
             } catch (Exception e) {
-                sender.sendMessage(locale.getMessage("import.import-failed", Placeholder.unparsed("error", e.getMessage())));
+                tell(sender, locale.getMessage("import.import-failed", Placeholder.unparsed("error", String.valueOf(e.getMessage()))));
                 plugin.getLogger().log(Level.SEVERE, "Error reading Essentials directory", e);
             }
         });
@@ -134,14 +134,14 @@ public class ImportService {
 
     public void importFromLiteBans(CommandSender sender) {
         CompletableFuture.runAsync(() -> {
-            sender.sendMessage(locale.getMessage("import.litebans-connecting"));
+            tell(sender, locale.getMessage("import.litebans-connecting"));
             HikariConfig sourceConfig = new HikariConfig();
-            String dbType = plugin.getConfig().getString("import.sources.litebans.type", "sqlite");
+            String dbType = plugin.getConfig().getString("import.sources.litebans.type", "mysql");
 
             try {
                 configureDataSource(sourceConfig, dbType, "import.sources.litebans");
             } catch (Exception e) {
-                sender.sendMessage(locale.getMessage("import.litebans-connection-failed"));
+                tell(sender, locale.getMessage("import.litebans-connection-failed"));
                 return;
             }
 
@@ -151,7 +151,7 @@ public class ImportService {
             try (HikariDataSource sourceDataSource = new HikariDataSource(sourceConfig);
                  Connection sourceConn = sourceDataSource.getConnection()) {
 
-                sender.sendMessage(locale.getMessage("import.litebans-connection-success"));
+                tell(sender, locale.getMessage("import.litebans-connection-success"));
 
                 int total = 0;
                 total += importTable(sourceConn, "bans", sender);
@@ -159,23 +159,23 @@ public class ImportService {
                 total += importTable(sourceConn, "warnings", sender);
                 total += importTable(sourceConn, "kicks", sender);
 
-                sender.sendMessage(locale.getMessage("import.litebans-import-complete", Placeholder.unparsed("count", String.valueOf(total))));
+                tell(sender, locale.getMessage("import.litebans-import-complete", Placeholder.unparsed("count", String.valueOf(total))));
 
             } catch (Exception e) {
-                sender.sendMessage(locale.getMessage("import.litebans-import-error", Placeholder.unparsed("error", e.getMessage())));
+                tell(sender, locale.getMessage("import.litebans-import-error", Placeholder.unparsed("error", String.valueOf(e.getMessage()))));
             }
         });
     }
 
     public void importFromAdvancedBan(CommandSender sender) {
         CompletableFuture.runAsync(() -> {
-            sender.sendMessage(locale.getMessage("import.advancedban-connecting"));
+            tell(sender, locale.getMessage("import.advancedban-connecting"));
             HikariConfig sourceConfig = new HikariConfig();
 
             try {
                 configureDataSource(sourceConfig, "mysql", "import.sources.advancedban");
             } catch (Exception e) {
-                sender.sendMessage(locale.getMessage("import.advancedban-connection-failed"));
+                tell(sender, locale.getMessage("import.advancedban-connection-failed"));
                 return;
             }
 
@@ -185,13 +185,13 @@ public class ImportService {
             try (HikariDataSource sourceDataSource = new HikariDataSource(sourceConfig);
                  Connection sourceConn = sourceDataSource.getConnection()) {
 
-                sender.sendMessage(locale.getMessage("import.advancedban-connection-success"));
+                tell(sender, locale.getMessage("import.advancedban-connection-success"));
 
                 int total = importAdvancedBanTable(sourceConn, sender);
-                sender.sendMessage(locale.getMessage("import.advancedban-import-complete", Placeholder.unparsed("count", String.valueOf(total))));
+                tell(sender, locale.getMessage("import.advancedban-import-complete", Placeholder.unparsed("count", String.valueOf(total))));
 
             } catch (Exception e) {
-                sender.sendMessage(locale.getMessage("import.advancedban-import-error", Placeholder.unparsed("error", e.getMessage())));
+                tell(sender, locale.getMessage("import.advancedban-import-error", Placeholder.unparsed("error", String.valueOf(e.getMessage()))));
             }
         });
     }
@@ -252,7 +252,7 @@ public class ImportService {
             }
             CompletableFuture.allOf(importTasks.toArray(new CompletableFuture[0])).join();
         } catch (Exception e) {
-            sender.sendMessage(locale.getMessage("import.import-table-failed", Placeholder.unparsed("table", "Punishments")));
+            tell(sender, locale.getMessage("import.import-table-failed", Placeholder.unparsed("table", "Punishments")));
             plugin.getLogger().log(Level.SEVERE, "Failed to import from AdvancedBan", e);
         }
         return count;
@@ -261,7 +261,8 @@ public class ImportService {
     private void configureDataSource(HikariConfig config, String dbType, String configPath) {
         switch (dbType.toLowerCase()) {
             case "mysql", "mariadb" -> {
-                config.setJdbcUrl(String.format("jdbc:mysql://%s:%d/%s",
+                config.setDriverClassName(resolveDriver("ret.tawny.controlbans.libs.mysql.cj.jdbc.Driver", "com.mysql.cj.jdbc.Driver"));
+                config.setJdbcUrl(String.format("jdbc:mysql://%s:%d/%s?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC",
                         plugin.getConfig().getString(configPath + ".host"),
                         plugin.getConfig().getInt(configPath + ".port"),
                         plugin.getConfig().getString(configPath + ".database")));
@@ -269,10 +270,35 @@ public class ImportService {
                 config.setPassword(plugin.getConfig().getString(configPath + ".password"));
             }
             case "sqlite" -> {
-                File dbFile = new File(plugin.getConfig().getString(configPath + ".sqlite-file"));
-                config.setJdbcUrl("jdbc:sqlite:" + dbFile.getAbsolutePath());
+                config.setDriverClassName("org.sqlite.JDBC");
+                String sqliteFile = plugin.getConfig().getString(configPath + ".file",
+                        plugin.getConfig().getString(configPath + ".sqlite-file",
+                                plugin.getConfig().getString(configPath + ".database", "litebans.db")));
+                config.setJdbcUrl("jdbc:sqlite:" + sqliteFile);
             }
             default -> throw new IllegalArgumentException("Unsupported type: " + dbType);
+        }
+    }
+
+    private static String resolveDriver(String shaded, String unshaded) {
+        try {
+            Class.forName(shaded);
+            return shaded;
+        } catch (ClassNotFoundException ignored) {}
+        return unshaded;
+    }
+
+    private void tell(CommandSender sender, net.kyori.adventure.text.Component message) {
+        try {
+            plugin.getSchedulerAdapter().runTask(() -> {
+                try {
+                    sender.sendMessage(message);
+                } catch (Exception ignored) {}
+            });
+        } catch (Exception e) {
+            try {
+                sender.sendMessage(message);
+            } catch (Exception ignored) {}
         }
     }
 
@@ -290,6 +316,9 @@ public class ImportService {
                     String uuid = rs.getString("uuid");
                     if (uuid == null) continue;
 
+                    long untilRaw = rs.getLong("until");
+                    if (rs.wasNull()) untilRaw = -1;
+                    long until = untilRaw <= 0 ? -1 : untilRaw;
                     Punishment.Builder builder = Punishment.builder()
                             .punishmentId(IdUtil.generatePunishmentId())
                             .targetUuid(UUID.fromString(uuid))
@@ -297,12 +326,12 @@ public class ImportService {
                             .reason(rs.getString("reason"))
                             .staffName(rs.getString("banned_by_name"))
                             .createdTime(rs.getLong("time"))
-                            .expiryTime(rs.getLong("until"))
+                            .expiryTime(until)
                             .active(rs.getBoolean("active"));
 
                     Punishment p = switch (type) {
-                        case "bans" -> builder.type(rs.getLong("until") == -1 ? PunishmentType.BAN : PunishmentType.TEMPBAN).build();
-                        case "mutes" -> builder.type(rs.getLong("until") == -1 ? PunishmentType.MUTE : PunishmentType.TEMPMUTE).build();
+                        case "bans" -> builder.type(until <= 0 ? PunishmentType.BAN : PunishmentType.TEMPBAN).build();
+                        case "mutes" -> builder.type(until <= 0 ? PunishmentType.MUTE : PunishmentType.TEMPMUTE).build();
                         case "warnings" -> builder.type(PunishmentType.WARN).build();
                         case "kicks" -> builder.type(PunishmentType.KICK).build();
                         default -> null;
@@ -321,7 +350,7 @@ public class ImportService {
             }
             CompletableFuture.allOf(importTasks.toArray(new CompletableFuture[0])).join();
         } catch (Exception e) {
-            sender.sendMessage(locale.getMessage("import.import-table-failed", Placeholder.unparsed("table", tableName)));
+            tell(sender, locale.getMessage("import.import-table-failed", Placeholder.unparsed("table", tableName)));
             plugin.getLogger().log(Level.SEVERE, "Failed to import from table: " + tableName, e);
         }
         return count;

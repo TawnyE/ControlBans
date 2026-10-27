@@ -7,6 +7,7 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import ret.tawny.controlbans.ControlBansPlugin;
+import ret.tawny.controlbans.config.YamlHealth;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -33,15 +34,44 @@ public class LocaleManager {
 
     public void loadLocales() {
         String lang = plugin.getConfigManager().getLanguage();
-        File localeFile = new File(plugin.getDataFolder(), "locales/" + lang + ".yml");
         File defaultLocaleFile = new File(plugin.getDataFolder(), "locales/en.yml");
-        File localesFolder = localeFile.getParentFile();
+        File localesFolder = defaultLocaleFile.getParentFile();
 
         ensureDefaultLocales(localesFolder);
 
-        if (!localeFile.exists()) {
-            plugin.getLogger().warning("Locale file '" + lang + ".yml' not found. Defaulting to 'en.yml'.");
-            localeFile = defaultLocaleFile;
+        // en.yml is the reference/fallback locale: quarantine it if it no
+        // longer parses, then regenerate a fresh copy from the JAR.
+        if (defaultLocaleFile.isFile()) {
+            String healthError = YamlHealth.validate(defaultLocaleFile);
+            if (healthError != null) {
+                File backup = YamlHealth.quarantine(defaultLocaleFile);
+                warnQuarantinedLocale("en", healthError, backup);
+                if (backup != null) {
+                    regenerateEnglish();
+                }
+            }
+        }
+
+        File localeFile = defaultLocaleFile;
+        if (!"en".equalsIgnoreCase(lang)) {
+            File custom = new File(localesFolder, lang + ".yml");
+            if (custom.isFile()) {
+                // A community/custom locale dropped into the folder: use it
+                // when it parses, fall back to English when it does not.
+                String healthError = YamlHealth.validate(custom);
+                if (healthError == null) {
+                    localeFile = custom;
+                } else {
+                    File backup = YamlHealth.quarantine(custom);
+                    warnQuarantinedLocale(lang, healthError, backup);
+                }
+            } else {
+                plugin.getLogger().warning("[Locales] language '" + lang + "' is not shipped with this version; using English. "
+                        + "Community translations are welcome via the GitHub repo.");
+            }
+        } else if (!localeFile.isFile()) {
+            plugin.getLogger().warning("Locale file 'en.yml' not found on disk; falling back to the bundled English locale.");
+            regenerateEnglish();
         }
 
         this.localeConfig = YamlConfiguration.loadConfiguration(localeFile);
@@ -52,12 +82,16 @@ public class LocaleManager {
                         new InputStreamReader(fallbackStream, StandardCharsets.UTF_8));
                 mergeBundledLocale(fallbackConfig, "locales/common-additions.yml");
                 syncLocaleFiles(localesFolder);
+                // Reload active locale from disk so backfilled keys apply immediately
+                // (syncLocaleFiles updates files on disk, but localeConfig was already loaded).
+                this.localeConfig = YamlConfiguration.loadConfiguration(localeFile.exists() ? localeFile : defaultLocaleFile);
+                // Merge any still-missing keys from fallback into memory so a single restart heals old data-folder files.
+                mergeMissingValues(fallbackConfig, localeConfig, "");
             } else {
                 throw new IllegalStateException("Default English locale file is missing from the plugin JAR.");
             }
         } catch (Exception e) {
-            plugin.getLogger().severe("Could not load fallback English locale from JAR.");
-            e.printStackTrace();
+            plugin.getLogger().severe("Could not load fallback English locale from JAR: " + e.getMessage());
         }
 
         mergeBundledLocale(localeConfig, "locales/common-additions.yml");
@@ -78,7 +112,13 @@ public class LocaleManager {
     public List<Component> getMessageList(String key, TagResolver... resolvers) {
         List<String> messages = localeConfig.getStringList(key);
         if (messages.isEmpty()) {
-            messages = fallbackConfig.getStringList(key);
+            String single = localeConfig.getString(key);
+            if (single != null) messages = List.of(single);
+            else messages = fallbackConfig.getStringList(key);
+            if (messages.isEmpty()) {
+                String fallbackSingle = fallbackConfig.getString(key);
+                if (fallbackSingle != null) messages = List.of(fallbackSingle);
+            }
         }
 
         return messages.stream()
@@ -96,12 +136,35 @@ public class LocaleManager {
             plugin.getLogger().warning("Could not create locales folder at " + localesFolder.getAbsolutePath());
         }
 
-        for (String defaultLocale : List.of("en", "de", "es", "fr", "it", "ja", "nl", "pt", "ru", "tr")) {
-            File targetFile = new File(plugin.getDataFolder(), "locales/" + defaultLocale + ".yml");
-            if (!targetFile.exists()) {
-                plugin.saveResource("locales/" + defaultLocale + ".yml", false);
-            }
+        File targetFile = new File(plugin.getDataFolder(), "locales/en.yml");
+        if (!targetFile.exists()) {
+            plugin.saveResource("locales/en.yml", false);
         }
+    }
+
+    private void regenerateEnglish() {
+        try {
+            plugin.saveResource("locales/en.yml", true);
+        } catch (IllegalArgumentException extractFailure) {
+            plugin.getLogger().severe("Could not extract locales/en.yml from the plugin JAR: "
+                    + extractFailure.getMessage());
+        }
+    }
+
+    private void warnQuarantinedLocale(String lang, String healthError, File backup) {
+        plugin.getLogger().warning("------------------------------------------------------------");
+        plugin.getLogger().warning("locales/" + lang + ".yml could not be read (usually a spacing or indentation mistake).");
+        plugin.getLogger().warning("Parser said: " + healthError);
+        if (backup != null) {
+            plugin.getLogger().warning("Your old file was kept as " + backup.getName() + ".");
+        }
+        if ("en".equalsIgnoreCase(lang)) {
+            plugin.getLogger().warning("A fresh copy was generated from the plugin JAR.");
+        } else {
+            plugin.getLogger().warning("[Locales] language '" + lang + "' is not shipped with this version; using English. "
+                    + "Community translations are welcome via the GitHub repo.");
+        }
+        plugin.getLogger().warning("------------------------------------------------------------");
     }
 
     private void mergeBundledLocale(FileConfiguration targetConfig, String resourcePath) {
@@ -124,12 +187,21 @@ public class LocaleManager {
             return;
         }
 
-        File[] localeFiles = localesFolder.listFiles((dir, name) -> name.endsWith(".yml"));
+        // Quarantined backups (<name>.broken-<timestamp>.yml) must never be
+        // rewritten by the backfill loop, and files that fail the strict
+        // parse are skipped rather than silently replaced with defaults.
+        File[] localeFiles = localesFolder.listFiles((dir, name) -> name.endsWith(".yml") && !name.contains(".broken-"));
         if (localeFiles == null) {
             return;
         }
 
         for (File file : localeFiles) {
+            String healthError = YamlHealth.validate(file);
+            if (healthError != null) {
+                plugin.getLogger().warning("Skipping backfill for " + file.getName()
+                        + " — the file has YAML errors (" + healthError + ").");
+                continue;
+            }
             YamlConfiguration targetConfig = YamlConfiguration.loadConfiguration(file);
             if (mergeMissingValues(fallbackConfig, targetConfig, "")) {
                 try {

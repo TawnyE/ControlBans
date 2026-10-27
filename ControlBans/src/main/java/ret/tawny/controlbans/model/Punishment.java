@@ -18,6 +18,7 @@ public class Punishment {
     private final boolean silent;
     private final boolean ipBan;
     private final boolean active;
+    private final String templateKey;
 
     private Punishment(Builder builder) {
         this.id = builder.id;
@@ -35,6 +36,7 @@ public class Punishment {
         this.silent = builder.silent;
         this.ipBan = builder.ipBan;
         this.active = builder.active;
+        this.templateKey = builder.templateKey;
     }
 
     public static Builder builder() {
@@ -57,7 +59,8 @@ public class Punishment {
                 .serverOrigin(this.serverOrigin)
                 .silent(this.silent)
                 .ipBan(this.ipBan)
-                .active(this.active);
+                .active(this.active)
+                .templateKey(this.templateKey);
     }
 
     public int getId() {
@@ -120,8 +123,12 @@ public class Punishment {
         return active;
     }
 
+    public String getTemplateKey() {
+        return templateKey;
+    }
+
     public boolean isPermanent() {
-        return expiryTime == -1 || expiryTime == 0;
+        return expiryTime <= 0;
     }
 
     public boolean isExpired() {
@@ -151,6 +158,7 @@ public class Punishment {
         private boolean silent;
         private boolean ipBan;
         private boolean active = true;
+        private String templateKey;
 
         public Builder id(int id) {
             this.id = id;
@@ -224,6 +232,11 @@ public class Punishment {
 
         public Builder active(boolean active) {
             this.active = active;
+            return this;
+        }
+
+        public Builder templateKey(String templateKey) {
+            this.templateKey = templateKey;
             return this;
         }
 

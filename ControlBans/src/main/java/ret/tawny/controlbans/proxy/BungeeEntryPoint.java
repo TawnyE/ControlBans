@@ -51,11 +51,17 @@ public class BungeeEntryPoint extends Plugin implements Listener {
 
             String action = json.get("action").getAsString().toUpperCase(Locale.ROOT);
 
+            boolean handled = true;
             switch (action) {
                 case "KICK_PLAYER" -> handleKick(json);
                 case "BROADCAST" -> handleBroadcast(json);
                 case "STAFF_ALERT" -> handleStaffAlert(json);
                 case "INVALIDATE_CACHE" -> handleCacheInvalidation(json, sourceServer, event.getData());
+                default -> handled = false;
+            }
+            if (handled) {
+                // Consume the message so it isn't forwarded further
+                event.setCancelled(true);
             }
         } catch (IOException | JsonParseException ignored) {}
     }

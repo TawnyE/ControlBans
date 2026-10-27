@@ -14,7 +14,7 @@ public class UnIpMuteCommand extends CommandBase {
 
     @Override
     public boolean execute(CommandSender sender, String[] args) {
-        if (!sender.hasPermission("controlbans.mute.ip")) {
+        if (!sender.hasPermission("controlbans.unipmute")) {
             sender.sendMessage(locale.getMessage("errors.no-permission"));
             return true;
         }
@@ -30,7 +30,7 @@ public class UnIpMuteCommand extends CommandBase {
                     if (throwable != null) {
                         if ((throwable.getMessage() != null && throwable.getMessage().contains("no-ip-on-record")) ||
                             (throwable.getCause() != null && throwable.getCause().getMessage() != null && throwable.getCause().getMessage().contains("no-ip-on-record"))) {
-                            sender.sendMessage(locale.getMessage("errors.no-ip-on-record", playerPlaceholder(targetIp)));
+                            sender.sendMessage(locale.getMessage("errors.no-ip-on-record", playerAndTargetPlaceholders(targetIp)));
                         } else {
                             sender.sendMessage(locale.getMessage("errors.database-error"));
                         }

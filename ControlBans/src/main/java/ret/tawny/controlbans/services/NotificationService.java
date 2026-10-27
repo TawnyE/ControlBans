@@ -43,24 +43,72 @@ public class NotificationService {
         if (!configManager.isBroadcastEnabled()) return;
         if (punishment.isSilent()) return;
         Component message = formatBroadcastMessage(punishment);
+        
+        if (configManager.isBroadcastPlayers()) {
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                // Staff with alerts.receive get the staff alert instead — avoid double-notify.
+                if (player.hasPermission("controlbans.alerts.receive")) continue;
+                player.sendMessage(message);
+            }
+        }
+        if (configManager.isBroadcastConsole()) {
+            Bukkit.getConsoleSender().sendMessage(message);
+        }
+        
         proxyService.sendBroadcastMessage(LegacyComponentSerializer.legacySection().serialize(message));
     }
 
     public void broadcastUnban(String playerName, String staffName) {
+        broadcastUnban(playerName, staffName, false);
+    }
+
+    public void broadcastUnban(String playerName, String staffName, boolean silent) {
+        if (silent) {
+            sendStaffAlertForAction("unban", playerName, staffName);
+            return;
+        }
         if (!configManager.isBroadcastEnabled()) return;
         String display = IP_PATTERN.matcher(playerName).matches() ? IpUtil.maskIp(playerName) : playerName;
         Component message = localeManager.getMessage("broadcasts.unban",
                 Placeholder.unparsed("player", display),
                 Placeholder.unparsed("staff", staffName));
+                
+        if (configManager.isBroadcastPlayers()) {
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                player.sendMessage(message);
+            }
+        }
+        if (configManager.isBroadcastConsole()) {
+            Bukkit.getConsoleSender().sendMessage(message);
+        }
+
         proxyService.sendBroadcastMessage(LegacyComponentSerializer.legacySection().serialize(message));
         sendStaffAlertForAction("unban", display, staffName);
     }
 
     public void broadcastUnmute(String playerName, String staffName) {
+        broadcastUnmute(playerName, staffName, false);
+    }
+
+    public void broadcastUnmute(String playerName, String staffName, boolean silent) {
+        if (silent) {
+            sendStaffAlertForAction("unmute", playerName, staffName);
+            return;
+        }
         if (!configManager.isBroadcastEnabled()) return;
         Component message = localeManager.getMessage("broadcasts.unmute",
                 Placeholder.unparsed("player", playerName),
                 Placeholder.unparsed("staff", staffName));
+                
+        if (configManager.isBroadcastPlayers()) {
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                player.sendMessage(message);
+            }
+        }
+        if (configManager.isBroadcastConsole()) {
+            Bukkit.getConsoleSender().sendMessage(message);
+        }
+        
         proxyService.sendBroadcastMessage(LegacyComponentSerializer.legacySection().serialize(message));
         sendStaffAlertForAction("unmute", playerName, staffName);
     }
@@ -108,14 +156,17 @@ public class NotificationService {
         if (soundName != null) {
             try {
                 alertSound = Sound.valueOf(soundName);
-            } catch (IllegalArgumentException ignored) {}
+            } catch (IllegalArgumentException e) {
+                plugin.getLogger().warning("[ControlBans] Invalid staff-alerts.sound.type '" + soundName + "' — check config.yml. Sounds disabled until fixed.");
+            }
         }
 
         float volume = configManager.getStaffAlertVolume();
         float pitch = configManager.getStaffAlertPitch();
+        String notifyPerm = configManager.getReportNotifyPermission();
 
         for (Player online : Bukkit.getOnlinePlayers()) {
-            if (online.hasPermission("controlbans.alerts.receive")) {
+            if (online.hasPermission("controlbans.alerts.receive") || online.hasPermission(notifyPerm)) {
                 online.sendMessage(message);
                 if (alertSound != null) {
                     online.playSound(online.getLocation(), alertSound, volume, pitch);
@@ -130,8 +181,13 @@ public class NotificationService {
         else if (punishment.getType() == PunishmentType.TEMPVOICEMUTE) typeKey = "tempvoicemute";
         else typeKey = punishment.getType().name().toLowerCase();
 
+        String displayName = switch (punishment.getType()) {
+            case IPBAN, TEMPIPBAN, IPMUTE, TEMPIPMUTE -> IpUtil.maskIp(punishment.getTargetName());
+            default -> punishment.getTargetName();
+        };
+
         return localeManager.getMessage("broadcasts." + typeKey,
-                Placeholder.unparsed("player", punishment.getTargetName()),
+                Placeholder.unparsed("player", displayName),
                 Placeholder.unparsed("staff", punishment.getStaffName() != null ? punishment.getStaffName() : "Console"),
                 Placeholder.unparsed("reason", punishment.getReason()),
                 Placeholder.unparsed("duration", punishment.getType().isTemporary()
@@ -203,6 +259,7 @@ public class NotificationService {
                 ? "Permanent" : TimeUtil.formatDuration(punishment.getRemainingTime() / 1000);
         String playerName = punishment.getTargetName() != null ? punishment.getTargetName() : "Unknown";
 
+        String appeal = plugin.getConfigManager().getAppealLink();
         TagResolver placeholders = TagResolver.builder()
                 .resolver(Placeholder.unparsed("player", playerName))
                 .resolver(Placeholder.unparsed("staff", staff))
@@ -210,6 +267,7 @@ public class NotificationService {
                 .resolver(Placeholder.unparsed("id", id))
                 .resolver(Placeholder.unparsed("date", date))
                 .resolver(Placeholder.unparsed("duration", duration))
+                .resolver(Placeholder.unparsed("appeal", appeal != null ? appeal : ""))
                 .build();
         return localeManager.getMessageList(configPath, placeholders);
     }

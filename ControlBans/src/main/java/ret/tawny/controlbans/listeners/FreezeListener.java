@@ -17,6 +17,8 @@ import ret.tawny.controlbans.ControlBansPlugin;
 import ret.tawny.controlbans.services.FreezeManager;
 import ret.tawny.controlbans.util.ChatUtil;
 
+import java.util.UUID;
+
 public class FreezeListener implements Listener {
 
     private final ControlBansPlugin plugin;
@@ -32,11 +34,58 @@ public class FreezeListener implements Listener {
         if (!freezeManager.isFrozen(event.getPlayer().getUniqueId()))
             return;
 
+        if (event.getTo() == null) return;
         if (event.getFrom().getX() != event.getTo().getX() ||
                 event.getFrom().getY() != event.getTo().getY() ||
                 event.getFrom().getZ() != event.getTo().getZ()) {
 
-            event.setTo(event.getFrom());
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onTeleport(org.bukkit.event.player.PlayerTeleportEvent event) {
+        if (freezeManager.isFrozen(event.getPlayer().getUniqueId())) {
+            event.setCancelled(true);
+            event.getPlayer().sendMessage(plugin.getLocaleManager().getMessage("freeze.cannot-interact"));
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onCommand(org.bukkit.event.player.PlayerCommandPreprocessEvent event) {
+        if (freezeManager.isFrozen(event.getPlayer().getUniqueId())) {
+            String msg = event.getMessage().toLowerCase();
+            // Allowlist: none — frozen players may not run commands.
+            event.setCancelled(true);
+            event.getPlayer().sendMessage(plugin.getLocaleManager().getMessage("freeze.cannot-interact"));
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onVehicleEnter(org.bukkit.event.vehicle.VehicleEnterEvent event) {
+        if (event.getEntered() instanceof Player player && freezeManager.isFrozen(player.getUniqueId())) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onVehicleExit(org.bukkit.event.vehicle.VehicleExitEvent event) {
+        if (event.getExited() instanceof Player player && freezeManager.isFrozen(player.getUniqueId())) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onDamageTaken(org.bukkit.event.entity.EntityDamageEvent event) {
+        if (event.getEntity() instanceof Player player && freezeManager.isFrozen(player.getUniqueId())) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onPickup(org.bukkit.event.entity.EntityPickupItemEvent event) {
+        if (event.getEntity() instanceof Player player && freezeManager.isFrozen(player.getUniqueId())) {
+            event.setCancelled(true);
         }
     }
 
@@ -86,8 +135,10 @@ public class FreezeListener implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-        if (freezeManager.isFrozen(event.getPlayer().getUniqueId())) {
-            String playerName = event.getPlayer().getName();
+        // Capture identity up-front; never touch the Player object again after quit.
+        final UUID playerUuid = event.getPlayer().getUniqueId();
+        final String playerName = event.getPlayer().getName();
+        if (freezeManager.isFrozen(playerUuid)) {
             plugin.getLogger().warning("Frozen player " + playerName + " logged out! Auto-banning...");
 
             String reason = plugin.getLocaleManager().getRawMessage("freeze.logout-ban-reason");
@@ -99,9 +150,10 @@ public class FreezeListener implements Listener {
                     true,
                     false
             ).thenRun(() -> {
-                freezeManager.setFrozen(event.getPlayer().getUniqueId(), false);
+                freezeManager.setFrozen(playerUuid, false);
             }).exceptionally(ex -> {
-                plugin.getLogger().warning("Failed to auto-ban frozen player " + playerName + ": " + ex.getMessage());
+                plugin.getLogger().warning("Failed to auto-ban frozen player " + playerName + " (" + playerUuid + "): " + ex.getMessage());
+                freezeManager.setFrozen(playerUuid, false);
                 return null;
             });
         }
